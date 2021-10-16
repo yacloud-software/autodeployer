@@ -1,5 +1,15 @@
 # Auto Deployer
-# Updated 26/02/2019
+
+The autodeployer and deploymonkey suite are simple tools to
+start binaries on a farm of servers.
+The deploymonkey keeps track of versions and instructs autodeployer
+to start/stop binaries. (or binaries within tar files).
+It's design goals are
+* simplicity
+* no dependencies on build chains
+* do not fiddle with networks or containers
+
+
 deploymonkey is deprecated and replaced by deployminator
 =======================================================
 a) the name "deploymonkey" is not great - naming is hard
