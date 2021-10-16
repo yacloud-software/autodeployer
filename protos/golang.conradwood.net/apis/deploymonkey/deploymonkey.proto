@@ -1,0 +1,317 @@
+
+syntax = "proto3";
+
+package deploymonkey;
+option java_package = "net.conradwood.golang.apis.deploymonkey";
+
+// import "golang.conradwood.net/apis/autodeployer/autodeployer.proto";
+import "golang.conradwood.net/apis/common/common.proto";
+
+/*
+ this is stored with the applicaton and thus may be retrieved on
+ the deploylist. it may also be retrieved by the application itself on the startup proto
+*/
+message AppReference {
+  uint64 ID = 1;
+  ApplicationDefinition AppDef = 2;
+}
+
+//*************************
+// This proto is super annoying because its naming
+// is inconsistent!
+// sometimes it's called a groupid, sometimes groupname,
+// sometimes Namespace, sometimes NameSpace
+// I literally have to look up the corect spehling every time
+//*************************
+
+// the normal, intended flow is like so:
+// 1. the deploymonkey is configured with a group of applications,
+//    in its simplest form it's a single application
+// 2. each build calls UpdateApp with the buildid of the new build
+// 3. -> goto 2
+
+message ApplicationDefinition {
+  // a url where the binary or tar archive is downloaded from
+  // (may also be an absolute filename)
+  string DownloadURL = 1;
+  // if the URL requires authentication, this is the username
+  string DownloadUser = 2;
+  // if the URL requires authentication, this is the password
+  string DownloadPassword = 3;
+  // if the URL is an archive, this refers to the binary within the archive (relative to the archive)
+  string Binary = 4;
+  // list of arguments to pass as command line parameters to the application
+  repeated string Args = 5;
+  // the repository this application is built from
+  //  string Repository = 6;
+  // the buildid of this application
+  // (usually not part of deploy.yaml, but inserted by buildrepo)
+  uint64 BuildID = 7;
+  // how many instances should be running of this applicatoin
+  uint32 Instances = 8;
+  // usually not part of deploy.yaml - used by deploymonkey to track instances
+  string DeploymentID = 9;
+  // dunno
+  repeated AutoRegistration AutoRegs = 10;
+  // on which type of machines may this application be deployed. (must match autodeployer flag -machine_type)
+  string Machines = 11;
+  // either "webpackage" or empty string
+  string DeployType = 12;
+  // deploymonkey internal ID
+  uint64 ID = 13;
+  // if false, the app is considered optional. It won't be restarted nor alerted on
+  bool Critical = 14;
+  // typically application starts and continues to run. some applications, however are run-once. AlwaysOn=false means it runs once and exits and that is normal
+  // behaviour. If AlwaysOn is set to true and the application exits, it's considered an error
+  bool AlwaysOn = 15;
+  // some webpackges (e.g. "php(symfony)" REQUIRE a static directory). using this makes rollbacks somewhat "hit-and-miss". avoid if possible.
+  string StaticTargetDir = 16;
+  // wether or not this is public. this means:
+  // for webpackages: deploy in a public directory rather than a seperate directory
+  bool Public = 17;
+  // limits for this process. Defaults apply.
+  Limits Limits = 18;
+  /*
+    we specifically support java (rather than just binaries).
+    it will start java with -cp=libs* [binary]
+    implies that "binary" is set to a main class
+  */
+  bool Java = 19;
+  uint64 RepositoryID = 20; // the git repository id
+  bool AsRoot=21; // if true, run this as root
+}
+message Limits {
+  // max memory available to this process in Megabyte (default = 3000Mb )
+  uint32 MaxMemory = 1;
+  // see setPriorityCall on linux
+  int32 Priority = 2;
+}
+
+// a group consists of one or more applications
+// and a key (chosen by the creator)
+// if a group with a given key is redefined, all previous
+// instances of software in this group will be shutdown
+// any group can only have one application of a given repository
+// in its group
+message GroupDefinitionRequest {
+  string Namespace = 1;
+  string GroupID = 2;
+  // if we set a group as 'protected', then the deploymonkey
+  // won't allow a user to update it unless the user has a special
+  // authorisation. (To prevent accidental updates to 'live')
+  bool Protected = 3;
+  repeated ApplicationDefinition Applications = 4;
+}
+
+message GroupConfig {
+  GroupDef Group = 1;
+  repeated ApplicationDefinition Applications = 2;
+}
+
+message UpdateAppRequest {
+  string GroupID = 1;
+  string Namespace = 2;
+  ApplicationDefinition app = 3;
+}
+
+message EmptyResponse {
+}
+
+enum GroupResponseStatus {
+  // attempt to define a group that exists just like that
+  NOCHANGE = 0;
+  // change detected and accepted
+  CHANGEACCEPTED = 1;
+  // change detected but not accepted (permissions? protected group?)
+  CHANGEREJECTED = 2;
+}
+message GroupDefResponse {
+  repeated string Advice = 1;
+  string VersionID = 2;
+  GroupResponseStatus Result = 3;
+}
+
+message DeployRequest {
+  string VersionID = 1;
+}
+
+message DeployResponse {
+}
+
+message GetNameSpaceRequest {
+}
+
+message GetNameSpaceResponse {
+  repeated string NameSpaces = 1;
+}
+
+message GetGroupsRequest {
+  string NameSpace = 1;
+}
+
+message GroupDef {
+  // actually, this is a groupName
+  // groupId and groupname is used inconsistently
+  string GroupID = 1;
+  string NameSpace = 2;
+  int64 DeployedVersion = 3;
+  int64 PendingVersion = 4;
+}
+message GetGroupsResponse {
+  repeated GroupDef Groups = 1;
+}
+message GetAppsRequest {
+  string NameSpace = 1;
+  string GroupName = 2;
+}
+message GetAppResponse {
+  ApplicationDefinition Application = 1;
+  int64 Created = 2;
+  int64 VersionID = 3;
+}
+message GetAppVersionsResponse {
+  repeated GetAppResponse Apps = 1;
+}
+message GetAppsResponse {
+  repeated ApplicationDefinition Applications = 1;
+}
+message UpdateRepoRequest {
+  string Namespace = 1;
+  string GroupID = 2;
+  //  string Repository = 3;
+  uint64 BuildID = 4;
+  uint64 RepositoryID = 5;
+}
+
+message ParseRequest {
+  string Config = 1;
+  uint64 RepositoryID = 2; // may be 0 *if* yaml file contains repositoryid entry, otherwise mandatory
+}
+message ParseConfigResponse {
+  repeated GroupDefinitionRequest GroupDef = 1;
+}
+message EmptyMessage {
+}
+message ApplyRequest {
+  bool All = 1;
+}
+message ListVersionRequest {
+  // string Repository = 1;
+  uint64 RepositoryID = 2;
+}
+
+message DeleteApplicationRequest {
+  int64 ID = 1;
+}
+
+message UndeployApplicationRequest {
+  int64 ID = 1;
+}
+
+message MachineStatus {
+  bool BlockForNew = 1;  // no new deployments on this machine
+  bool MigrateClean = 2; // startup services on other machine and clean this one
+}
+
+message SetMachineStatusRequest {
+  string ip = 1;
+  MachineStatus Status = 2;
+}
+
+message UndeployResponse {
+  ApplicationDefinition app = 1;
+  repeated string host = 2;
+}
+
+message Deployment {
+  string Host = 1;
+  repeated GroupDefinitionRequest Apps = 2;
+}
+
+message DeploymentList {
+  repeated Deployment Deployments = 1;
+}
+
+message Deployer {
+  string host = 1;
+  repeated string machinegroup = 2;
+}
+message DeployersList {
+  repeated Deployer Deployers = 1;
+}
+
+message Config {
+  DeployersList Deployers = 1;
+  repeated GroupConfig GroupConfigs = 2;
+}
+
+message DeployAppRequest {
+  uint64 AppID = 1;
+  string Host = 2;
+}
+message UndeployAppRequest {
+  string DeploymentID = 1;
+  string Host = 2;
+}
+message AutoRegistration {
+  string Portdef = 1;
+  string ServiceName = 2;
+  // comma delimited list of apitypes
+  string ApiTypes = 3;
+}
+message ListVersionByNameRequest {
+  string Name=1; // name to match on
+}
+
+message AutodeployerInfo {
+  string  IP=1;
+  uint32 Port=2;
+  repeated string Groups=3;
+  bool Broken=4;
+  bool Available=5;
+  uint32 LastSeen=6;
+}
+
+message AutodeployerList {
+  repeated AutodeployerInfo Autodeployers=1;
+}
+
+/*
+the deploymonkeyservice orchestrates deployments
+ */
+service DeployMonkey {
+  rpc DefineGroup(GroupDefinitionRequest) returns (GroupDefResponse);
+  rpc DeployVersion(DeployRequest) returns (DeployResponse);
+  //  deploymonkey-client: update all apps in a repo in a group to a new buildid
+  rpc UpdateRepo(UpdateRepoRequest) returns (GroupDefResponse);
+  //  deploymonkey-client: update a single app to a new buildid
+  rpc UpdateApp(UpdateAppRequest) returns (GroupDefResponse);
+  // rpc GetNameSpaces(GetNameSpaceRequest) returns (GetNameSpaceResponse);
+  // rpc GetGroups(GetGroupsRequest) returns (GetGroupsResponse);
+  // rpc GetApplications(GetAppsRequest) returns (GetAppsResponse);
+  rpc ParseConfigFile(ParseRequest) returns (ParseConfigResponse);
+  // rpc ApplyVersions(ApplyRequest) returns (EmptyMessage);
+
+  // deploymonkey-client: list previous versions for a given group
+  rpc ListVersionsForGroup(ListVersionRequest) returns (GetAppVersionsResponse);
+  rpc ListVersionsByName(ListVersionByNameRequest) returns (GetAppVersionsResponse);
+
+  // rpc DeleteApplication(DeleteApplicationRequest) returns (EmptyMessage);
+  rpc UndeployApplication(UndeployApplicationRequest) returns (UndeployResponse);
+  // rpc SetMachineStatus(SetMachineStatusRequest) returns (EmptyMessage);
+  // get entire config
+  rpc GetConfig(common.Void) returns (Config);
+
+  // this reads from cache:
+  rpc GetDeploymentsFromCache(common.Void) returns (DeploymentList);
+  // rpc GetDeployers(common.Void) returns (DeployersList);
+  // low-level primitives to check the suggestion mode
+  rpc DeployAppOnTarget(DeployAppRequest) returns (common.Void);
+  rpc UndeployAppOnTarget(UndeployAppRequest) returns (common.Void);
+  // autodeployer is shutting down (using IP as key)
+  rpc AutodeployerShutdown(common.Void) returns (common.Void);
+  // autodeployer (on that IP) has just started
+  rpc AutodeployerStartup(common.Void) returns (common.Void);
+  // get all autodeployers that we currently know of
+  rpc GetKnownAutodeployers(common.Void) returns (AutodeployerList);
+}

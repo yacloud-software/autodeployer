@@ -1,0 +1,226 @@
+syntax = "proto3";
+
+package autodeployer;
+option java_package = "net.conradwood.golang.apis.autodeployer";
+import "golang.conradwood.net/apis/common/common.proto";
+import "golang.conradwood.net/apis/deploymonkey/deploymonkey.proto";
+
+// sent to autodeployer to tell it to deploy something
+message DeployRequest {
+  string DownloadURL = 1;
+  string DownloadUser = 2;
+  string DownloadPassword = 3;
+  string Binary = 4;
+  repeated string Args = 5;
+  //  string Repository = 6;
+  uint64 BuildID = 7;
+  // an opaque id -> will be also returned in InfoResponse
+  string DeploymentID = 8;
+  string Namespace = 9;
+  string Groupname = 10;
+  repeated deploymonkey.AutoRegistration AutoRegistration = 11;
+  string DeployType = 12;
+  string StaticTargetDir = 13;
+  bool Public = 14;
+  deploymonkey.Limits Limits = 15;
+  deploymonkey.AppReference AppReference = 16;
+  uint64 RepositoryID = 17; // the git repository id
+}
+
+// this entire message is deprecated and obsolete. see deployedapp instead */
+message DeployInfo {
+  string DownloadURL = 1;
+  string DownloadUser = 2;
+  string DownloadPassword = 3;
+  string Binary = 4;
+  repeated string Args = 5;
+  // string Repository = 6;
+  uint64 BuildID = 7;
+  // an opaque id -> will be also returned in InfoResponse
+  string DeploymentID = 8;
+  string Namespace = 9;
+  string Groupname = 10;
+  repeated deploymonkey.AutoRegistration AutoRegistration = 11;
+  string DeployType = 12;
+  string StaticTargetDir = 13;
+  bool Public = 14;
+  repeated uint32 Ports = 15;
+  string Deploymentpath = 16;
+  DeploymentStatus Status = 17;
+  uint64 RuntimeSeconds = 18;
+  deploymonkey.AppReference AppReference = 19;
+  uint64 RepositoryID = 20; // the git repository id
+  repeated string ResolvedArgs=21; // args with things like ${PORT1} resolved to actual parameters
+}
+
+enum DeploymentStatus {
+  // nothing happened yet
+  PREPARING = 0;
+  // forked, exec'ed, waiting for startup message
+  STARTING = 1;
+  // downloading binaries
+  DOWNLOADING = 2;
+  // gathering resources (e.g. ports)
+  RESOURCING = 3;
+  // startup message done, handed control to application
+  EXECUSER = 4;
+  TERMINATED = 5;
+  // not downloading, starting from cache
+  CACHEDSTART = 6;
+}
+
+message DeployResponse {
+  // did it succeed in starting and running?
+  bool Success = 1;
+  // does it remain running (might be a very shortlived application)
+  bool Running = 2;
+  // any messages?
+  string Message = 3;
+  // the local ports chosen for the application
+  repeated uint32 Ports = 4;
+  // the user this application runs as
+  string userid = 5;
+  // an ID unique to this instance
+  string ID = 6;
+}
+
+message EmptyResponse {
+}
+message TerminationRequest {
+  string Msgid = 1;
+  bool Failed = 2;
+}
+message StartedRequest {
+  string Msgid = 1;
+  bool DownloadFailed = 2;
+  repeated string Args =3; // resolved arguments
+}
+// sent by autodeployer_starter to itself
+message StartupRequest {
+  string Msgid = 1;
+  uint64 PID = 2;
+}
+
+// sent by autodeployer to its _starter
+message StartupResponse {
+  string URL = 1;
+  string DownloadUser = 2;
+  string DownloadPassword = 3;
+  string Binary = 4;
+  repeated string Args = 5;
+  string WorkingDir = 6;
+  // max resource limits for the process before it's killed
+  deploymonkey.Limits Limits = 7;
+  map<string, string> SecureArgs = 8; // args for this repository from the secure-arg server
+  deploymonkey.AppReference AppReference = 9;
+  // internal temporary flag. if true starter.go will execute SetRLimit to limit memory. if false it will do no such thing
+  // eventually we migrate fully to cgroups and then this will be irrelevant
+  bool UseSetRLimit = 10;
+}
+
+// sent by the starter once download completed
+message ResourceRequest {
+  string Msgid = 1;
+  int32 Ports = 2;
+}
+// autodeployer sents to starter
+message ResourceResponse {
+  repeated int32 Ports = 1;
+}
+message InfoRequest {
+}
+
+message DeployedApp {
+  // autodeployer "StartupMsg"
+  string ID = 1;
+  DeployInfo Deployment = 2;       // obsolete, deprecated. it is all in the deployrequest instead
+  DeployRequest DeployRequest = 3; // the original "deployrequest" for this app
+  repeated uint32 Ports = 4;
+  DeploymentStatus Status = 5;
+  uint64 RuntimeSeconds = 6;
+}
+message InfoResponse {
+  repeated DeployedApp Apps = 1;
+}
+
+message UndeployRequest {
+  // this will match on both:
+  // the startup message (which is internal to autodeployer) - query it to get one
+  // AND the DeploymentID (as was submitted in DeployRequest)
+  string ID = 1;
+  bool Block = 2;
+}
+message UndeployResponse {
+}
+
+message MachineInfoRequest {
+}
+message MachineInfoResponse {
+  repeated string MachineGroup = 1;
+}
+
+message URLRequest {
+  string URL=1;
+  bool ForceDownload=2; // if true evict from cache if exists
+}
+message URLResponse {
+  string URL=1;
+  uint64 BytesDownloaded=2;
+  uint64 TotalBytes=3;
+  bool CacheDisabled=4; // cache is disabled
+}
+
+/*
+The Autodeployer automatically deploys binaries on linux machines
+binaries may be _any_ binary, such as a go or c compiles binary or
+a tarfile containing something to execute.
+
+The tarfile may include configs/binaries etc which are available to the executable. This is essentially the same thing as a docker file, except it does not
+include stuff it should not, such as libc/openssl.so/other_important_stuff (whereas a dockerfile typically does include such stuff)
+
+Example usages of tarfile deployments:
+* A go binary and some accompanying config files
+* a bunch of java jar files and a main-class
+* a bunch of shell scripts to be executed
+* some brave souls may even try to run python. However there is no compatibility guarantee wether it is python 2.7 or 3.x (since the python chaps don't do
+compatibility guarantees either)
+
+Tarfiles are usually created by the git and buildserver automatically from a
+git repository on push.
+
+All deployments are versioned and can be rolled back with the deploymonkey or sending a message to autodeployer directly (use of deploymonkey is recommended)
+
+
+
+ */
+service AutoDeployer {
+  // deploy an application
+  rpc Deploy(DeployRequest) returns (DeployResponse);
+  rpc Undeploy(UndeployRequest) returns (UndeployResponse);
+  // once we re-executed ourselves, we send this message to our selves
+  rpc InternalStartup(StartupRequest) returns (StartupResponse);
+  // sent by the starter to ourselves
+  rpc AllocResources(ResourceRequest) returns (ResourceResponse);
+  // sent by the starter to ourselves
+  rpc Terminated(TerminationRequest) returns (EmptyResponse);
+  // sent by the starter to ourselves
+  rpc Started(StartedRequest) returns (EmptyResponse);
+  // what's running??
+  rpc GetDeployments(InfoRequest) returns (InfoResponse);
+  // what kind of machine are we running on?
+  // name/speed/ram/bla
+  rpc GetMachineInfo(MachineInfoRequest) returns (MachineInfoResponse);
+  // "undo" all actions (so they will be re-evaluated and applied on next scan)
+  rpc ClearActions(common.Void) returns (common.Void);
+  // shutdown autodeployer (this won't send a return message)
+  rpc StopAutodeployer(common.Void) returns (common.Void);
+  // download the "DownloadURL".
+  rpc Download(StartedRequest) returns (stream BinaryDownload);
+  // start a download and put it into cache
+  rpc CacheURL(URLRequest) returns (URLResponse);
+}
+
+message BinaryDownload {
+  string TargetFilename = 1; // the filename it was downloaded to.
+  bytes Data = 2;
+}

@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package deployminator;
+option java_package = "net.conradwood.apis.deployminator";
+import "golang.conradwood.net/apis/common/common.proto";
+import "golang.conradwood.net/apis/deploymonkey/deploymonkey.proto";
+
+message Version {
+  uint64 ID=1;
+  uint64 BuildNumber=2;
+  uint64 RepositoryID=3;
+  string Branch=4;
+}
+
+/*
+ an application is the definition of a "a binary in a repository".
+ it may exist in many different versions
+*/
+message Application {
+  uint64 ID=1;
+  string Binary=2;
+  uint64 RepositoryID=3;
+  string DownloadURL=4; // where to get it from
+}
+// a deployment descriptor links together all the bits required for a deployment, like instances, args, etc..
+message DeploymentDescriptor {
+  uint64 ID=1;
+  Application Application=2 [(common.sql_type)="uint64",(common.sql_reference)="deployminator_application.id"];
+  uint64 BuildNumber=3;
+  string Branch=4;
+  bool DeployMe=5; // true if this deployment descriptor is to be deployed. (false if it is not, e.g. if it was an experiment or a previous build)
+}
+// Define how many instances to run where
+message InstanceDef {
+  uint64 ID=1;
+  DeploymentDescriptor DeploymentID=2 [(common.sql_type)="uint64",(common.sql_reference)="deployminator_deploymentdescriptor.id"];
+  string MachineGroup=3;
+  uint32 Instances=4; // how many instances
+  bool InstanceCountIsPerMachine=5; // if true, the "instances" counts as a per machine. Typically "1 on each machine"
+}
+message Argument {
+  uint64 ID=1;
+  InstanceDef InstanceDef=2 [(common.sql_type)="uint64",(common.sql_reference)="deployminator_instancedef.id"];
+  string Argument=3; // e.g. "-registry=localhost"
+}
+
+message NewBuildRequest {
+  bytes DeployFile = 1; // the contents of the deploy.yaml file
+  uint64 RepositoryID =2; // id of repository
+  string Branch=3; // the branch, usually 'master'
+  uint64 BuildNumber=4; // the unique buildnumber
+  string CommitID=5; // the git commitid
+  string ArtefactName=6; // the artefactname on this buildserver
+  string BuildserverID=7; // the buildserver, e.g. its ip or domain or sth to look for (to find the artefact)
+}
+
+message DeployRequest {
+  uint64 Version=1; // a
+  repeated string Tags=2; //any instances with the same combination of tags will be stopped after the new version has been rolled out
+}
+message UndeployRequest {
+  uint64 Version=1;
+  repeated string Tags=2; //any instances with the same combination of tags will be stopped 
+}
+
+// replace one build with another, safely
+message ReplaceRequest {
+  uint64 ID=1;
+  DeploymentDescriptor OldDeployment=2 [(common.sql_type)="uint64",(common.sql_reference)="deployminator_deploymentdescriptor.id"];
+  DeploymentDescriptor NewDeployment=3 [(common.sql_type)="uint64",(common.sql_reference)="deployminator_deploymentdescriptor.id"];
+}
+
+service Deployminator {
+  // parse a yamlfile and deploy the new version defined in it
+  rpc NewBuildAvailable(NewBuildRequest) returns (common.Void);
+  // deploy a specific version
+  rpc DeployVersion(DeployRequest) returns (common.Void);
+  // deployments
+  rpc ListDeployments(common.Void) returns (deploymonkey.DeploymentList);
+  // stop an application
+  rpc UndeployVersion(UndeployRequest) returns (common.Void);
+  // called by autodeployer if it startsup
+  rpc AutodeployerStartup(common.Void) returns (common.Void);
+  // called by autodeployer if it shutsdown
+  rpc AutodeployerShutdown(common.Void) returns (common.Void);
+}
