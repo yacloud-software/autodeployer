@@ -385,10 +385,11 @@ func listDeployers() {
 	ctx := tokens.ContextWithToken()
 	depls, err := depl.GetKnownAutodeployers(ctx, &common.Void{})
 	utils.Bail("Failed to get deployers from cache", err)
-	t.AddHeaders("IP", "Groups")
+	t.AddHeaders("IP", "Groups", "GroupCount")
 	for _, ad := range depls.Autodeployers {
 		t.AddString(ad.IP)
-		t.AddString(strings.Join(ad.Groups, ","))
+		t.AddString(strings.Join(ad.Groups, " | "))
+		t.AddInt(len(ad.Groups))
 		t.NewRow()
 	}
 	fmt.Println(t.ToPrettyString())
