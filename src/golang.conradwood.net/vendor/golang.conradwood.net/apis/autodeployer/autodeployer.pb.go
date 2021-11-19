@@ -96,6 +96,7 @@ func (x DeploymentStatus) String() string {
 }
 func (DeploymentStatus) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
+// sent to autodeployer to tell it to deploy something
 type DeployRequest struct {
 	DownloadURL      string   `protobuf:"bytes,1,opt,name=DownloadURL" json:"DownloadURL,omitempty"`
 	DownloadUser     string   `protobuf:"bytes,2,opt,name=DownloadUser" json:"DownloadUser,omitempty"`

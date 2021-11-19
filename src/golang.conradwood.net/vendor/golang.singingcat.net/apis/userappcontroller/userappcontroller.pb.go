@@ -9,7 +9,15 @@ It is generated from these files:
 	golang.singingcat.net/apis/userappcontroller/userappcontroller.proto
 
 It has these top-level messages:
-	PingResponse
+	UserAppInfo
+	SetFlagsRequest
+	FlagDescription
+	GetFlagDescRequest
+	FlagDescriptionList
+	GetFlagInfoRequest
+	FlagInfoList
+	FlagInfo
+	ChangeFlagRequest
 */
 package userappcontroller
 
@@ -17,6 +25,7 @@ import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import common "golang.conradwood.net/apis/common"
+import singingcat "golang.singingcat.net/apis/singingcat"
 import scmodcomms "golang.singingcat.net/apis/scmodcomms"
 
 import (
@@ -35,26 +44,280 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-// comment: message pingresponse
-type PingResponse struct {
-	// comment: field pingresponse.response
-	Response string `protobuf:"bytes,1,opt,name=Response" json:"Response,omitempty"`
+type UserAppInfo struct {
+	ID        uint64 `protobuf:"varint,1,opt,name=ID" json:"ID,omitempty"`
+	ModuleID  uint64 `protobuf:"varint,2,opt,name=ModuleID" json:"ModuleID,omitempty"`
+	Base      uint32 `protobuf:"varint,3,opt,name=Base" json:"Base,omitempty"`
+	Version   uint32 `protobuf:"varint,4,opt,name=Version" json:"Version,omitempty"`
+	HasFailed bool   `protobuf:"varint,5,opt,name=HasFailed" json:"HasFailed,omitempty"`
+	CRCValid  bool   `protobuf:"varint,6,opt,name=CRCValid" json:"CRCValid,omitempty"`
+	Enabled   bool   `protobuf:"varint,7,opt,name=Enabled" json:"Enabled,omitempty"`
+	Flags     uint32 `protobuf:"varint,8,opt,name=Flags" json:"Flags,omitempty"`
 }
 
-func (m *PingResponse) Reset()                    { *m = PingResponse{} }
-func (m *PingResponse) String() string            { return proto.CompactTextString(m) }
-func (*PingResponse) ProtoMessage()               {}
-func (*PingResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (m *UserAppInfo) Reset()                    { *m = UserAppInfo{} }
+func (m *UserAppInfo) String() string            { return proto.CompactTextString(m) }
+func (*UserAppInfo) ProtoMessage()               {}
+func (*UserAppInfo) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
-func (m *PingResponse) GetResponse() string {
+func (m *UserAppInfo) GetID() uint64 {
 	if m != nil {
-		return m.Response
+		return m.ID
+	}
+	return 0
+}
+
+func (m *UserAppInfo) GetModuleID() uint64 {
+	if m != nil {
+		return m.ModuleID
+	}
+	return 0
+}
+
+func (m *UserAppInfo) GetBase() uint32 {
+	if m != nil {
+		return m.Base
+	}
+	return 0
+}
+
+func (m *UserAppInfo) GetVersion() uint32 {
+	if m != nil {
+		return m.Version
+	}
+	return 0
+}
+
+func (m *UserAppInfo) GetHasFailed() bool {
+	if m != nil {
+		return m.HasFailed
+	}
+	return false
+}
+
+func (m *UserAppInfo) GetCRCValid() bool {
+	if m != nil {
+		return m.CRCValid
+	}
+	return false
+}
+
+func (m *UserAppInfo) GetEnabled() bool {
+	if m != nil {
+		return m.Enabled
+	}
+	return false
+}
+
+func (m *UserAppInfo) GetFlags() uint32 {
+	if m != nil {
+		return m.Flags
+	}
+	return 0
+}
+
+type SetFlagsRequest struct {
+	Module *singingcat.ModuleRef `protobuf:"bytes,1,opt,name=Module" json:"Module,omitempty"`
+	Flags  uint32                `protobuf:"varint,2,opt,name=Flags" json:"Flags,omitempty"`
+}
+
+func (m *SetFlagsRequest) Reset()                    { *m = SetFlagsRequest{} }
+func (m *SetFlagsRequest) String() string            { return proto.CompactTextString(m) }
+func (*SetFlagsRequest) ProtoMessage()               {}
+func (*SetFlagsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *SetFlagsRequest) GetModule() *singingcat.ModuleRef {
+	if m != nil {
+		return m.Module
+	}
+	return nil
+}
+
+func (m *SetFlagsRequest) GetFlags() uint32 {
+	if m != nil {
+		return m.Flags
+	}
+	return 0
+}
+
+type FlagDescription struct {
+	ID           uint64 `protobuf:"varint,1,opt,name=ID" json:"ID,omitempty"`
+	Name         string `protobuf:"bytes,2,opt,name=Name" json:"Name,omitempty"`
+	RepositoryID uint64 `protobuf:"varint,3,opt,name=RepositoryID" json:"RepositoryID,omitempty"`
+	Bit          uint32 `protobuf:"varint,4,opt,name=Bit" json:"Bit,omitempty"`
+}
+
+func (m *FlagDescription) Reset()                    { *m = FlagDescription{} }
+func (m *FlagDescription) String() string            { return proto.CompactTextString(m) }
+func (*FlagDescription) ProtoMessage()               {}
+func (*FlagDescription) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *FlagDescription) GetID() uint64 {
+	if m != nil {
+		return m.ID
+	}
+	return 0
+}
+
+func (m *FlagDescription) GetName() string {
+	if m != nil {
+		return m.Name
 	}
 	return ""
 }
 
+func (m *FlagDescription) GetRepositoryID() uint64 {
+	if m != nil {
+		return m.RepositoryID
+	}
+	return 0
+}
+
+func (m *FlagDescription) GetBit() uint32 {
+	if m != nil {
+		return m.Bit
+	}
+	return 0
+}
+
+type GetFlagDescRequest struct {
+	RepositoryID uint64 `protobuf:"varint,1,opt,name=RepositoryID" json:"RepositoryID,omitempty"`
+}
+
+func (m *GetFlagDescRequest) Reset()                    { *m = GetFlagDescRequest{} }
+func (m *GetFlagDescRequest) String() string            { return proto.CompactTextString(m) }
+func (*GetFlagDescRequest) ProtoMessage()               {}
+func (*GetFlagDescRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+
+func (m *GetFlagDescRequest) GetRepositoryID() uint64 {
+	if m != nil {
+		return m.RepositoryID
+	}
+	return 0
+}
+
+type FlagDescriptionList struct {
+	Descriptions []*FlagDescription `protobuf:"bytes,1,rep,name=Descriptions" json:"Descriptions,omitempty"`
+}
+
+func (m *FlagDescriptionList) Reset()                    { *m = FlagDescriptionList{} }
+func (m *FlagDescriptionList) String() string            { return proto.CompactTextString(m) }
+func (*FlagDescriptionList) ProtoMessage()               {}
+func (*FlagDescriptionList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+
+func (m *FlagDescriptionList) GetDescriptions() []*FlagDescription {
+	if m != nil {
+		return m.Descriptions
+	}
+	return nil
+}
+
+type GetFlagInfoRequest struct {
+	ModuleID uint64 `protobuf:"varint,1,opt,name=ModuleID" json:"ModuleID,omitempty"`
+}
+
+func (m *GetFlagInfoRequest) Reset()                    { *m = GetFlagInfoRequest{} }
+func (m *GetFlagInfoRequest) String() string            { return proto.CompactTextString(m) }
+func (*GetFlagInfoRequest) ProtoMessage()               {}
+func (*GetFlagInfoRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+
+func (m *GetFlagInfoRequest) GetModuleID() uint64 {
+	if m != nil {
+		return m.ModuleID
+	}
+	return 0
+}
+
+type FlagInfoList struct {
+	Infos []*FlagInfo `protobuf:"bytes,1,rep,name=Infos" json:"Infos,omitempty"`
+}
+
+func (m *FlagInfoList) Reset()                    { *m = FlagInfoList{} }
+func (m *FlagInfoList) String() string            { return proto.CompactTextString(m) }
+func (*FlagInfoList) ProtoMessage()               {}
+func (*FlagInfoList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+
+func (m *FlagInfoList) GetInfos() []*FlagInfo {
+	if m != nil {
+		return m.Infos
+	}
+	return nil
+}
+
+type FlagInfo struct {
+	Name  string `protobuf:"bytes,1,opt,name=Name" json:"Name,omitempty"`
+	IsSet bool   `protobuf:"varint,2,opt,name=IsSet" json:"IsSet,omitempty"`
+	Bit   uint32 `protobuf:"varint,3,opt,name=Bit" json:"Bit,omitempty"`
+}
+
+func (m *FlagInfo) Reset()                    { *m = FlagInfo{} }
+func (m *FlagInfo) String() string            { return proto.CompactTextString(m) }
+func (*FlagInfo) ProtoMessage()               {}
+func (*FlagInfo) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+
+func (m *FlagInfo) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *FlagInfo) GetIsSet() bool {
+	if m != nil {
+		return m.IsSet
+	}
+	return false
+}
+
+func (m *FlagInfo) GetBit() uint32 {
+	if m != nil {
+		return m.Bit
+	}
+	return 0
+}
+
+type ChangeFlagRequest struct {
+	ModuleID uint64 `protobuf:"varint,1,opt,name=ModuleID" json:"ModuleID,omitempty"`
+	Bit      uint32 `protobuf:"varint,2,opt,name=Bit" json:"Bit,omitempty"`
+	NewState bool   `protobuf:"varint,3,opt,name=NewState" json:"NewState,omitempty"`
+}
+
+func (m *ChangeFlagRequest) Reset()                    { *m = ChangeFlagRequest{} }
+func (m *ChangeFlagRequest) String() string            { return proto.CompactTextString(m) }
+func (*ChangeFlagRequest) ProtoMessage()               {}
+func (*ChangeFlagRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+
+func (m *ChangeFlagRequest) GetModuleID() uint64 {
+	if m != nil {
+		return m.ModuleID
+	}
+	return 0
+}
+
+func (m *ChangeFlagRequest) GetBit() uint32 {
+	if m != nil {
+		return m.Bit
+	}
+	return 0
+}
+
+func (m *ChangeFlagRequest) GetNewState() bool {
+	if m != nil {
+		return m.NewState
+	}
+	return false
+}
+
 func init() {
-	proto.RegisterType((*PingResponse)(nil), "userappcontroller.PingResponse")
+	proto.RegisterType((*UserAppInfo)(nil), "userappcontroller.UserAppInfo")
+	proto.RegisterType((*SetFlagsRequest)(nil), "userappcontroller.SetFlagsRequest")
+	proto.RegisterType((*FlagDescription)(nil), "userappcontroller.FlagDescription")
+	proto.RegisterType((*GetFlagDescRequest)(nil), "userappcontroller.GetFlagDescRequest")
+	proto.RegisterType((*FlagDescriptionList)(nil), "userappcontroller.FlagDescriptionList")
+	proto.RegisterType((*GetFlagInfoRequest)(nil), "userappcontroller.GetFlagInfoRequest")
+	proto.RegisterType((*FlagInfoList)(nil), "userappcontroller.FlagInfoList")
+	proto.RegisterType((*FlagInfo)(nil), "userappcontroller.FlagInfo")
+	proto.RegisterType((*ChangeFlagRequest)(nil), "userappcontroller.ChangeFlagRequest")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -68,9 +331,22 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for UserAppController service
 
 type UserAppControllerClient interface {
-	// comment: rpc ping
-	Ping(ctx context.Context, in *common.Void, opts ...grpc.CallOption) (*PingResponse, error)
-	CommandReceived(ctx context.Context, in *scmodcomms.Response, opts ...grpc.CallOption) (*common.Void, error)
+	// called if we receive a command from a module relevant to userapp control
+	CommandReceived(ctx context.Context, in *scmodcomms.Response, opts ...grpc.CallOption) (*scmodcomms.ComResponse, error)
+	// query a module for its current userapp status
+	QueryUserApp(ctx context.Context, in *singingcat.ModuleRef, opts ...grpc.CallOption) (*UserAppInfo, error)
+	// setUserAppFlags
+	SetFlags(ctx context.Context, in *SetFlagsRequest, opts ...grpc.CallOption) (*common.Void, error)
+	// create or set a flag description
+	SetFlagDescription(ctx context.Context, in *FlagDescription, opts ...grpc.CallOption) (*FlagDescription, error)
+	// get descriptions for a repo
+	GetFlagDescriptions(ctx context.Context, in *GetFlagDescRequest, opts ...grpc.CallOption) (*FlagDescriptionList, error)
+	// get flags and descriptions for module
+	GetFlagInfo(ctx context.Context, in *GetFlagInfoRequest, opts ...grpc.CallOption) (*FlagInfoList, error)
+	// change a single flag's status
+	ChangeFlag(ctx context.Context, in *ChangeFlagRequest, opts ...grpc.CallOption) (*UserAppInfo, error)
+	// reenable a userapp
+	Reenable(ctx context.Context, in *singingcat.ModuleRef, opts ...grpc.CallOption) (*common.Void, error)
 }
 
 type userAppControllerClient struct {
@@ -81,18 +357,72 @@ func NewUserAppControllerClient(cc *grpc.ClientConn) UserAppControllerClient {
 	return &userAppControllerClient{cc}
 }
 
-func (c *userAppControllerClient) Ping(ctx context.Context, in *common.Void, opts ...grpc.CallOption) (*PingResponse, error) {
-	out := new(PingResponse)
-	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/Ping", in, out, c.cc, opts...)
+func (c *userAppControllerClient) CommandReceived(ctx context.Context, in *scmodcomms.Response, opts ...grpc.CallOption) (*scmodcomms.ComResponse, error) {
+	out := new(scmodcomms.ComResponse)
+	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/CommandReceived", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *userAppControllerClient) CommandReceived(ctx context.Context, in *scmodcomms.Response, opts ...grpc.CallOption) (*common.Void, error) {
+func (c *userAppControllerClient) QueryUserApp(ctx context.Context, in *singingcat.ModuleRef, opts ...grpc.CallOption) (*UserAppInfo, error) {
+	out := new(UserAppInfo)
+	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/QueryUserApp", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userAppControllerClient) SetFlags(ctx context.Context, in *SetFlagsRequest, opts ...grpc.CallOption) (*common.Void, error) {
 	out := new(common.Void)
-	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/CommandReceived", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/SetFlags", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userAppControllerClient) SetFlagDescription(ctx context.Context, in *FlagDescription, opts ...grpc.CallOption) (*FlagDescription, error) {
+	out := new(FlagDescription)
+	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/SetFlagDescription", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userAppControllerClient) GetFlagDescriptions(ctx context.Context, in *GetFlagDescRequest, opts ...grpc.CallOption) (*FlagDescriptionList, error) {
+	out := new(FlagDescriptionList)
+	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/GetFlagDescriptions", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userAppControllerClient) GetFlagInfo(ctx context.Context, in *GetFlagInfoRequest, opts ...grpc.CallOption) (*FlagInfoList, error) {
+	out := new(FlagInfoList)
+	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/GetFlagInfo", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userAppControllerClient) ChangeFlag(ctx context.Context, in *ChangeFlagRequest, opts ...grpc.CallOption) (*UserAppInfo, error) {
+	out := new(UserAppInfo)
+	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/ChangeFlag", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userAppControllerClient) Reenable(ctx context.Context, in *singingcat.ModuleRef, opts ...grpc.CallOption) (*common.Void, error) {
+	out := new(common.Void)
+	err := grpc.Invoke(ctx, "/userappcontroller.UserAppController/Reenable", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,31 +432,26 @@ func (c *userAppControllerClient) CommandReceived(ctx context.Context, in *scmod
 // Server API for UserAppController service
 
 type UserAppControllerServer interface {
-	// comment: rpc ping
-	Ping(context.Context, *common.Void) (*PingResponse, error)
-	CommandReceived(context.Context, *scmodcomms.Response) (*common.Void, error)
+	// called if we receive a command from a module relevant to userapp control
+	CommandReceived(context.Context, *scmodcomms.Response) (*scmodcomms.ComResponse, error)
+	// query a module for its current userapp status
+	QueryUserApp(context.Context, *singingcat.ModuleRef) (*UserAppInfo, error)
+	// setUserAppFlags
+	SetFlags(context.Context, *SetFlagsRequest) (*common.Void, error)
+	// create or set a flag description
+	SetFlagDescription(context.Context, *FlagDescription) (*FlagDescription, error)
+	// get descriptions for a repo
+	GetFlagDescriptions(context.Context, *GetFlagDescRequest) (*FlagDescriptionList, error)
+	// get flags and descriptions for module
+	GetFlagInfo(context.Context, *GetFlagInfoRequest) (*FlagInfoList, error)
+	// change a single flag's status
+	ChangeFlag(context.Context, *ChangeFlagRequest) (*UserAppInfo, error)
+	// reenable a userapp
+	Reenable(context.Context, *singingcat.ModuleRef) (*common.Void, error)
 }
 
 func RegisterUserAppControllerServer(s *grpc.Server, srv UserAppControllerServer) {
 	s.RegisterService(&_UserAppController_serviceDesc, srv)
-}
-
-func _UserAppController_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(common.Void)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserAppControllerServer).Ping(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/userappcontroller.UserAppController/Ping",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserAppControllerServer).Ping(ctx, req.(*common.Void))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _UserAppController_CommandReceived_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -147,17 +472,167 @@ func _UserAppController_CommandReceived_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserAppController_QueryUserApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(singingcat.ModuleRef)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserAppControllerServer).QueryUserApp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/userappcontroller.UserAppController/QueryUserApp",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserAppControllerServer).QueryUserApp(ctx, req.(*singingcat.ModuleRef))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserAppController_SetFlags_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetFlagsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserAppControllerServer).SetFlags(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/userappcontroller.UserAppController/SetFlags",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserAppControllerServer).SetFlags(ctx, req.(*SetFlagsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserAppController_SetFlagDescription_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FlagDescription)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserAppControllerServer).SetFlagDescription(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/userappcontroller.UserAppController/SetFlagDescription",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserAppControllerServer).SetFlagDescription(ctx, req.(*FlagDescription))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserAppController_GetFlagDescriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFlagDescRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserAppControllerServer).GetFlagDescriptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/userappcontroller.UserAppController/GetFlagDescriptions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserAppControllerServer).GetFlagDescriptions(ctx, req.(*GetFlagDescRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserAppController_GetFlagInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFlagInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserAppControllerServer).GetFlagInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/userappcontroller.UserAppController/GetFlagInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserAppControllerServer).GetFlagInfo(ctx, req.(*GetFlagInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserAppController_ChangeFlag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeFlagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserAppControllerServer).ChangeFlag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/userappcontroller.UserAppController/ChangeFlag",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserAppControllerServer).ChangeFlag(ctx, req.(*ChangeFlagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserAppController_Reenable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(singingcat.ModuleRef)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserAppControllerServer).Reenable(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/userappcontroller.UserAppController/Reenable",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserAppControllerServer).Reenable(ctx, req.(*singingcat.ModuleRef))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _UserAppController_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "userappcontroller.UserAppController",
 	HandlerType: (*UserAppControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Ping",
-			Handler:    _UserAppController_Ping_Handler,
-		},
-		{
 			MethodName: "CommandReceived",
 			Handler:    _UserAppController_CommandReceived_Handler,
+		},
+		{
+			MethodName: "QueryUserApp",
+			Handler:    _UserAppController_QueryUserApp_Handler,
+		},
+		{
+			MethodName: "SetFlags",
+			Handler:    _UserAppController_SetFlags_Handler,
+		},
+		{
+			MethodName: "SetFlagDescription",
+			Handler:    _UserAppController_SetFlagDescription_Handler,
+		},
+		{
+			MethodName: "GetFlagDescriptions",
+			Handler:    _UserAppController_GetFlagDescriptions_Handler,
+		},
+		{
+			MethodName: "GetFlagInfo",
+			Handler:    _UserAppController_GetFlagInfo_Handler,
+		},
+		{
+			MethodName: "ChangeFlag",
+			Handler:    _UserAppController_ChangeFlag_Handler,
+		},
+		{
+			MethodName: "Reenable",
+			Handler:    _UserAppController_Reenable_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -169,20 +644,48 @@ func init() {
 }
 
 var fileDescriptor0 = []byte{
-	// 230 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x7c, 0x8f, 0x4f, 0x4b, 0x06, 0x21,
-	0x10, 0x87, 0x59, 0x88, 0x28, 0x79, 0x21, 0x5e, 0xe9, 0x10, 0x5e, 0x8a, 0x20, 0x8a, 0x0e, 0x2e,
-	0x14, 0xdb, 0xbd, 0xb6, 0x0f, 0x10, 0x0b, 0x75, 0x37, 0x1d, 0x44, 0x58, 0x67, 0x44, 0xad, 0xce,
-	0x7d, 0xf3, 0xd8, 0xf6, 0x4f, 0xbb, 0x08, 0x9d, 0x1c, 0x75, 0xe6, 0x99, 0xdf, 0xc3, 0x9e, 0x2d,
-	0xf5, 0x0a, 0xad, 0x4c, 0x0e, 0xad, 0x43, 0xab, 0x55, 0x96, 0x08, 0xb9, 0x56, 0xc1, 0xa5, 0xfa,
-	0x23, 0x41, 0x54, 0x21, 0x68, 0xc2, 0x1c, 0xa9, 0xef, 0x21, 0x96, 0x2f, 0x32, 0x44, 0xca, 0xc4,
-	0xf7, 0xc5, 0x87, 0x90, 0x13, 0x58, 0x13, 0x46, 0x65, 0xbe, 0x88, 0xcc, 0x1f, 0x58, 0x93, 0xf7,
-	0x84, 0xd3, 0x31, 0x22, 0xc4, 0xc3, 0x3f, 0x41, 0x92, 0xf6, 0x64, 0x86, 0xee, 0x75, 0x39, 0xce,
-	0x5d, 0xde, 0xb2, 0xdd, 0x8b, 0x43, 0xdb, 0x41, 0x0a, 0x84, 0x09, 0xb8, 0x60, 0x47, 0x73, 0x7d,
-	0x56, 0x5d, 0x54, 0x37, 0xc7, 0xdd, 0x72, 0xbf, 0xfb, 0xae, 0xd8, 0xfe, 0x35, 0x41, 0x7c, 0x0c,
-	0xa1, 0x5d, 0x92, 0xf2, 0x86, 0x1d, 0x0c, 0x04, 0xbe, 0x93, 0x53, 0xa0, 0x37, 0x72, 0x46, 0x9c,
-	0xcb, 0x52, 0x76, 0xb3, 0xa8, 0x61, 0x27, 0x2d, 0x79, 0xaf, 0xd0, 0x74, 0xa0, 0xc1, 0x7d, 0x82,
-	0xe1, 0xa7, 0x72, 0x15, 0x6f, 0x6e, 0x14, 0x1b, 0xee, 0xd3, 0x35, 0xbb, 0x42, 0xc8, 0x6b, 0xcd,
-	0x41, 0xb1, 0x5c, 0xf6, 0x7e, 0xf8, 0xeb, 0x77, 0xff, 0x13, 0x00, 0x00, 0xff, 0xff, 0x6a, 0xab,
-	0x9f, 0x02, 0xa2, 0x01, 0x00, 0x00,
+	// 683 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x8c, 0x55, 0x4d, 0x6f, 0xd3, 0x30,
+	0x18, 0x56, 0xfa, 0xb1, 0x65, 0x6f, 0x0b, 0x63, 0xde, 0x10, 0x21, 0x20, 0xa8, 0xa2, 0x0d, 0x7a,
+	0xa1, 0x83, 0x21, 0x21, 0x0e, 0x1c, 0x58, 0xdb, 0x75, 0x54, 0x82, 0x49, 0xb8, 0x5a, 0x4f, 0xec,
+	0xe0, 0x25, 0x5e, 0x89, 0x48, 0xec, 0x10, 0xbb, 0x4c, 0xbb, 0xf2, 0x73, 0xf8, 0x4b, 0xfc, 0x13,
+	0x4e, 0xc8, 0xce, 0xe7, 0x9a, 0x6e, 0xeb, 0xa9, 0xef, 0xe7, 0xe3, 0xd7, 0x8f, 0x9f, 0xb7, 0x81,
+	0xe1, 0x8c, 0x07, 0x84, 0xcd, 0x7a, 0xc2, 0x67, 0x33, 0x9f, 0xcd, 0x5c, 0x22, 0x7b, 0x8c, 0xca,
+	0x7d, 0x12, 0xf9, 0x62, 0x7f, 0x2e, 0x68, 0x4c, 0xa2, 0xc8, 0xe5, 0x4c, 0xc6, 0x3c, 0x08, 0x68,
+	0x5c, 0x8d, 0xf4, 0xa2, 0x98, 0x4b, 0x8e, 0xb6, 0x2a, 0x09, 0xbb, 0x97, 0x02, 0xbb, 0x9c, 0xc5,
+	0xc4, 0xbb, 0xe4, 0xdc, 0x2b, 0x80, 0x5d, 0x1e, 0x86, 0x9c, 0xa5, 0x3f, 0x09, 0x84, 0xfd, 0xee,
+	0x96, 0x41, 0x8a, 0x58, 0xc9, 0x5c, 0xa5, 0xcf, 0x0d, 0xb9, 0xa7, 0x4e, 0x29, 0x9b, 0x49, 0x9f,
+	0xf3, 0xd7, 0x80, 0xd6, 0xa9, 0xa0, 0xf1, 0x61, 0x14, 0x8d, 0xd9, 0x05, 0x47, 0xf7, 0xa1, 0x36,
+	0x1e, 0x5a, 0x46, 0xc7, 0xe8, 0x36, 0x70, 0x6d, 0x3c, 0x44, 0xbb, 0x60, 0x7e, 0xe1, 0xde, 0x3c,
+	0xa0, 0xe3, 0xa1, 0x55, 0x53, 0xd1, 0xbe, 0xf9, 0xe7, 0xf7, 0xe3, 0x86, 0x8c, 0xe7, 0x14, 0xe7,
+	0x19, 0x84, 0xa0, 0xd1, 0x27, 0x82, 0x5a, 0xf5, 0x8e, 0xd1, 0xbd, 0x87, 0xb5, 0x8d, 0x2c, 0x58,
+	0x9f, 0xd2, 0x58, 0xf8, 0x9c, 0x59, 0x0d, 0x1d, 0xce, 0x5c, 0xf4, 0x14, 0x36, 0x3e, 0x11, 0x31,
+	0x22, 0x7e, 0x40, 0x3d, 0xab, 0xd9, 0x31, 0xba, 0x26, 0x2e, 0x02, 0xc8, 0x06, 0x73, 0x80, 0x07,
+	0x53, 0x12, 0xf8, 0x9e, 0xb5, 0xa6, 0x93, 0xb9, 0xaf, 0x30, 0x8f, 0x18, 0x39, 0x57, 0x7d, 0xeb,
+	0x3a, 0x95, 0xb9, 0x68, 0x07, 0x9a, 0xa3, 0x80, 0xcc, 0x84, 0x65, 0xea, 0xb3, 0x12, 0xc7, 0x99,
+	0xc2, 0xe6, 0x84, 0x4a, 0x6d, 0x63, 0xfa, 0x73, 0x4e, 0x85, 0x44, 0xaf, 0x60, 0x2d, 0x19, 0x5b,
+	0x5f, 0xb2, 0x75, 0xf0, 0xb0, 0x4c, 0x59, 0x92, 0xc1, 0xf4, 0x02, 0xa7, 0x45, 0x05, 0x6e, 0xad,
+	0x8c, 0xfb, 0x03, 0x36, 0x95, 0x31, 0xa4, 0xc2, 0x8d, 0xfd, 0x48, 0xaa, 0x4b, 0x2d, 0x12, 0x87,
+	0xa0, 0x71, 0x42, 0x42, 0xaa, 0xfb, 0x36, 0xb0, 0xb6, 0x91, 0x03, 0x6d, 0x4c, 0x23, 0x2e, 0x7c,
+	0xc9, 0xe3, 0xab, 0xf1, 0x50, 0xd3, 0xd5, 0xc0, 0xd7, 0x62, 0xe8, 0x01, 0xd4, 0xfb, 0xbe, 0x4c,
+	0x29, 0x53, 0xa6, 0xf3, 0x1e, 0xd0, 0x71, 0x72, 0x09, 0x75, 0x5e, 0x76, 0x8f, 0x45, 0x2c, 0xa3,
+	0x8a, 0xe5, 0x9c, 0xc1, 0xf6, 0xc2, 0x98, 0x9f, 0x7d, 0x21, 0xd1, 0x08, 0xda, 0xa5, 0x90, 0xb0,
+	0x8c, 0x4e, 0xbd, 0xdb, 0x3a, 0x70, 0x7a, 0x55, 0x59, 0x2f, 0x74, 0xe3, 0x6b, 0x7d, 0xce, 0xeb,
+	0x7c, 0x30, 0x25, 0x9d, 0x6c, 0x30, 0xbb, 0xa4, 0x98, 0x64, 0xa8, 0xdc, 0x77, 0x0e, 0xa1, 0x9d,
+	0x95, 0xeb, 0x49, 0xde, 0x40, 0x53, 0xd9, 0xd9, 0x08, 0x4f, 0x6e, 0x18, 0x41, 0xc3, 0x27, 0x95,
+	0xce, 0x08, 0xcc, 0x2c, 0x94, 0x73, 0x6c, 0x94, 0x38, 0xde, 0x81, 0xe6, 0x58, 0x4c, 0xa8, 0xd4,
+	0xc4, 0x9b, 0x38, 0x71, 0x32, 0x56, 0xeb, 0x05, 0xab, 0x67, 0xb0, 0x35, 0xf8, 0x4e, 0xd8, 0x8c,
+	0x2a, 0xb4, 0x15, 0x66, 0xcf, 0x20, 0x6a, 0x39, 0x84, 0xaa, 0x3e, 0xa1, 0x97, 0x13, 0x49, 0x64,
+	0xa2, 0x7c, 0x13, 0xe7, 0xfe, 0xc1, 0xbf, 0x06, 0x6c, 0xa5, 0x7b, 0x35, 0xc8, 0x2f, 0x83, 0x3e,
+	0xc2, 0xe6, 0x80, 0x87, 0x21, 0x61, 0x1e, 0xa6, 0x2e, 0xf5, 0x7f, 0x29, 0xe1, 0xf6, 0x4a, 0x3b,
+	0x89, 0xa9, 0x88, 0x38, 0x13, 0xd4, 0x7e, 0x54, 0x8e, 0x0e, 0x78, 0x98, 0x25, 0xd0, 0x11, 0xb4,
+	0xbf, 0xce, 0x69, 0x7c, 0x95, 0x62, 0xa3, 0xe5, 0xf2, 0xb5, 0x9f, 0x2d, 0x61, 0xb2, 0xbc, 0xe6,
+	0x1f, 0xc0, 0xcc, 0x16, 0x03, 0x2d, 0x7b, 0xf8, 0x85, 0xad, 0xb1, 0xdb, 0xbd, 0xf4, 0x5f, 0x6a,
+	0xca, 0x7d, 0x0f, 0x7d, 0x03, 0x34, 0x29, 0x14, 0x99, 0x6d, 0xc0, 0x0a, 0x02, 0xb2, 0x57, 0xa8,
+	0x41, 0x1e, 0x6c, 0x1f, 0x57, 0xd0, 0x05, 0xda, 0x5b, 0xd2, 0x5a, 0xdd, 0x0b, 0xfb, 0xc5, 0xdd,
+	0x27, 0x68, 0xe9, 0x9d, 0x42, 0xab, 0x24, 0xde, 0xdb, 0xd0, 0x4b, 0xe2, 0xb6, 0x9f, 0xdf, 0xa2,
+	0x50, 0x0d, 0x8b, 0x01, 0x0a, 0x59, 0xa1, 0xdd, 0x25, 0xe5, 0x15, 0xd5, 0xdd, 0xf9, 0x58, 0xfb,
+	0x60, 0x62, 0x4a, 0xf5, 0x1f, 0xdd, 0x4d, 0xef, 0x7d, 0xed, 0x7d, 0xfa, 0x2f, 0x61, 0x8f, 0x51,
+	0x59, 0xae, 0x54, 0xdf, 0x81, 0xea, 0x29, 0xe7, 0x6b, 0xfa, 0x23, 0xf0, 0xf6, 0x7f, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x93, 0x54, 0x5f, 0x4c, 0xff, 0x06, 0x00, 0x00,
 }

@@ -19,6 +19,10 @@ import (
 	"os"
 )
 
+const (
+	NOT_DONE_YET = true
+)
+
 var (
 	debug = flag.Bool("debug", false, "more logging...")
 	port  = flag.Int("port", 4100, "The grpc server port")
@@ -27,6 +31,11 @@ var (
 func main() {
 	flag.Parse()
 	fmt.Printf("Starting deployminator...\n")
+	if NOT_DONE_YET {
+		fmt.Printf("This is not completed yet\n")
+		os.Exit(0)
+	}
+
 	var err error
 	db.Open()
 
