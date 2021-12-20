@@ -15,6 +15,7 @@ import (
 	"golang.conradwood.net/go-easyops/utils"
 	"google.golang.org/grpc"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -97,20 +98,36 @@ func listDeployments() {
 	ir, err := cl.GetDeployments(ctx, &pb.InfoRequest{})
 	utils.Bail("Failed to get deployments", err)
 	fmt.Printf("%d deployments\n", len(ir.Apps))
+	t := utils.Table{}
+	t.AddHeaders("#", "AppID", "DeploymentID", "BuildID", "Binary", "RepositoryID", "Status", "Since")
+	sort.Slice(ir.Apps, func(i, j int) bool {
+		return ir.Apps[i].Deployment.RepositoryID < ir.Apps[j].Deployment.RepositoryID
+	})
 	for i, app := range ir.Apps {
 		di := app.Deployment
 		rs := fmt.Sprintf("%d seconds", di.RuntimeSeconds)
-		fmt.Printf("%2d ID(%s,%s): Build #%d %s from %d [%s], since: %s\n", i, app.ID, di.DeploymentID, di.BuildID, di.Binary, di.RepositoryID, di.Status, rs)
+		t.AddInt(i)
+		t.AddString(app.ID)
+		t.AddString(di.DeploymentID)
+		t.AddUint64(di.BuildID)
+		t.AddString(di.Binary)
+		t.AddUint64(di.RepositoryID)
+		t.AddString(fmt.Sprintf("%v", di.Status))
+		t.AddString(rs)
 		if *details {
+			s := ""
 			as := di.Args
 			if len(di.ResolvedArgs) != 0 {
 				as = di.ResolvedArgs
 			}
 			for _, a := range as {
-				fmt.Printf("   %s\n", a)
+				s = s + fmt.Sprintf("   %s", a)
 			}
+			t.AddString(s)
 		}
+		t.NewRow()
 	}
+	fmt.Println(t.ToPrettyString())
 }
 
 func deploy() {

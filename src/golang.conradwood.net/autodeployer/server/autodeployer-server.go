@@ -47,6 +47,7 @@ import (
 
 // static variables for flag parser
 var (
+	max_users           = flag.Int("max_users", 0, "if non zero, limit number of users to manage to this number")
 	print_to_stdout     = flag.Bool("print_to_stdout", false, "print commands stdout to autodeployer stdout as well as to the logservice")
 	slay_corrupt_stdout = flag.Bool("slay_corrupt_stdout", true, "if true, slay commands with a lines on stdout that cannot be processed, e.g. too long")
 	stophandler         = flag.Bool("activate_stop_handler", true, "activates the stop handler. however this prevents us from writing panic() to stdout")
@@ -416,6 +417,7 @@ func (s *AutoDeployer) Undeploy(ctx context.Context, cr *pb.UndeployRequest) (*p
 		}
 	}
 	dep.Log("Undeploy request received")
+	fmt.Printf("Undeploy request received: %v", dep)
 	sb := ""
 	if cr.Block {
 		sb = fmt.Sprintf("Shutting down (sync): %s\n", dep.String())
@@ -582,14 +584,26 @@ func waitForCommand(du *deployments.Deployed) {
 }
 func Slay(username string, quick bool) {
 	var cmd *exec.Cmd
+	su := "/usr/bin/su"
+	kill := "/usr/bin/kill"
 	// we clean up - to make sure we really really release resources, we "slay" the user
+	if *debug {
+		fmt.Printf("Slaying process of user %s (quick=%v)...\n", username, quick)
+	}
 	if quick {
-		cmd = exec.Command("/usr/sbin/slay", "-9", username)
+		cmd = exec.Command(su, "-m", username, "-c", kill+` -KILL -1`)
 	} else {
-		cmd = exec.Command("/usr/sbin/slay", "-clean", username)
+		cmd = exec.Command(su, "-m", username, "-c", kill+` -TERM -1`)
+		err := cmd.Run()
+		if err != nil {
+			fmt.Printf("failed to kill %s: %s\n", username, err)
+		}
+		time.Sleep(time.Duration(2) * time.Second)
+		cmd = exec.Command(su, "-m", username, "-c", kill+` -KILL -1`)
+
 	}
 	if *debug {
-		fmt.Printf("Slaying process of user %s...\n", username)
+		fmt.Printf("Command: %v\n", cmd)
 	}
 	err := cmd.Run()
 	if (*debug) && (err == nil) {
@@ -848,6 +862,9 @@ func getListOfUsers() []*user.User {
 	var res []*user.User
 	i := 1
 	for {
+		if *max_users != 0 && len(res) >= *max_users {
+			return res
+		}
 		un := fmt.Sprintf("deploy%d", i)
 		u, err := user.Lookup(un)
 		if err != nil {
