@@ -25,7 +25,7 @@ import (
 	"golang.conradwood.net/autodeployer/starter"
 	"golang.conradwood.net/go-easyops/auth"
 	"golang.conradwood.net/go-easyops/client"
-	_ "golang.conradwood.net/go-easyops/linux" // add busy gauge
+	"golang.conradwood.net/go-easyops/linux" // add busy gauge
 	"golang.conradwood.net/go-easyops/logger"
 	"golang.conradwood.net/go-easyops/prometheus"
 	"golang.conradwood.net/go-easyops/server"
@@ -583,7 +583,7 @@ func waitForCommand(du *deployments.Deployed) {
 
 }
 func Slay(username string, quick bool) {
-	var cmd *exec.Cmd
+	var cmd []string
 	su := "/usr/bin/su"
 	kill := "/usr/bin/kill"
 	// we clean up - to make sure we really really release resources, we "slay" the user
@@ -591,25 +591,27 @@ func Slay(username string, quick bool) {
 		fmt.Printf("Slaying process of user %s (quick=%v)...\n", username, quick)
 	}
 	if quick {
-		cmd = exec.Command(su, "-m", username, "-c", kill+` -KILL -1`)
+		cmd = []string{su, "-m", username, "-c", kill + ` -KILL -1`}
 	} else {
-		cmd = exec.Command(su, "-m", username, "-c", kill+` -TERM -1`)
-		err := cmd.Run()
+		xcmd := exec.Command(su, "-m", username, "-c", kill+` -TERM -1`)
+		err := xcmd.Run()
 		if err != nil {
 			fmt.Printf("failed to kill %s: %s\n", username, err)
 		}
 		time.Sleep(time.Duration(2) * time.Second)
-		cmd = exec.Command(su, "-m", username, "-c", kill+` -KILL -1`)
+		cmd = []string{su, "-m", username, "-c", kill + ` -KILL -1`}
 
 	}
 	if *debug {
 		fmt.Printf("Command: %v\n", cmd)
 	}
-	err := cmd.Run()
+	l := linux.New()
+	out, err := l.SafelyExecute(cmd, nil)
 	if (*debug) && (err == nil) {
 		fmt.Printf("Slayed process of user %s\n", username)
 	}
 	if err != nil {
+		fmt.Printf("Command output: \n%s\n", out)
 		fmt.Printf("Slay user %s failed: %s\n", username, err)
 	}
 	setDeploymentsGauge()
