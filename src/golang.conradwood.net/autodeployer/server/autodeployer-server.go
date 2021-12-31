@@ -324,7 +324,7 @@ func (s *AutoDeployer) Deploy(ctx context.Context, cr *pb.DeployRequest) (*pb.De
 	if binname == "" {
 		return nil, errors.New("Failed to re-exec self. check startup path of daemon")
 	}
-	cmd := exec.Command("su", "-s", binname, du.User.Username, "--",
+	cmd := exec.Command(sucom(), "-s", binname, du.User.Username, "--",
 		fmt.Sprintf("-token=%s", tokens.GetServiceTokenParameter()),
 		fmt.Sprintf("-msgid=%s", du.StartupMsg))
 	du.Log("Executing: %v", cmd)
@@ -584,7 +584,7 @@ func waitForCommand(du *deployments.Deployed) {
 }
 func Slay(username string, quick bool) {
 	var cmd []string
-	su := "/usr/bin/su"
+	su := sucom()
 	kill := "/usr/bin/kill"
 	// we clean up - to make sure we really really release resources, we "slay" the user
 	if *debug {
@@ -962,4 +962,14 @@ func secArgs(ctx context.Context, d *pb.DeployedApp) {
 		d.Deployment.ResolvedArgs = nil
 	}
 
+}
+
+func sucom() string {
+	fs := []string{"/bin/su", "/usr/bin/su"}
+	for _, f := range fs {
+		if utils.FileExists(f) {
+			return f
+		}
+	}
+	panic("'su' not found")
 }
