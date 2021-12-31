@@ -585,7 +585,7 @@ func waitForCommand(du *deployments.Deployed) {
 func Slay(username string, quick bool) {
 	var cmd []string
 	su := sucom()
-	kill := "/usr/bin/kill"
+	kill := killcom()
 	// we clean up - to make sure we really really release resources, we "slay" the user
 	if *debug {
 		fmt.Printf("Slaying process of user %s (quick=%v)...\n", username, quick)
@@ -964,6 +964,15 @@ func secArgs(ctx context.Context, d *pb.DeployedApp) {
 
 }
 
+func killcom() string {
+	fs := []string{"/bin/kill", "/usr/bin/kill"}
+	for _, f := range fs {
+		if utils.FileExists(f) {
+			return f
+		}
+	}
+	panic("'su' not found")
+}
 func sucom() string {
 	fs := []string{"/bin/su", "/usr/bin/su"}
 	for _, f := range fs {
