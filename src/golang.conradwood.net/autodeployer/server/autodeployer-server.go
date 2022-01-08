@@ -146,6 +146,8 @@ func main() {
 
 	go started()
 
+	go version_metric()
+
 	sd := server.NewServerDef()
 	sd.Port = *port
 	sd.Register = st
