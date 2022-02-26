@@ -614,7 +614,19 @@ func Slay(username string, quick bool) {
 	}
 	if err != nil {
 		fmt.Printf("Command output: \n%s\n", out)
-		fmt.Printf("Slay user %s failed: %s\n", username, err)
+		fmt.Printf("su/kill -1 user %s failed: %s (trying slay executable)\n", username, err)
+		if quick {
+			cmd = []string{"slay", "-9", username}
+		} else {
+			cmd = []string{"slay", "-clean", username}
+		}
+		l := linux.New()
+		out, err := l.SafelyExecute(cmd, nil)
+		if err != nil {
+			fmt.Printf("slay failed: %s\n%s", err, out)
+		} else {
+			fmt.Printf("fallback method using slay suceeded for user %s\n", username)
+		}
 	}
 	setDeploymentsGauge()
 }
