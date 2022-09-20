@@ -49,6 +49,7 @@ import (
 
 // static variables for flag parser
 var (
+	shutting_down       = false
 	max_users           = flag.Int("max_users", 0, "if non zero, limit number of users to manage to this number")
 	print_to_stdout     = flag.Bool("print_to_stdout", false, "print commands stdout to autodeployer stdout as well as to the logservice")
 	slay_corrupt_stdout = flag.Bool("slay_corrupt_stdout", true, "if true, slay commands with a lines on stdout that cannot be processed, e.g. too long")
@@ -239,6 +240,8 @@ func (s *AutoDeployer) StopAutodeployer(ctx context.Context, cr *pb.StopRequest)
 	if res.Version == cr.IfNotVersion {
 		return res, nil
 	}
+	res.Stopping = true
+	shutting_down = true
 	go func() {
 		time.Sleep(time.Duration(3) * time.Second)
 		slayAll()
