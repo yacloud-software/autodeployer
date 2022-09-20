@@ -741,10 +741,12 @@ func (s *AutoDeployer) GetMachineInfo(ctx context.Context, cr *pb.MachineInfoReq
 	if len(sx) == 0 {
 		sx = []string{"worker"}
 	}
+	bin, _ := os.Executable()
 	res := pb.MachineInfoResponse{
 		MachineGroup:        sx,
 		AutoDeployerVersion: cmdline.APP_BUILD_NUMBER,
 		Stopping:            shutting_down,
+		AutodeployerBinary:  bin,
 	}
 	return &res, nil
 }
