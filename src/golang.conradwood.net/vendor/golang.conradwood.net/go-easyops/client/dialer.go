@@ -4,16 +4,17 @@ import (
 	_ "context"
 	"flag"
 	"fmt"
-	"golang.conradwood.net/go-easyops/prometheus"
 	"golang.conradwood.net/go-easyops/cmdline"
 	"golang.conradwood.net/go-easyops/common"
+	"golang.conradwood.net/go-easyops/prometheus"
 	"google.golang.org/grpc"
 	"os"
 	"strings"
 )
 
 const (
-	use_fancy_balancer = true
+	fancy_balancer_json = `{  "loadBalancingConfig": [ { "fancybalancer": {} } ] }`
+	use_fancy_balancer  = true
 )
 
 var (
@@ -52,6 +53,8 @@ func init() {
 func ConnectWithIPNoBlock(ip string) (*grpc.ClientConn, error) {
 	return connectWithIPOptions(ip, false)
 }
+
+// opens a tcp connection to an ip:port (ip syntax matches argument to net.Dial())
 func ConnectWithIP(ip string) (*grpc.ClientConn, error) {
 	return connectWithIPOptions(ip, true)
 }
@@ -131,7 +134,8 @@ func dialService(registry string, serviceName string) (*grpc.ClientConn, error) 
 		"go-easyops://"+serviceName+"/"+serviceName+"@"+registry, // "go-easyops://" url scheme registered in fancy_resolver.go
 		grpc.WithContextDialer(CustomDialer),                     // custom dialer to distinguish between direct and proxy tcp connections
 		grpc.WithBlock(),                                         // do not return until at least one connection is up
-		grpc.WithBalancerName("fancybalancer"),                   // "fancybalancer" registered in fancy_balancer.go
+		//grpc.WithBalancerName("fancybalancer"),                   // "fancybalancer" registered in fancy_balancer.go
+		grpc.WithDefaultServiceConfig(fancy_balancer_json),
 		grpc.WithTransportCredentials(GetClientCreds()),          // transport credentials: default hardcoded certificates
 		grpc.WithUnaryInterceptor(ClientMetricsUnaryInterceptor), // this is called for every unary RPC
 		grpc.WithStreamInterceptor(unaryStreamInterceptor),       // this is called for every stream RPC

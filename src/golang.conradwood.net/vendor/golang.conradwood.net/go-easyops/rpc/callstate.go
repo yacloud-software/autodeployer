@@ -152,6 +152,19 @@ func (cs *CallState) DebugPrintContext() {
 	}
 	cs.PrintContext()
 }
+func (cs *CallState) RoutingTags() *rc.CTXRoutingTags {
+	if cs == nil {
+		return nil
+	}
+	if cs.Metadata == nil {
+		return nil
+	}
+	if cs.Metadata.RoutingTags == nil {
+		return nil
+	}
+
+	return cs.Metadata.RoutingTags
+}
 func (cs *CallState) PrintContext() {
 	if cs == nil {
 		fmt.Printf("[go-easyops] Context has no Callstate\n")
@@ -198,7 +211,15 @@ func metaToString(md metadata.MD) string {
 	if err != nil {
 		return fmt.Sprintf("META: error %s\n", err)
 	}
-	return fmt.Sprintf("%#v", res)
+	sn := "UserID=" + res.UserID + ", Service=" + desc(res.Service) + ", User=" + desc(res.User)
+	sn = sn + ", " + fmt.Sprintf("Trace=%v, Debug=%v, RoutingTags=%#v", res.Trace, res.Debug, res.RoutingTags)
+	return sn
+}
+func desc(u *auth.User) string {
+	if u == nil {
+		return "NONE"
+	}
+	return fmt.Sprintf("%s[%s]", u.ID, u.Email)
 }
 func (cs *CallState) MetadataValue() string {
 	if cs.Metadata == nil {
@@ -260,4 +281,10 @@ func ContextWithCallState(ctx context.Context) (context.Context, *CallState) {
 	cs := &CallState{}
 	nc := context.WithValue(ctx, LOCALCONTEXTNAME, cs)
 	return nc, cs
+}
+func (cs *CallState) SignedSession() *auth.SignedSession {
+	if cs.Metadata == nil {
+		return nil
+	}
+	return cs.Metadata.SignedSession
 }

@@ -9,10 +9,20 @@ It is generated from these files:
 	golang.conradwood.net/apis/cnwnotification/cnwnotification.proto
 
 It has these top-level messages:
+	FBTokens
+	FBObject
+	FBCommand
+	FBButton
 	ViaSMSRequest
 	ConfigRequest
+	Config2Request
+	ErrorLog
+	StartedRequest
+	NotificationRequest
+	RPCResponse
 	ConfigResponse
 	Notification
+	DeviceID
 	DisplayRequest
 	SoundRequest
 	SuppressRequest
@@ -21,6 +31,13 @@ It has these top-level messages:
 	WifiInfoRequest
 	ButtonPressedRequest
 	Info
+	DeviceMessage
+	SoundCompletionRequest
+	DeviceList
+	Device
+	PlayRequest
+	PingRequest
+	PingDevRequest
 */
 package cnwnotification
 
@@ -45,6 +62,222 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type FBTokens struct {
+	Mappings map[string]string `protobuf:"bytes,1,rep,name=Mappings" json:"Mappings,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+}
+
+func (m *FBTokens) Reset()                    { *m = FBTokens{} }
+func (m *FBTokens) String() string            { return proto.CompactTextString(m) }
+func (*FBTokens) ProtoMessage()               {}
+func (*FBTokens) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
+func (m *FBTokens) GetMappings() map[string]string {
+	if m != nil {
+		return m.Mappings
+	}
+	return nil
+}
+
+type FBObject struct {
+	Timestamp uint32       `protobuf:"varint,1,opt,name=Timestamp" json:"Timestamp,omitempty"`
+	Commands  []*FBCommand `protobuf:"bytes,2,rep,name=Commands" json:"Commands,omitempty"`
+}
+
+func (m *FBObject) Reset()                    { *m = FBObject{} }
+func (m *FBObject) String() string            { return proto.CompactTextString(m) }
+func (*FBObject) ProtoMessage()               {}
+func (*FBObject) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *FBObject) GetTimestamp() uint32 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
+func (m *FBObject) GetCommands() []*FBCommand {
+	if m != nil {
+		return m.Commands
+	}
+	return nil
+}
+
+type FBCommand struct {
+	Command              string      `protobuf:"bytes,1,opt,name=Command" json:"Command,omitempty"`
+	Title                string      `protobuf:"bytes,2,opt,name=Title" json:"Title,omitempty"`
+	Body                 string      `protobuf:"bytes,3,opt,name=Body" json:"Body,omitempty"`
+	Size                 uint32      `protobuf:"varint,4,opt,name=Size" json:"Size,omitempty"`
+	Background           string      `protobuf:"bytes,5,opt,name=Background" json:"Background,omitempty"`
+	Foreground           string      `protobuf:"bytes,6,opt,name=Foreground" json:"Foreground,omitempty"`
+	URI                  string      `protobuf:"bytes,7,opt,name=URI" json:"URI,omitempty"`
+	Buttons              []*FBButton `protobuf:"bytes,8,rep,name=Buttons" json:"Buttons,omitempty"`
+	ApiKey               string      `protobuf:"bytes,9,opt,name=ApiKey" json:"ApiKey,omitempty"`
+	DeviceName           string      `protobuf:"bytes,10,opt,name=DeviceName" json:"DeviceName,omitempty"`
+	TextSizeMultiplier   float32     `protobuf:"fixed32,11,opt,name=TextSizeMultiplier" json:"TextSizeMultiplier,omitempty"`
+	ButtonSizeMultiplier float32     `protobuf:"fixed32,12,opt,name=ButtonSizeMultiplier" json:"ButtonSizeMultiplier,omitempty"`
+	ButtonColumns        uint32      `protobuf:"varint,13,opt,name=ButtonColumns" json:"ButtonColumns,omitempty"`
+	ButtonRows           uint32      `protobuf:"varint,14,opt,name=ButtonRows" json:"ButtonRows,omitempty"`
+	Payload              string      `protobuf:"bytes,15,opt,name=Payload" json:"Payload,omitempty"`
+}
+
+func (m *FBCommand) Reset()                    { *m = FBCommand{} }
+func (m *FBCommand) String() string            { return proto.CompactTextString(m) }
+func (*FBCommand) ProtoMessage()               {}
+func (*FBCommand) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *FBCommand) GetCommand() string {
+	if m != nil {
+		return m.Command
+	}
+	return ""
+}
+
+func (m *FBCommand) GetTitle() string {
+	if m != nil {
+		return m.Title
+	}
+	return ""
+}
+
+func (m *FBCommand) GetBody() string {
+	if m != nil {
+		return m.Body
+	}
+	return ""
+}
+
+func (m *FBCommand) GetSize() uint32 {
+	if m != nil {
+		return m.Size
+	}
+	return 0
+}
+
+func (m *FBCommand) GetBackground() string {
+	if m != nil {
+		return m.Background
+	}
+	return ""
+}
+
+func (m *FBCommand) GetForeground() string {
+	if m != nil {
+		return m.Foreground
+	}
+	return ""
+}
+
+func (m *FBCommand) GetURI() string {
+	if m != nil {
+		return m.URI
+	}
+	return ""
+}
+
+func (m *FBCommand) GetButtons() []*FBButton {
+	if m != nil {
+		return m.Buttons
+	}
+	return nil
+}
+
+func (m *FBCommand) GetApiKey() string {
+	if m != nil {
+		return m.ApiKey
+	}
+	return ""
+}
+
+func (m *FBCommand) GetDeviceName() string {
+	if m != nil {
+		return m.DeviceName
+	}
+	return ""
+}
+
+func (m *FBCommand) GetTextSizeMultiplier() float32 {
+	if m != nil {
+		return m.TextSizeMultiplier
+	}
+	return 0
+}
+
+func (m *FBCommand) GetButtonSizeMultiplier() float32 {
+	if m != nil {
+		return m.ButtonSizeMultiplier
+	}
+	return 0
+}
+
+func (m *FBCommand) GetButtonColumns() uint32 {
+	if m != nil {
+		return m.ButtonColumns
+	}
+	return 0
+}
+
+func (m *FBCommand) GetButtonRows() uint32 {
+	if m != nil {
+		return m.ButtonRows
+	}
+	return 0
+}
+
+func (m *FBCommand) GetPayload() string {
+	if m != nil {
+		return m.Payload
+	}
+	return ""
+}
+
+type FBButton struct {
+	Text  string `protobuf:"bytes,1,opt,name=Text" json:"Text,omitempty"`
+	ID    uint32 `protobuf:"varint,2,opt,name=ID" json:"ID,omitempty"`
+	Size  uint32 `protobuf:"varint,3,opt,name=Size" json:"Size,omitempty"`
+	Row   uint32 `protobuf:"varint,4,opt,name=Row" json:"Row,omitempty"`
+	Extra uint32 `protobuf:"varint,5,opt,name=Extra" json:"Extra,omitempty"`
+}
+
+func (m *FBButton) Reset()                    { *m = FBButton{} }
+func (m *FBButton) String() string            { return proto.CompactTextString(m) }
+func (*FBButton) ProtoMessage()               {}
+func (*FBButton) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+
+func (m *FBButton) GetText() string {
+	if m != nil {
+		return m.Text
+	}
+	return ""
+}
+
+func (m *FBButton) GetID() uint32 {
+	if m != nil {
+		return m.ID
+	}
+	return 0
+}
+
+func (m *FBButton) GetSize() uint32 {
+	if m != nil {
+		return m.Size
+	}
+	return 0
+}
+
+func (m *FBButton) GetRow() uint32 {
+	if m != nil {
+		return m.Row
+	}
+	return 0
+}
+
+func (m *FBButton) GetExtra() uint32 {
+	if m != nil {
+		return m.Extra
+	}
+	return 0
+}
+
 // send an SMS via some devices' sim card
 type ViaSMSRequest struct {
 	Number  string `protobuf:"bytes,1,opt,name=Number" json:"Number,omitempty"`
@@ -54,7 +287,7 @@ type ViaSMSRequest struct {
 func (m *ViaSMSRequest) Reset()                    { *m = ViaSMSRequest{} }
 func (m *ViaSMSRequest) String() string            { return proto.CompactTextString(m) }
 func (*ViaSMSRequest) ProtoMessage()               {}
-func (*ViaSMSRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (*ViaSMSRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
 func (m *ViaSMSRequest) GetNumber() string {
 	if m != nil {
@@ -77,13 +310,149 @@ type ConfigRequest struct {
 func (m *ConfigRequest) Reset()                    { *m = ConfigRequest{} }
 func (m *ConfigRequest) String() string            { return proto.CompactTextString(m) }
 func (*ConfigRequest) ProtoMessage()               {}
-func (*ConfigRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (*ConfigRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
 func (m *ConfigRequest) GetSecret() string {
 	if m != nil {
 		return m.Secret
 	}
 	return ""
+}
+
+type Config2Request struct {
+	Device  string `protobuf:"bytes,1,opt,name=Device" json:"Device,omitempty"`
+	FBToken string `protobuf:"bytes,2,opt,name=FBToken" json:"FBToken,omitempty"`
+}
+
+func (m *Config2Request) Reset()                    { *m = Config2Request{} }
+func (m *Config2Request) String() string            { return proto.CompactTextString(m) }
+func (*Config2Request) ProtoMessage()               {}
+func (*Config2Request) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+
+func (m *Config2Request) GetDevice() string {
+	if m != nil {
+		return m.Device
+	}
+	return ""
+}
+
+func (m *Config2Request) GetFBToken() string {
+	if m != nil {
+		return m.FBToken
+	}
+	return ""
+}
+
+type ErrorLog struct {
+	DeviceID string `protobuf:"bytes,1,opt,name=DeviceID" json:"DeviceID,omitempty"`
+	Error    string `protobuf:"bytes,2,opt,name=Error" json:"Error,omitempty"`
+}
+
+func (m *ErrorLog) Reset()                    { *m = ErrorLog{} }
+func (m *ErrorLog) String() string            { return proto.CompactTextString(m) }
+func (*ErrorLog) ProtoMessage()               {}
+func (*ErrorLog) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+
+func (m *ErrorLog) GetDeviceID() string {
+	if m != nil {
+		return m.DeviceID
+	}
+	return ""
+}
+
+func (m *ErrorLog) GetError() string {
+	if m != nil {
+		return m.Error
+	}
+	return ""
+}
+
+type StartedRequest struct {
+	DeviceID       string `protobuf:"bytes,1,opt,name=DeviceID" json:"DeviceID,omitempty"`
+	BuildTimeStamp uint32 `protobuf:"varint,2,opt,name=BuildTimeStamp" json:"BuildTimeStamp,omitempty"`
+}
+
+func (m *StartedRequest) Reset()                    { *m = StartedRequest{} }
+func (m *StartedRequest) String() string            { return proto.CompactTextString(m) }
+func (*StartedRequest) ProtoMessage()               {}
+func (*StartedRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+
+func (m *StartedRequest) GetDeviceID() string {
+	if m != nil {
+		return m.DeviceID
+	}
+	return ""
+}
+
+func (m *StartedRequest) GetBuildTimeStamp() uint32 {
+	if m != nil {
+		return m.BuildTimeStamp
+	}
+	return 0
+}
+
+type NotificationRequest struct {
+	DeviceID       string `protobuf:"bytes,1,opt,name=DeviceID" json:"DeviceID,omitempty"`
+	NotificationID uint32 `protobuf:"varint,2,opt,name=NotificationID" json:"NotificationID,omitempty"`
+}
+
+func (m *NotificationRequest) Reset()                    { *m = NotificationRequest{} }
+func (m *NotificationRequest) String() string            { return proto.CompactTextString(m) }
+func (*NotificationRequest) ProtoMessage()               {}
+func (*NotificationRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
+
+func (m *NotificationRequest) GetDeviceID() string {
+	if m != nil {
+		return m.DeviceID
+	}
+	return ""
+}
+
+func (m *NotificationRequest) GetNotificationID() uint32 {
+	if m != nil {
+		return m.NotificationID
+	}
+	return 0
+}
+
+type RPCResponse struct {
+	Success   bool      `protobuf:"varint,1,opt,name=Success" json:"Success,omitempty"`
+	Message   string    `protobuf:"bytes,2,opt,name=Message" json:"Message,omitempty"`
+	Timestamp uint32    `protobuf:"varint,4,opt,name=Timestamp" json:"Timestamp,omitempty"`
+	FBO       *FBObject `protobuf:"bytes,5,opt,name=FBO" json:"FBO,omitempty"`
+}
+
+func (m *RPCResponse) Reset()                    { *m = RPCResponse{} }
+func (m *RPCResponse) String() string            { return proto.CompactTextString(m) }
+func (*RPCResponse) ProtoMessage()               {}
+func (*RPCResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
+
+func (m *RPCResponse) GetSuccess() bool {
+	if m != nil {
+		return m.Success
+	}
+	return false
+}
+
+func (m *RPCResponse) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
+func (m *RPCResponse) GetTimestamp() uint32 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
+func (m *RPCResponse) GetFBO() *FBObject {
+	if m != nil {
+		return m.FBO
+	}
+	return nil
 }
 
 type ConfigResponse struct {
@@ -95,7 +464,7 @@ type ConfigResponse struct {
 func (m *ConfigResponse) Reset()                    { *m = ConfigResponse{} }
 func (m *ConfigResponse) String() string            { return proto.CompactTextString(m) }
 func (*ConfigResponse) ProtoMessage()               {}
-func (*ConfigResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (*ConfigResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
 
 func (m *ConfigResponse) GetNotifications() []*Notification {
 	if m != nil {
@@ -129,7 +498,7 @@ type Notification struct {
 func (m *Notification) Reset()                    { *m = Notification{} }
 func (m *Notification) String() string            { return proto.CompactTextString(m) }
 func (*Notification) ProtoMessage()               {}
-func (*Notification) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+func (*Notification) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
 
 func (m *Notification) GetTitle() string {
 	if m != nil {
@@ -166,6 +535,22 @@ func (m *Notification) GetImage() string {
 	return ""
 }
 
+type DeviceID struct {
+	Device string `protobuf:"bytes,1,opt,name=Device" json:"Device,omitempty"`
+}
+
+func (m *DeviceID) Reset()                    { *m = DeviceID{} }
+func (m *DeviceID) String() string            { return proto.CompactTextString(m) }
+func (*DeviceID) ProtoMessage()               {}
+func (*DeviceID) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
+
+func (m *DeviceID) GetDevice() string {
+	if m != nil {
+		return m.Device
+	}
+	return ""
+}
+
 type DisplayRequest struct {
 	Secret     string `protobuf:"bytes,1,opt,name=Secret" json:"Secret,omitempty"`
 	Display    string `protobuf:"bytes,2,opt,name=Display" json:"Display,omitempty"`
@@ -176,7 +561,7 @@ type DisplayRequest struct {
 func (m *DisplayRequest) Reset()                    { *m = DisplayRequest{} }
 func (m *DisplayRequest) String() string            { return proto.CompactTextString(m) }
 func (*DisplayRequest) ProtoMessage()               {}
-func (*DisplayRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+func (*DisplayRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{14} }
 
 func (m *DisplayRequest) GetSecret() string {
 	if m != nil {
@@ -216,7 +601,7 @@ type SoundRequest struct {
 func (m *SoundRequest) Reset()                    { *m = SoundRequest{} }
 func (m *SoundRequest) String() string            { return proto.CompactTextString(m) }
 func (*SoundRequest) ProtoMessage()               {}
-func (*SoundRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+func (*SoundRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
 
 func (m *SoundRequest) GetSecret() string {
 	if m != nil {
@@ -254,7 +639,7 @@ type SuppressRequest struct {
 func (m *SuppressRequest) Reset()                    { *m = SuppressRequest{} }
 func (m *SuppressRequest) String() string            { return proto.CompactTextString(m) }
 func (*SuppressRequest) ProtoMessage()               {}
-func (*SuppressRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*SuppressRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{16} }
 
 func (m *SuppressRequest) GetSecret() string {
 	if m != nil {
@@ -277,7 +662,7 @@ type Connection struct {
 func (m *Connection) Reset()                    { *m = Connection{} }
 func (m *Connection) String() string            { return proto.CompactTextString(m) }
 func (*Connection) ProtoMessage()               {}
-func (*Connection) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+func (*Connection) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{17} }
 
 func (m *Connection) GetDeviceName() string {
 	if m != nil {
@@ -293,7 +678,7 @@ type ConnectionList struct {
 func (m *ConnectionList) Reset()                    { *m = ConnectionList{} }
 func (m *ConnectionList) String() string            { return proto.CompactTextString(m) }
 func (*ConnectionList) ProtoMessage()               {}
-func (*ConnectionList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+func (*ConnectionList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{18} }
 
 func (m *ConnectionList) GetConnections() []*Connection {
 	if m != nil {
@@ -311,7 +696,7 @@ type WifiInfoRequest struct {
 func (m *WifiInfoRequest) Reset()                    { *m = WifiInfoRequest{} }
 func (m *WifiInfoRequest) String() string            { return proto.CompactTextString(m) }
 func (*WifiInfoRequest) ProtoMessage()               {}
-func (*WifiInfoRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
+func (*WifiInfoRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{19} }
 
 func (m *WifiInfoRequest) GetDeviceID() string {
 	if m != nil {
@@ -338,12 +723,13 @@ type ButtonPressedRequest struct {
 	DeviceID string `protobuf:"bytes,1,opt,name=DeviceID" json:"DeviceID,omitempty"`
 	Key      string `protobuf:"bytes,2,opt,name=Key" json:"Key,omitempty"`
 	ButtonID uint32 `protobuf:"varint,3,opt,name=ButtonID" json:"ButtonID,omitempty"`
+	Extra    uint32 `protobuf:"varint,4,opt,name=Extra" json:"Extra,omitempty"`
 }
 
 func (m *ButtonPressedRequest) Reset()                    { *m = ButtonPressedRequest{} }
 func (m *ButtonPressedRequest) String() string            { return proto.CompactTextString(m) }
 func (*ButtonPressedRequest) ProtoMessage()               {}
-func (*ButtonPressedRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
+func (*ButtonPressedRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{20} }
 
 func (m *ButtonPressedRequest) GetDeviceID() string {
 	if m != nil {
@@ -366,6 +752,13 @@ func (m *ButtonPressedRequest) GetButtonID() uint32 {
 	return 0
 }
 
+func (m *ButtonPressedRequest) GetExtra() uint32 {
+	if m != nil {
+		return m.Extra
+	}
+	return 0
+}
+
 type Info struct {
 	Text string `protobuf:"bytes,1,opt,name=Text" json:"Text,omitempty"`
 }
@@ -373,7 +766,7 @@ type Info struct {
 func (m *Info) Reset()                    { *m = Info{} }
 func (m *Info) String() string            { return proto.CompactTextString(m) }
 func (*Info) ProtoMessage()               {}
-func (*Info) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
+func (*Info) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{21} }
 
 func (m *Info) GetText() string {
 	if m != nil {
@@ -382,11 +775,247 @@ func (m *Info) GetText() string {
 	return ""
 }
 
+type DeviceMessage struct {
+	Title  string `protobuf:"bytes,1,opt,name=Title" json:"Title,omitempty"`
+	Body   string `protobuf:"bytes,2,opt,name=Body" json:"Body,omitempty"`
+	Device string `protobuf:"bytes,3,opt,name=Device" json:"Device,omitempty"`
+	URL    string `protobuf:"bytes,4,opt,name=URL" json:"URL,omitempty"`
+}
+
+func (m *DeviceMessage) Reset()                    { *m = DeviceMessage{} }
+func (m *DeviceMessage) String() string            { return proto.CompactTextString(m) }
+func (*DeviceMessage) ProtoMessage()               {}
+func (*DeviceMessage) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{22} }
+
+func (m *DeviceMessage) GetTitle() string {
+	if m != nil {
+		return m.Title
+	}
+	return ""
+}
+
+func (m *DeviceMessage) GetBody() string {
+	if m != nil {
+		return m.Body
+	}
+	return ""
+}
+
+func (m *DeviceMessage) GetDevice() string {
+	if m != nil {
+		return m.Device
+	}
+	return ""
+}
+
+func (m *DeviceMessage) GetURL() string {
+	if m != nil {
+		return m.URL
+	}
+	return ""
+}
+
+type SoundCompletionRequest struct {
+	DeviceID string `protobuf:"bytes,1,opt,name=DeviceID" json:"DeviceID,omitempty"`
+	URL      string `protobuf:"bytes,2,opt,name=URL" json:"URL,omitempty"`
+	Success  bool   `protobuf:"varint,3,opt,name=Success" json:"Success,omitempty"`
+}
+
+func (m *SoundCompletionRequest) Reset()                    { *m = SoundCompletionRequest{} }
+func (m *SoundCompletionRequest) String() string            { return proto.CompactTextString(m) }
+func (*SoundCompletionRequest) ProtoMessage()               {}
+func (*SoundCompletionRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{23} }
+
+func (m *SoundCompletionRequest) GetDeviceID() string {
+	if m != nil {
+		return m.DeviceID
+	}
+	return ""
+}
+
+func (m *SoundCompletionRequest) GetURL() string {
+	if m != nil {
+		return m.URL
+	}
+	return ""
+}
+
+func (m *SoundCompletionRequest) GetSuccess() bool {
+	if m != nil {
+		return m.Success
+	}
+	return false
+}
+
+type DeviceList struct {
+	Devices []*Device `protobuf:"bytes,1,rep,name=Devices" json:"Devices,omitempty"`
+}
+
+func (m *DeviceList) Reset()                    { *m = DeviceList{} }
+func (m *DeviceList) String() string            { return proto.CompactTextString(m) }
+func (*DeviceList) ProtoMessage()               {}
+func (*DeviceList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{24} }
+
+func (m *DeviceList) GetDevices() []*Device {
+	if m != nil {
+		return m.Devices
+	}
+	return nil
+}
+
+type Device struct {
+	Name     string `protobuf:"bytes,1,opt,name=Name" json:"Name,omitempty"`
+	Online   bool   `protobuf:"varint,2,opt,name=Online" json:"Online,omitempty"`
+	LastSeen uint32 `protobuf:"varint,3,opt,name=LastSeen" json:"LastSeen,omitempty"`
+	DeviceID string `protobuf:"bytes,4,opt,name=DeviceID" json:"DeviceID,omitempty"`
+	Build    uint32 `protobuf:"varint,5,opt,name=Build" json:"Build,omitempty"`
+}
+
+func (m *Device) Reset()                    { *m = Device{} }
+func (m *Device) String() string            { return proto.CompactTextString(m) }
+func (*Device) ProtoMessage()               {}
+func (*Device) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{25} }
+
+func (m *Device) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *Device) GetOnline() bool {
+	if m != nil {
+		return m.Online
+	}
+	return false
+}
+
+func (m *Device) GetLastSeen() uint32 {
+	if m != nil {
+		return m.LastSeen
+	}
+	return 0
+}
+
+func (m *Device) GetDeviceID() string {
+	if m != nil {
+		return m.DeviceID
+	}
+	return ""
+}
+
+func (m *Device) GetBuild() uint32 {
+	if m != nil {
+		return m.Build
+	}
+	return 0
+}
+
+type PlayRequest struct {
+	URL     string   `protobuf:"bytes,1,opt,name=URL" json:"URL,omitempty"`
+	Devices []string `protobuf:"bytes,2,rep,name=Devices" json:"Devices,omitempty"`
+	Until   uint32   `protobuf:"varint,3,opt,name=Until" json:"Until,omitempty"`
+	Repeat  uint32   `protobuf:"varint,4,opt,name=Repeat" json:"Repeat,omitempty"`
+}
+
+func (m *PlayRequest) Reset()                    { *m = PlayRequest{} }
+func (m *PlayRequest) String() string            { return proto.CompactTextString(m) }
+func (*PlayRequest) ProtoMessage()               {}
+func (*PlayRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{26} }
+
+func (m *PlayRequest) GetURL() string {
+	if m != nil {
+		return m.URL
+	}
+	return ""
+}
+
+func (m *PlayRequest) GetDevices() []string {
+	if m != nil {
+		return m.Devices
+	}
+	return nil
+}
+
+func (m *PlayRequest) GetUntil() uint32 {
+	if m != nil {
+		return m.Until
+	}
+	return 0
+}
+
+func (m *PlayRequest) GetRepeat() uint32 {
+	if m != nil {
+		return m.Repeat
+	}
+	return 0
+}
+
+// sent by device to server
+type PingRequest struct {
+	DeviceID string `protobuf:"bytes,1,opt,name=DeviceID" json:"DeviceID,omitempty"`
+	Payload  string `protobuf:"bytes,2,opt,name=Payload" json:"Payload,omitempty"`
+}
+
+func (m *PingRequest) Reset()                    { *m = PingRequest{} }
+func (m *PingRequest) String() string            { return proto.CompactTextString(m) }
+func (*PingRequest) ProtoMessage()               {}
+func (*PingRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{27} }
+
+func (m *PingRequest) GetDeviceID() string {
+	if m != nil {
+		return m.DeviceID
+	}
+	return ""
+}
+
+func (m *PingRequest) GetPayload() string {
+	if m != nil {
+		return m.Payload
+	}
+	return ""
+}
+
+// sent by CLI to server to trigger a ping
+type PingDevRequest struct {
+	DeviceID string `protobuf:"bytes,1,opt,name=DeviceID" json:"DeviceID,omitempty"`
+	Payload  string `protobuf:"bytes,2,opt,name=Payload" json:"Payload,omitempty"`
+}
+
+func (m *PingDevRequest) Reset()                    { *m = PingDevRequest{} }
+func (m *PingDevRequest) String() string            { return proto.CompactTextString(m) }
+func (*PingDevRequest) ProtoMessage()               {}
+func (*PingDevRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{28} }
+
+func (m *PingDevRequest) GetDeviceID() string {
+	if m != nil {
+		return m.DeviceID
+	}
+	return ""
+}
+
+func (m *PingDevRequest) GetPayload() string {
+	if m != nil {
+		return m.Payload
+	}
+	return ""
+}
+
 func init() {
+	proto.RegisterType((*FBTokens)(nil), "cnwnotification.FBTokens")
+	proto.RegisterType((*FBObject)(nil), "cnwnotification.FBObject")
+	proto.RegisterType((*FBCommand)(nil), "cnwnotification.FBCommand")
+	proto.RegisterType((*FBButton)(nil), "cnwnotification.FBButton")
 	proto.RegisterType((*ViaSMSRequest)(nil), "cnwnotification.ViaSMSRequest")
 	proto.RegisterType((*ConfigRequest)(nil), "cnwnotification.ConfigRequest")
+	proto.RegisterType((*Config2Request)(nil), "cnwnotification.Config2Request")
+	proto.RegisterType((*ErrorLog)(nil), "cnwnotification.ErrorLog")
+	proto.RegisterType((*StartedRequest)(nil), "cnwnotification.StartedRequest")
+	proto.RegisterType((*NotificationRequest)(nil), "cnwnotification.NotificationRequest")
+	proto.RegisterType((*RPCResponse)(nil), "cnwnotification.RPCResponse")
 	proto.RegisterType((*ConfigResponse)(nil), "cnwnotification.ConfigResponse")
 	proto.RegisterType((*Notification)(nil), "cnwnotification.Notification")
+	proto.RegisterType((*DeviceID)(nil), "cnwnotification.DeviceID")
 	proto.RegisterType((*DisplayRequest)(nil), "cnwnotification.DisplayRequest")
 	proto.RegisterType((*SoundRequest)(nil), "cnwnotification.SoundRequest")
 	proto.RegisterType((*SuppressRequest)(nil), "cnwnotification.SuppressRequest")
@@ -395,6 +1024,13 @@ func init() {
 	proto.RegisterType((*WifiInfoRequest)(nil), "cnwnotification.WifiInfoRequest")
 	proto.RegisterType((*ButtonPressedRequest)(nil), "cnwnotification.ButtonPressedRequest")
 	proto.RegisterType((*Info)(nil), "cnwnotification.Info")
+	proto.RegisterType((*DeviceMessage)(nil), "cnwnotification.DeviceMessage")
+	proto.RegisterType((*SoundCompletionRequest)(nil), "cnwnotification.SoundCompletionRequest")
+	proto.RegisterType((*DeviceList)(nil), "cnwnotification.DeviceList")
+	proto.RegisterType((*Device)(nil), "cnwnotification.Device")
+	proto.RegisterType((*PlayRequest)(nil), "cnwnotification.PlayRequest")
+	proto.RegisterType((*PingRequest)(nil), "cnwnotification.PingRequest")
+	proto.RegisterType((*PingDevRequest)(nil), "cnwnotification.PingDevRequest")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -408,7 +1044,14 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for CNWNotificationService service
 
 type CNWNotificationServiceClient interface {
+	// ask server to ping a device
+	Ping(ctx context.Context, in *PingDevRequest, opts ...grpc.CallOption) (*common.Void, error)
+	// device sends "alive" message to server
+	DevicePing(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*RPCResponse, error)
+	// authentication optional
 	GetConfig(ctx context.Context, in *ConfigRequest, opts ...grpc.CallOption) (*ConfigResponse, error)
+	// authentication optional
+	GetConfig2(ctx context.Context, in *Config2Request, opts ...grpc.CallOption) (*RPCResponse, error)
 	Display(ctx context.Context, in *DisplayRequest, opts ...grpc.CallOption) (*common.Void, error)
 	Sound(ctx context.Context, in *SoundRequest, opts ...grpc.CallOption) (*common.Void, error)
 	Suppress(ctx context.Context, in *SuppressRequest, opts ...grpc.CallOption) (*common.Void, error)
@@ -422,6 +1065,24 @@ type CNWNotificationServiceClient interface {
 	NotifyInfoChange(ctx context.Context, in *common.Void, opts ...grpc.CallOption) (*common.Void, error)
 	// button pressed, sent by app
 	ButtonPressed(ctx context.Context, in *ButtonPressedRequest, opts ...grpc.CallOption) (*common.Void, error)
+	// button pressed, sent by app
+	ButtonPressed2(ctx context.Context, in *ButtonPressedRequest, opts ...grpc.CallOption) (*RPCResponse, error)
+	// send a message via firebase to device
+	SendMessageToDevice(ctx context.Context, in *DeviceMessage, opts ...grpc.CallOption) (*common.Void, error)
+	// a notification was pressed
+	NotificationPressed(ctx context.Context, in *NotificationRequest, opts ...grpc.CallOption) (*RPCResponse, error)
+	// a device encountered an error
+	Error(ctx context.Context, in *ErrorLog, opts ...grpc.CallOption) (*RPCResponse, error)
+	// a device started the activity
+	Started(ctx context.Context, in *StartedRequest, opts ...grpc.CallOption) (*RPCResponse, error)
+	// resend config to device - not intented to be driggered by device itself, but by CLI
+	ResetDevice(ctx context.Context, in *DeviceID, opts ...grpc.CallOption) (*common.Void, error)
+	// called by devices when they finished playing a sound
+	SoundCompleted(ctx context.Context, in *SoundCompletionRequest, opts ...grpc.CallOption) (*RPCResponse, error)
+	// list devices
+	ListDevices(ctx context.Context, in *common.Void, opts ...grpc.CallOption) (*DeviceList, error)
+	// new style play some sound
+	Play(ctx context.Context, in *PlayRequest, opts ...grpc.CallOption) (*common.Void, error)
 }
 
 type cNWNotificationServiceClient struct {
@@ -432,9 +1093,36 @@ func NewCNWNotificationServiceClient(cc *grpc.ClientConn) CNWNotificationService
 	return &cNWNotificationServiceClient{cc}
 }
 
+func (c *cNWNotificationServiceClient) Ping(ctx context.Context, in *PingDevRequest, opts ...grpc.CallOption) (*common.Void, error) {
+	out := new(common.Void)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/Ping", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) DevicePing(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*RPCResponse, error) {
+	out := new(RPCResponse)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/DevicePing", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *cNWNotificationServiceClient) GetConfig(ctx context.Context, in *ConfigRequest, opts ...grpc.CallOption) (*ConfigResponse, error) {
 	out := new(ConfigResponse)
 	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/GetConfig", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) GetConfig2(ctx context.Context, in *Config2Request, opts ...grpc.CallOption) (*RPCResponse, error) {
+	out := new(RPCResponse)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/GetConfig2", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -522,10 +1210,98 @@ func (c *cNWNotificationServiceClient) ButtonPressed(ctx context.Context, in *Bu
 	return out, nil
 }
 
+func (c *cNWNotificationServiceClient) ButtonPressed2(ctx context.Context, in *ButtonPressedRequest, opts ...grpc.CallOption) (*RPCResponse, error) {
+	out := new(RPCResponse)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/ButtonPressed2", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) SendMessageToDevice(ctx context.Context, in *DeviceMessage, opts ...grpc.CallOption) (*common.Void, error) {
+	out := new(common.Void)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/SendMessageToDevice", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) NotificationPressed(ctx context.Context, in *NotificationRequest, opts ...grpc.CallOption) (*RPCResponse, error) {
+	out := new(RPCResponse)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/NotificationPressed", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) Error(ctx context.Context, in *ErrorLog, opts ...grpc.CallOption) (*RPCResponse, error) {
+	out := new(RPCResponse)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/Error", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) Started(ctx context.Context, in *StartedRequest, opts ...grpc.CallOption) (*RPCResponse, error) {
+	out := new(RPCResponse)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/Started", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) ResetDevice(ctx context.Context, in *DeviceID, opts ...grpc.CallOption) (*common.Void, error) {
+	out := new(common.Void)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/ResetDevice", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) SoundCompleted(ctx context.Context, in *SoundCompletionRequest, opts ...grpc.CallOption) (*RPCResponse, error) {
+	out := new(RPCResponse)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/SoundCompleted", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) ListDevices(ctx context.Context, in *common.Void, opts ...grpc.CallOption) (*DeviceList, error) {
+	out := new(DeviceList)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/ListDevices", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cNWNotificationServiceClient) Play(ctx context.Context, in *PlayRequest, opts ...grpc.CallOption) (*common.Void, error) {
+	out := new(common.Void)
+	err := grpc.Invoke(ctx, "/cnwnotification.CNWNotificationService/Play", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for CNWNotificationService service
 
 type CNWNotificationServiceServer interface {
+	// ask server to ping a device
+	Ping(context.Context, *PingDevRequest) (*common.Void, error)
+	// device sends "alive" message to server
+	DevicePing(context.Context, *PingRequest) (*RPCResponse, error)
+	// authentication optional
 	GetConfig(context.Context, *ConfigRequest) (*ConfigResponse, error)
+	// authentication optional
+	GetConfig2(context.Context, *Config2Request) (*RPCResponse, error)
 	Display(context.Context, *DisplayRequest) (*common.Void, error)
 	Sound(context.Context, *SoundRequest) (*common.Void, error)
 	Suppress(context.Context, *SuppressRequest) (*common.Void, error)
@@ -539,10 +1315,64 @@ type CNWNotificationServiceServer interface {
 	NotifyInfoChange(context.Context, *common.Void) (*common.Void, error)
 	// button pressed, sent by app
 	ButtonPressed(context.Context, *ButtonPressedRequest) (*common.Void, error)
+	// button pressed, sent by app
+	ButtonPressed2(context.Context, *ButtonPressedRequest) (*RPCResponse, error)
+	// send a message via firebase to device
+	SendMessageToDevice(context.Context, *DeviceMessage) (*common.Void, error)
+	// a notification was pressed
+	NotificationPressed(context.Context, *NotificationRequest) (*RPCResponse, error)
+	// a device encountered an error
+	Error(context.Context, *ErrorLog) (*RPCResponse, error)
+	// a device started the activity
+	Started(context.Context, *StartedRequest) (*RPCResponse, error)
+	// resend config to device - not intented to be driggered by device itself, but by CLI
+	ResetDevice(context.Context, *DeviceID) (*common.Void, error)
+	// called by devices when they finished playing a sound
+	SoundCompleted(context.Context, *SoundCompletionRequest) (*RPCResponse, error)
+	// list devices
+	ListDevices(context.Context, *common.Void) (*DeviceList, error)
+	// new style play some sound
+	Play(context.Context, *PlayRequest) (*common.Void, error)
 }
 
 func RegisterCNWNotificationServiceServer(s *grpc.Server, srv CNWNotificationServiceServer) {
 	s.RegisterService(&_CNWNotificationService_serviceDesc, srv)
+}
+
+func _CNWNotificationService_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingDevRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/Ping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).Ping(ctx, req.(*PingDevRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_DevicePing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).DevicePing(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/DevicePing",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).DevicePing(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _CNWNotificationService_GetConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -559,6 +1389,24 @@ func _CNWNotificationService_GetConfig_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CNWNotificationServiceServer).GetConfig(ctx, req.(*ConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_GetConfig2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Config2Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).GetConfig2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/GetConfig2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).GetConfig2(ctx, req.(*Config2Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -725,13 +1573,187 @@ func _CNWNotificationService_ButtonPressed_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CNWNotificationService_ButtonPressed2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ButtonPressedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).ButtonPressed2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/ButtonPressed2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).ButtonPressed2(ctx, req.(*ButtonPressedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_SendMessageToDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).SendMessageToDevice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/SendMessageToDevice",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).SendMessageToDevice(ctx, req.(*DeviceMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_NotificationPressed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).NotificationPressed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/NotificationPressed",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).NotificationPressed(ctx, req.(*NotificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_Error_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ErrorLog)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).Error(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/Error",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).Error(ctx, req.(*ErrorLog))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_Started_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).Started(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/Started",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).Started(ctx, req.(*StartedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_ResetDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).ResetDevice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/ResetDevice",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).ResetDevice(ctx, req.(*DeviceID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_SoundCompleted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SoundCompletionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).SoundCompleted(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/SoundCompleted",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).SoundCompleted(ctx, req.(*SoundCompletionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_ListDevices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(common.Void)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).ListDevices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/ListDevices",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).ListDevices(ctx, req.(*common.Void))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CNWNotificationService_Play_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNWNotificationServiceServer).Play(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cnwnotification.CNWNotificationService/Play",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNWNotificationServiceServer).Play(ctx, req.(*PlayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _CNWNotificationService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cnwnotification.CNWNotificationService",
 	HandlerType: (*CNWNotificationServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Ping",
+			Handler:    _CNWNotificationService_Ping_Handler,
+		},
+		{
+			MethodName: "DevicePing",
+			Handler:    _CNWNotificationService_DevicePing_Handler,
+		},
+		{
 			MethodName: "GetConfig",
 			Handler:    _CNWNotificationService_GetConfig_Handler,
+		},
+		{
+			MethodName: "GetConfig2",
+			Handler:    _CNWNotificationService_GetConfig2_Handler,
 		},
 		{
 			MethodName: "Display",
@@ -769,6 +1791,42 @@ var _CNWNotificationService_serviceDesc = grpc.ServiceDesc{
 			MethodName: "ButtonPressed",
 			Handler:    _CNWNotificationService_ButtonPressed_Handler,
 		},
+		{
+			MethodName: "ButtonPressed2",
+			Handler:    _CNWNotificationService_ButtonPressed2_Handler,
+		},
+		{
+			MethodName: "SendMessageToDevice",
+			Handler:    _CNWNotificationService_SendMessageToDevice_Handler,
+		},
+		{
+			MethodName: "NotificationPressed",
+			Handler:    _CNWNotificationService_NotificationPressed_Handler,
+		},
+		{
+			MethodName: "Error",
+			Handler:    _CNWNotificationService_Error_Handler,
+		},
+		{
+			MethodName: "Started",
+			Handler:    _CNWNotificationService_Started_Handler,
+		},
+		{
+			MethodName: "ResetDevice",
+			Handler:    _CNWNotificationService_ResetDevice_Handler,
+		},
+		{
+			MethodName: "SoundCompleted",
+			Handler:    _CNWNotificationService_SoundCompleted_Handler,
+		},
+		{
+			MethodName: "ListDevices",
+			Handler:    _CNWNotificationService_ListDevices_Handler,
+		},
+		{
+			MethodName: "Play",
+			Handler:    _CNWNotificationService_Play_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "golang.conradwood.net/apis/cnwnotification/cnwnotification.proto",
@@ -779,50 +1837,99 @@ func init() {
 }
 
 var fileDescriptor0 = []byte{
-	// 710 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x9c, 0x55, 0x6d, 0x4f, 0xdb, 0x3c,
-	0x14, 0x55, 0x69, 0x29, 0xe5, 0x42, 0x00, 0x59, 0x3c, 0x28, 0xea, 0xb3, 0xb1, 0x2a, 0xda, 0x34,
-	0x34, 0xa1, 0x20, 0xb1, 0x69, 0x9a, 0x26, 0xed, 0x85, 0xb6, 0x1a, 0xaa, 0x56, 0x0a, 0x24, 0xbc,
-	0x48, 0xfb, 0xb4, 0x90, 0xba, 0x99, 0x45, 0x63, 0x67, 0xb1, 0x03, 0xe3, 0xeb, 0xfe, 0xf1, 0xfe,
-	0xc1, 0x64, 0xc7, 0x69, 0x93, 0xb4, 0x5b, 0xa5, 0x7d, 0x4a, 0xee, 0xf1, 0xbd, 0xc7, 0xc7, 0xd7,
-	0xc7, 0x36, 0x7c, 0x0c, 0xd8, 0xd8, 0xa3, 0x81, 0xed, 0x33, 0x1a, 0x7b, 0xc3, 0x7b, 0xc6, 0x86,
-	0x36, 0xc5, 0xe2, 0xc0, 0x8b, 0x08, 0x3f, 0xf0, 0xe9, 0x3d, 0x65, 0x82, 0x8c, 0x88, 0xef, 0x09,
-	0xc2, 0x68, 0x39, 0xb6, 0xa3, 0x98, 0x09, 0x86, 0x36, 0x4b, 0x70, 0xd3, 0xfe, 0x1b, 0x25, 0x0b,
-	0x43, 0xc9, 0xa4, 0x3e, 0x29, 0x81, 0x75, 0x04, 0xc6, 0x15, 0xf1, 0xdc, 0x13, 0xd7, 0xc1, 0xdf,
-	0x13, 0xcc, 0x05, 0xda, 0x81, 0xfa, 0x20, 0x09, 0x6f, 0x70, 0x6c, 0x56, 0x5a, 0x95, 0xbd, 0x55,
-	0x47, 0x47, 0xc8, 0x84, 0x95, 0x13, 0xcc, 0xb9, 0x17, 0x60, 0x73, 0x49, 0x0d, 0x64, 0xa1, 0xf5,
-	0x1c, 0x8c, 0x0e, 0xa3, 0x23, 0x12, 0xe4, 0x28, 0x5c, 0xec, 0xc7, 0x58, 0x64, 0x14, 0x69, 0x64,
-	0x3d, 0xc0, 0x46, 0x96, 0xc8, 0x23, 0x46, 0x39, 0x46, 0x1d, 0x30, 0x06, 0x39, 0xf5, 0xdc, 0xac,
-	0xb4, 0xaa, 0x7b, 0x6b, 0x87, 0x8f, 0xed, 0xf2, 0x6a, 0xf3, 0x59, 0x4e, 0xb1, 0x06, 0x6d, 0x41,
-	0xf5, 0x13, 0x63, 0x5a, 0x95, 0xfc, 0x95, 0x48, 0xdb, 0x8b, 0xcd, 0x6a, 0x8a, 0xb4, 0xbd, 0xd8,
-	0xba, 0x83, 0xf5, 0x7c, 0x11, 0xda, 0x86, 0xe5, 0x0b, 0x22, 0xc6, 0x58, 0x2b, 0x4c, 0x03, 0x84,
-	0xa0, 0x76, 0x81, 0x7f, 0x08, 0x4d, 0xa5, 0xfe, 0x25, 0xd7, 0xa5, 0xd3, 0xcf, 0xb8, 0x2e, 0x9d,
-	0xbe, 0xac, 0x75, 0x59, 0x42, 0x87, 0x66, 0x2d, 0xad, 0x55, 0x81, 0x44, 0x7b, 0xa1, 0xec, 0xce,
-	0x72, 0x8a, 0xaa, 0xc0, 0xfa, 0x59, 0x81, 0x8d, 0x2e, 0xe1, 0xd1, 0xd8, 0x7b, 0x58, 0xd0, 0x1d,
-	0xd9, 0x60, 0x9d, 0x99, 0x35, 0x58, 0x87, 0x68, 0x17, 0xa0, 0xed, 0xf9, 0xb7, 0x41, 0xac, 0x66,
-	0x4d, 0x95, 0xe4, 0x10, 0x39, 0x2e, 0xa5, 0x76, 0xd8, 0x98, 0x25, 0xb1, 0x56, 0x95, 0x43, 0xe4,
-	0xe2, 0x95, 0xc6, 0x45, 0x0a, 0xf4, 0x52, 0x97, 0xa6, 0x4b, 0xdd, 0x81, 0xfa, 0x69, 0x4c, 0x02,
-	0x42, 0xf5, 0xac, 0x3a, 0x42, 0x4f, 0xc1, 0x70, 0x6f, 0x49, 0x74, 0x9e, 0x10, 0x2c, 0xbe, 0x30,
-	0x8a, 0xd5, 0xa4, 0x0d, 0xa7, 0x08, 0x5a, 0xc7, 0xb0, 0xe9, 0x26, 0x51, 0x14, 0x63, 0xce, 0x17,
-	0x4d, 0xfd, 0x08, 0x56, 0x2f, 0x48, 0x88, 0xb9, 0xf0, 0xc2, 0x48, 0x09, 0x30, 0x9c, 0x29, 0x60,
-	0xed, 0x03, 0x74, 0x18, 0xa5, 0xd8, 0x57, 0x7b, 0xb7, 0x0b, 0xd0, 0xc5, 0x77, 0xc4, 0xc7, 0x03,
-	0x2f, 0xcc, 0x36, 0x30, 0x87, 0x58, 0xa7, 0xca, 0x66, 0x3a, 0xbb, 0x4f, 0xb8, 0x40, 0xef, 0x60,
-	0x6d, 0x8a, 0x64, 0x26, 0xfb, 0x7f, 0xc6, 0x64, 0xd3, 0x1c, 0x27, 0x9f, 0x6f, 0x9d, 0xc3, 0xe6,
-	0x35, 0x19, 0x91, 0x1e, 0x1d, 0xb1, 0x6c, 0x1d, 0x4d, 0x68, 0xa4, 0x33, 0xf6, 0xba, 0x5a, 0xc1,
-	0x24, 0x96, 0x6d, 0xfc, 0x8c, 0xb3, 0x4d, 0x94, 0xbf, 0x12, 0x39, 0x3a, 0xe3, 0x66, 0xb5, 0x55,
-	0x95, 0xc8, 0xd1, 0x19, 0xb7, 0xbe, 0xc2, 0x76, 0x3b, 0x11, 0x82, 0xd1, 0x33, 0xd9, 0x1d, 0x3c,
-	0xfc, 0x37, 0xde, 0x26, 0x34, 0x52, 0x96, 0x5e, 0x57, 0x6d, 0x90, 0xe1, 0x4c, 0x62, 0xab, 0x09,
-	0x35, 0x29, 0x78, 0xe2, 0xe9, 0xca, 0xd4, 0xd3, 0x87, 0xbf, 0x6a, 0xb0, 0xd3, 0x19, 0x5c, 0xe7,
-	0x4f, 0x84, 0x8b, 0x63, 0x39, 0x0d, 0xea, 0xc3, 0xea, 0x31, 0x16, 0xe9, 0x31, 0x45, 0xbb, 0xf3,
-	0x5a, 0x34, 0x3d, 0xe8, 0xcd, 0x27, 0x7f, 0x1c, 0xd7, 0xe7, 0xfb, 0xcd, 0xc4, 0xd3, 0x68, 0x36,
-	0xb7, 0x78, 0x2e, 0x9a, 0xeb, 0xb6, 0xbe, 0x98, 0xae, 0x18, 0x19, 0xa2, 0x57, 0xfa, 0x90, 0xa1,
-	0xd9, 0xbb, 0x20, 0xef, 0xe5, 0x52, 0xd5, 0x5b, 0x68, 0x64, 0x8e, 0x43, 0xad, 0xd9, 0xc2, 0xa2,
-	0x19, 0x4b, 0xb5, 0xaf, 0xa1, 0x9e, 0xde, 0x84, 0x73, 0x96, 0x5d, 0xb8, 0x22, 0x4b, 0x75, 0x1f,
-	0x60, 0x23, 0xed, 0x58, 0xe6, 0x17, 0x54, 0x18, 0x9f, 0xdf, 0xa4, 0xbc, 0x3b, 0xdf, 0xc3, 0xba,
-	0x8b, 0xe9, 0x30, 0xb3, 0xd8, 0x1c, 0xe1, 0x25, 0xf7, 0x95, 0x04, 0xd8, 0xb0, 0x72, 0x8c, 0x85,
-	0x2a, 0x2d, 0xce, 0xfc, 0xdf, 0x0c, 0x91, 0x4a, 0xb2, 0x61, 0x4b, 0xed, 0xfc, 0x83, 0x8c, 0x3a,
-	0xdf, 0x3c, 0x1a, 0xe0, 0x52, 0x61, 0x91, 0xbf, 0x0b, 0x46, 0xc1, 0xab, 0xe8, 0xd9, 0x0c, 0xef,
-	0x3c, 0x2f, 0x17, 0x59, 0xda, 0xfb, 0xf0, 0x82, 0x62, 0x91, 0x7f, 0x97, 0xf4, 0x4b, 0x25, 0x9f,
-	0xa6, 0x32, 0xe1, 0x4d, 0x5d, 0xbd, 0x4e, 0x2f, 0x7f, 0x07, 0x00, 0x00, 0xff, 0xff, 0x38, 0x7c,
-	0x6e, 0x99, 0x22, 0x07, 0x00, 0x00,
+	// 1501 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xa4, 0x58, 0xdb, 0x72, 0x13, 0x47,
+	0x13, 0x2e, 0x69, 0x85, 0x2d, 0xb7, 0x2c, 0xd9, 0x35, 0xf0, 0xfb, 0x5f, 0x04, 0x01, 0xd7, 0x16,
+	0x09, 0x54, 0x42, 0x89, 0x8a, 0x48, 0x28, 0x8a, 0x1c, 0xc0, 0x5a, 0x61, 0x50, 0xe1, 0x83, 0xd8,
+	0xb5, 0xa1, 0x92, 0x2b, 0x16, 0x69, 0xac, 0x0c, 0x5e, 0xcd, 0x6c, 0x76, 0x57, 0x36, 0xca, 0x65,
+	0xae, 0xf3, 0x52, 0x79, 0x99, 0x3c, 0x47, 0x6a, 0x4e, 0xd2, 0x9e, 0x64, 0xa9, 0x2a, 0x57, 0x9a,
+	0xee, 0xe9, 0xee, 0xe9, 0xe9, 0xc3, 0xd7, 0xb3, 0x82, 0x17, 0x23, 0xe6, 0x7b, 0x74, 0xd4, 0x1a,
+	0x30, 0x1a, 0x7a, 0xc3, 0x4b, 0xc6, 0x86, 0x2d, 0x8a, 0xe3, 0x47, 0x5e, 0x40, 0xa2, 0x47, 0x03,
+	0x7a, 0x49, 0x59, 0x4c, 0xce, 0xc8, 0xc0, 0x8b, 0x09, 0xa3, 0x59, 0xba, 0x15, 0x84, 0x2c, 0x66,
+	0x68, 0x2b, 0xc3, 0x6e, 0xb6, 0xae, 0x32, 0xc9, 0xc6, 0x63, 0x6e, 0x49, 0xfc, 0x48, 0x03, 0xd6,
+	0x5f, 0x25, 0xa8, 0xee, 0x77, 0x4e, 0xd8, 0x39, 0xa6, 0x11, 0xb2, 0xa1, 0x7a, 0xe8, 0x05, 0x01,
+	0xa1, 0xa3, 0xc8, 0x2c, 0xed, 0x1a, 0x0f, 0x6a, 0xed, 0xfb, 0xad, 0xec, 0xb9, 0x5a, 0xb8, 0xa5,
+	0x25, 0x5f, 0xd2, 0x38, 0x9c, 0x3a, 0x33, 0xc5, 0xe6, 0x0f, 0x50, 0x4f, 0x6d, 0xa1, 0x6d, 0x30,
+	0xce, 0xf1, 0xd4, 0x2c, 0xed, 0x96, 0x1e, 0x6c, 0x38, 0x7c, 0x89, 0x6e, 0xc0, 0xb5, 0x0b, 0xcf,
+	0x9f, 0x60, 0xb3, 0x2c, 0x78, 0x92, 0x78, 0x56, 0x7e, 0x5a, 0xb2, 0x3e, 0x70, 0x6f, 0x8e, 0x3f,
+	0x7e, 0xc2, 0x83, 0x18, 0xdd, 0x86, 0x8d, 0x13, 0x32, 0xc6, 0x51, 0xec, 0x8d, 0x03, 0xa1, 0x5d,
+	0x77, 0xe6, 0x0c, 0xf4, 0x04, 0xaa, 0x36, 0x1b, 0x8f, 0x3d, 0x3a, 0x8c, 0xcc, 0xb2, 0xf0, 0xb5,
+	0x59, 0xe0, 0xab, 0x12, 0x71, 0x66, 0xb2, 0xd6, 0x3f, 0x06, 0x6c, 0xcc, 0xf8, 0xc8, 0x84, 0x75,
+	0xb5, 0x54, 0xfe, 0x69, 0x92, 0xfb, 0x78, 0x42, 0x62, 0x7f, 0xe6, 0xa3, 0x20, 0x10, 0x82, 0x4a,
+	0x87, 0x0d, 0xa7, 0xa6, 0x21, 0x98, 0x62, 0xcd, 0x79, 0x2e, 0xf9, 0x03, 0x9b, 0x15, 0xe1, 0xa2,
+	0x58, 0xa3, 0x3b, 0x00, 0x1d, 0x6f, 0x70, 0x3e, 0x0a, 0xd9, 0x84, 0x0e, 0xcd, 0x6b, 0x42, 0x3a,
+	0xc1, 0xe1, 0xfb, 0xfb, 0x2c, 0xc4, 0x6a, 0x7f, 0x4d, 0xee, 0xcf, 0x39, 0x3c, 0x66, 0xa7, 0x4e,
+	0xcf, 0x5c, 0x97, 0x31, 0x3b, 0x75, 0x7a, 0xe8, 0x31, 0xac, 0x77, 0x26, 0x71, 0xcc, 0x68, 0x64,
+	0x56, 0xc5, 0x75, 0x6f, 0x16, 0x5c, 0x57, 0x4a, 0x38, 0x5a, 0x12, 0xed, 0xc0, 0xda, 0x5e, 0x40,
+	0xde, 0xe0, 0xa9, 0xb9, 0x21, 0x2c, 0x29, 0x8a, 0x1f, 0xdf, 0xc5, 0x17, 0x64, 0x80, 0x8f, 0xbc,
+	0x31, 0x36, 0x41, 0x1e, 0x3f, 0xe7, 0xa0, 0x16, 0xa0, 0x13, 0xfc, 0x39, 0xe6, 0x57, 0x39, 0x9c,
+	0xf8, 0x31, 0x09, 0x7c, 0x82, 0x43, 0xb3, 0xb6, 0x5b, 0x7a, 0x50, 0x76, 0x0a, 0x76, 0x50, 0x1b,
+	0x6e, 0xc8, 0x23, 0x33, 0x1a, 0x9b, 0x42, 0xa3, 0x70, 0x0f, 0xdd, 0x83, 0xba, 0xe4, 0xdb, 0xcc,
+	0x9f, 0x8c, 0x69, 0x64, 0xd6, 0x45, 0xfc, 0xd2, 0x4c, 0x11, 0x48, 0x79, 0x29, 0x76, 0x19, 0x99,
+	0x0d, 0x21, 0x92, 0xe0, 0xf0, 0x04, 0xf6, 0xbd, 0xa9, 0xcf, 0xbc, 0xa1, 0xb9, 0x25, 0x13, 0xa8,
+	0x48, 0xeb, 0x13, 0x2f, 0x25, 0x29, 0xc9, 0x53, 0xc4, 0xbd, 0x56, 0x39, 0x16, 0x6b, 0xd4, 0x80,
+	0x72, 0xaf, 0x2b, 0xb2, 0x5b, 0x77, 0xca, 0xbd, 0xee, 0x2c, 0x8d, 0x46, 0x22, 0x8d, 0xdb, 0x60,
+	0x38, 0xec, 0x52, 0x65, 0x96, 0x2f, 0x79, 0x59, 0xbc, 0xfc, 0x1c, 0x87, 0x9e, 0xc8, 0x69, 0xdd,
+	0x91, 0x84, 0xb5, 0x07, 0xf5, 0x77, 0xc4, 0x73, 0x0f, 0x5d, 0x07, 0xff, 0x3e, 0xc1, 0x51, 0xcc,
+	0x03, 0x7f, 0x34, 0x19, 0x7f, 0xc4, 0xa1, 0x3a, 0x52, 0x51, 0xdc, 0xdd, 0x43, 0x1c, 0x45, 0xde,
+	0x48, 0xd7, 0x95, 0x26, 0xad, 0xfb, 0x50, 0xb7, 0x19, 0x3d, 0x23, 0xa3, 0x84, 0x09, 0x17, 0x0f,
+	0x42, 0xac, 0xbd, 0x56, 0x94, 0xd5, 0x81, 0x86, 0x14, 0x6c, 0x27, 0x24, 0x65, 0xee, 0xb4, 0xa4,
+	0xa4, 0xf8, 0x61, 0xaa, 0x5b, 0xf5, 0x61, 0x8a, 0xb4, 0x7e, 0x84, 0xea, 0xcb, 0x30, 0x64, 0xe1,
+	0x01, 0x1b, 0xa1, 0x26, 0x54, 0xa5, 0x7c, 0xaf, 0xab, 0xf4, 0x67, 0xb4, 0xb8, 0x2d, 0x97, 0xd3,
+	0x4d, 0x20, 0x08, 0xeb, 0x04, 0x1a, 0x6e, 0xec, 0x85, 0x31, 0x1e, 0x6a, 0x0f, 0xae, 0xb2, 0xf1,
+	0x15, 0x34, 0x3a, 0x13, 0xe2, 0x0f, 0x79, 0xeb, 0xba, 0xa2, 0x97, 0x65, 0xcc, 0x33, 0x5c, 0xeb,
+	0x17, 0xb8, 0x7e, 0x94, 0xa8, 0xe6, 0x15, 0x4d, 0x27, 0x55, 0x66, 0xe9, 0xcc, 0x70, 0x39, 0xc8,
+	0xd5, 0x9c, 0xbe, 0xed, 0xe0, 0x28, 0x60, 0x34, 0x12, 0x81, 0x71, 0x27, 0x83, 0x01, 0x8e, 0x22,
+	0x61, 0xb2, 0xea, 0x68, 0x72, 0x71, 0x7e, 0xd2, 0x68, 0x54, 0xc9, 0xa2, 0xd1, 0x37, 0x60, 0xec,
+	0x77, 0x8e, 0x45, 0x51, 0x14, 0x77, 0xa6, 0xc4, 0x34, 0x87, 0x4b, 0x59, 0x53, 0x9d, 0xc1, 0x99,
+	0x43, 0x36, 0xd4, 0x93, 0x2e, 0x6b, 0xf4, 0xfd, 0x22, 0x67, 0x28, 0x15, 0xa1, 0xb4, 0x0e, 0x2f,
+	0xd6, 0x7d, 0xc6, 0x94, 0xdf, 0x7c, 0xc9, 0x39, 0x1d, 0x2f, 0x54, 0x60, 0xc5, 0x97, 0xd6, 0x05,
+	0x6c, 0x26, 0x95, 0xe6, 0x28, 0x57, 0xca, 0xa0, 0x9c, 0x68, 0x97, 0x72, 0xa2, 0x5d, 0x04, 0x22,
+	0x1d, 0x68, 0x5b, 0xa7, 0xce, 0x01, 0xd7, 0x75, 0x05, 0x7c, 0x55, 0xa4, 0xae, 0x20, 0x38, 0xb7,
+	0x37, 0xe6, 0xf1, 0x93, 0xa0, 0x27, 0x09, 0xcb, 0x9a, 0x67, 0x71, 0x51, 0xb9, 0x5a, 0x7f, 0x96,
+	0xa0, 0xd1, 0x25, 0x51, 0xe0, 0x7b, 0xd3, 0x25, 0x3d, 0xc0, 0xd3, 0xa4, 0x24, 0x75, 0x9a, 0x14,
+	0x99, 0x01, 0x5e, 0xa3, 0x08, 0x78, 0xf9, 0x75, 0x6c, 0xe6, 0xb3, 0x49, 0xa8, 0x3c, 0x4f, 0x70,
+	0x78, 0x80, 0xc4, 0x3d, 0x96, 0x79, 0xa0, 0xc2, 0x51, 0x9e, 0x87, 0x63, 0x07, 0xd6, 0x8e, 0x43,
+	0x32, 0x22, 0x54, 0x9d, 0xaa, 0x28, 0x8e, 0x73, 0xee, 0x39, 0x09, 0xde, 0x4e, 0x08, 0x8e, 0x7f,
+	0x65, 0x54, 0xce, 0x89, 0xaa, 0x93, 0x66, 0x5a, 0xaf, 0x60, 0xcb, 0x9d, 0x04, 0x41, 0x88, 0xa3,
+	0x68, 0xd9, 0xd1, 0xa9, 0x4a, 0x2c, 0x67, 0x2a, 0xd1, 0x7a, 0x08, 0x60, 0x33, 0x4a, 0xf1, 0x40,
+	0xe4, 0x37, 0x0d, 0xf4, 0xa5, 0x2c, 0xd0, 0x5b, 0xc7, 0xa2, 0x14, 0x95, 0xf4, 0x01, 0x89, 0x62,
+	0xf4, 0x13, 0xd4, 0xe6, 0x1c, 0x5d, 0x88, 0xb7, 0x72, 0x85, 0x38, 0x97, 0x71, 0x92, 0xf2, 0xd6,
+	0x5b, 0xd8, 0x7a, 0x4f, 0xce, 0x48, 0x8f, 0x9e, 0xb1, 0x55, 0x3a, 0x78, 0x1b, 0x0c, 0x3e, 0x9d,
+	0x54, 0x18, 0xf9, 0x68, 0xda, 0x06, 0x63, 0xaf, 0x1f, 0x99, 0xc6, 0xae, 0xc1, 0x39, 0x7b, 0xfd,
+	0xc8, 0xba, 0xd0, 0xc3, 0xa5, 0xcf, 0xa3, 0xb3, 0x1a, 0xe8, 0xe4, 0xed, 0x36, 0xa1, 0x2a, 0xad,
+	0xf4, 0xba, 0x0a, 0xe2, 0x67, 0xf4, 0x1c, 0xd4, 0x2b, 0x49, 0x50, 0x6f, 0x42, 0x85, 0x5f, 0xa3,
+	0x68, 0x78, 0x58, 0x03, 0xa8, 0xcb, 0xb3, 0x34, 0x3c, 0x2c, 0x6c, 0x24, 0xf1, 0x5c, 0x28, 0x27,
+	0x9e, 0x0b, 0xf3, 0xf2, 0x37, 0x52, 0x68, 0xad, 0x2a, 0xaa, 0x32, 0xab, 0x28, 0xeb, 0x03, 0xec,
+	0x88, 0x5a, 0xb4, 0xd9, 0x38, 0xf0, 0xf1, 0xaa, 0xa0, 0x98, 0xaf, 0xcc, 0x04, 0xdc, 0x19, 0x29,
+	0xb8, 0xb3, 0x9e, 0xeb, 0xf2, 0x10, 0xa9, 0xff, 0x16, 0xd6, 0x25, 0xa5, 0xd3, 0xfe, 0xff, 0x5c,
+	0xda, 0xe5, 0xbe, 0xa3, 0xe5, 0x78, 0xcf, 0x6a, 0xff, 0x11, 0x54, 0x12, 0x45, 0x26, 0xd6, 0xa2,
+	0x27, 0xa8, 0x4f, 0xa8, 0x44, 0xd3, 0xaa, 0xa3, 0x28, 0xee, 0xff, 0x81, 0x17, 0xc5, 0x2e, 0xc6,
+	0x54, 0x27, 0x43, 0xd3, 0xa9, 0xbb, 0x55, 0xf2, 0xf3, 0x48, 0x4c, 0x0d, 0x3d, 0x7d, 0x05, 0x61,
+	0x8d, 0xa0, 0xd6, 0x4f, 0x80, 0x86, 0x0a, 0x40, 0x29, 0x15, 0x00, 0x7d, 0xb1, 0xb2, 0xa8, 0x2b,
+	0x4d, 0x72, 0x83, 0xa7, 0x34, 0x26, 0xbe, 0xf2, 0x42, 0x12, 0xdc, 0x6d, 0x07, 0x07, 0xd8, 0x8b,
+	0x55, 0x41, 0x28, 0xca, 0xb2, 0xa1, 0xd6, 0x27, 0x74, 0xb4, 0x4a, 0x16, 0x12, 0xef, 0x92, 0x72,
+	0xfa, 0x5d, 0xb2, 0x0f, 0x0d, 0x6e, 0xa4, 0x8b, 0x2f, 0xfe, 0x93, 0x9d, 0xf6, 0xdf, 0x35, 0xd8,
+	0xb1, 0x8f, 0xde, 0x27, 0xe1, 0xdc, 0xc5, 0xa1, 0x48, 0xc5, 0xf7, 0x50, 0xe1, 0x47, 0xa0, 0xbb,
+	0xb9, 0xfc, 0xa5, 0x4f, 0x6e, 0x6e, 0xb6, 0xd4, 0xc7, 0xc0, 0x3b, 0x46, 0x86, 0xe8, 0xb5, 0xae,
+	0x06, 0xa1, 0x7c, 0xbb, 0x50, 0x59, 0x6b, 0xe6, 0x77, 0x93, 0x03, 0xf6, 0x00, 0x36, 0x5e, 0xe1,
+	0x58, 0x0e, 0x39, 0x74, 0xa7, 0x08, 0x3c, 0xe6, 0x0f, 0x9d, 0xe6, 0xdd, 0x85, 0xfb, 0xca, 0xda,
+	0x1b, 0x80, 0x99, 0xb5, 0x36, 0x5a, 0x24, 0xde, 0x5e, 0xcd, 0xb5, 0xa7, 0xb3, 0xd1, 0x51, 0x60,
+	0x29, 0x3d, 0x7e, 0x32, 0xe1, 0xf9, 0x4e, 0xcd, 0x3b, 0x94, 0x1f, 0xcb, 0xc9, 0x91, 0x91, 0xd1,
+	0x7a, 0x06, 0x55, 0x0d, 0xec, 0x68, 0x37, 0xaf, 0x98, 0xc6, 0xfc, 0x8c, 0xee, 0x13, 0x58, 0x93,
+	0xcf, 0xca, 0x82, 0x18, 0xa6, 0xde, 0x9b, 0x19, 0xbd, 0xe7, 0xd0, 0x90, 0x01, 0xd3, 0xb0, 0x8c,
+	0x52, 0xfb, 0xc5, 0x11, 0x4f, 0x0e, 0x81, 0x9f, 0x61, 0xd3, 0xc5, 0x74, 0xa8, 0x91, 0xbc, 0xc0,
+	0xf1, 0x0c, 0xc8, 0x67, 0x1c, 0x68, 0xc1, 0xfa, 0x2b, 0x1c, 0x0b, 0xd5, 0xf4, 0xc9, 0xff, 0xcb,
+	0x19, 0x12, 0x42, 0x2d, 0xd8, 0x16, 0x75, 0x3c, 0xe5, 0x94, 0xfd, 0x9b, 0x47, 0x47, 0x38, 0xa3,
+	0x98, 0xb6, 0xdf, 0xd5, 0xdf, 0x0e, 0x6a, 0x24, 0xa0, 0x2f, 0x73, 0x76, 0x8b, 0x46, 0x46, 0xc6,
+	0xca, 0x29, 0x7f, 0x99, 0x26, 0xa4, 0xda, 0xab, 0x9a, 0xb9, 0xba, 0xc2, 0x6c, 0xb8, 0xce, 0x83,
+	0xa7, 0x26, 0xc3, 0x09, 0x53, 0xf8, 0x78, 0x67, 0x01, 0x98, 0x2a, 0xb9, 0x8c, 0x6f, 0x99, 0xd7,
+	0xb0, 0xbe, 0xe7, 0xbd, 0xab, 0x5f, 0x84, 0x2b, 0xf9, 0xf7, 0x42, 0x3d, 0xea, 0x51, 0xfe, 0x9d,
+	0xaa, 0x3f, 0x0a, 0x96, 0x58, 0x78, 0x0d, 0xeb, 0xea, 0x03, 0xa0, 0xa0, 0x87, 0xd2, 0x9f, 0x06,
+	0x4b, 0x2c, 0x3d, 0x81, 0x9a, 0x83, 0x23, 0x1c, 0xab, 0x18, 0xdd, 0x5c, 0x10, 0xa3, 0x5e, 0x37,
+	0x13, 0x9e, 0xf7, 0xd0, 0x48, 0x8e, 0x46, 0x3c, 0x44, 0xf7, 0x8b, 0x9b, 0x32, 0x37, 0x3b, 0x97,
+	0xc2, 0x43, 0x8d, 0x77, 0x80, 0x9e, 0x0f, 0xe9, 0x22, 0xbc, 0xb5, 0xc0, 0x3d, 0xd1, 0x33, 0x6d,
+	0xa8, 0xf0, 0x29, 0x54, 0x84, 0x9b, 0x8b, 0x20, 0xa5, 0xf3, 0x10, 0xbe, 0xa6, 0x38, 0x4e, 0xfe,
+	0x59, 0xa3, 0xfe, 0xbe, 0xf1, 0x02, 0x12, 0x65, 0xed, 0x7c, 0x5c, 0x13, 0x7f, 0xd9, 0x3c, 0xfe,
+	0x37, 0x00, 0x00, 0xff, 0xff, 0xc6, 0x08, 0xcc, 0x14, 0x37, 0x12, 0x00, 0x00,
 }

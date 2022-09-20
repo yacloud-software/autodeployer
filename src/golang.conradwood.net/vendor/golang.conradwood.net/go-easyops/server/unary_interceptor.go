@@ -1,14 +1,14 @@
 package server
 
 import (
+	"context"
 	"fmt"
-	"golang.conradwood.net/go-easyops/prometheus"
 	fw "golang.conradwood.net/apis/framework"
+	"golang.conradwood.net/go-easyops/auth"
 	"golang.conradwood.net/go-easyops/errors"
 	pp "golang.conradwood.net/go-easyops/profiling"
+	"golang.conradwood.net/go-easyops/prometheus"
 	"golang.conradwood.net/go-easyops/rpc"
-	//	"golang.org/x/net/context"
-	"context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	//	"google.golang.org/grpc/metadata"
@@ -63,6 +63,7 @@ func (sd *serverDef) UnaryAuthInterceptor(in_ctx context.Context, req interface{
 	if !def.NoAuth {
 		err := Authenticate(cs)
 		if err != nil {
+			fancyPrintf("Debug-rpc Request: Authenticate() failed for \"%s/%s\" => rejected: %s\n", cs.MethodName, cs.ServiceName, err)
 			return nil, err
 		}
 		if cs.RPCIResponse.Reject {
@@ -71,28 +72,40 @@ func (sd *serverDef) UnaryAuthInterceptor(in_ctx context.Context, req interface{
 	}
 	if cs.Metadata != nil {
 		cs.Metadata.FooBar = "go-easyops"
+		if cs.Metadata.RoutingTags != nil && cs.Metadata.RoutingTags.Propagate == false {
+			cs.Metadata.RoutingTags = nil
+		}
 	}
 
+	// this rebuilds the metadata string from cs.Metadata
 	cs.UpdateContextFromResponse()
 	cs.DebugPrintContext()
+	if *debug_rpc_serve {
+		user := auth.GetUser(cs.Context)
+		svc := auth.GetService(cs.Context)
+		fancyPrintf("Debug-rpc Request: \"%s/%s\" invoked by user \"%s\" from service \"%s\"\n", cs.ServiceName, cs.MethodName, auth.UserIDString(user), auth.UserIDString(svc))
+	}
 
 	/*************** now call the rpc implementation *****************/
 	i, err := handler(cs.Context, req)
-
+	if i == nil && err == nil {
+		fmt.Printf("[go-easyops] BUG: \"%s.%s\" returned no proto and no error\n", cs.ServiceName, cs.MethodName)
+	}
 	if *debug_rpc_serve {
-		fmt.Printf("[go-easyops] Call %s.%s timing: %v\n", cs.ServiceName, cs.MethodName, time.Since(started))
+		//		fmt.Printf("[go-easyops: result: %v %v\n", i, err)
+		fmt.Printf("[go-easyops] Debug-rpc Request: \"%s.%s\" timing: %v\n", cs.ServiceName, cs.MethodName, time.Since(started))
 	}
 	if err == nil {
 		grpc_server_req_durations.WithLabelValues(cs.ServiceName, cs.MethodName).Observe(time.Since(cs.Started).Seconds())
 		return i, nil
 	}
-	// it falied!
+	// it failed!
 	dur := time.Since(cs.Started).Seconds()
 	if dur > 5 { // >5 seconds processing time? warn
-		fmt.Printf("[go-easyops] Call %s.%s took rather long: %0.2fs (and failed: %s)\n", cs.ServiceName, cs.MethodName, dur, err)
+		fmt.Printf("[go-easyops] Debug-rpc Request: \"%s.%s\" took rather long: %0.2fs (and failed: %s)\n", cs.ServiceName, cs.MethodName, dur, err)
 	}
 	if *debug_rpc_serve {
-		fmt.Printf("[go-easyops] Call %s.%s failed: %s\n", cs.ServiceName, cs.MethodName, err)
+		fmt.Printf("[go-easyops] Debug-rpc Request: \"%s.%s\" failed: %s\n", cs.ServiceName, cs.MethodName, err)
 	}
 	incFailure(cs.ServiceName, cs.MethodName, err)
 	//stdMetrics.grpc_failed_requests.With(prometheus.Labels{"method": method, "servicename": def.name}).Inc()
@@ -107,6 +120,9 @@ func (sd *serverDef) UnaryAuthInterceptor(in_ctx context.Context, req interface{
 	st = AddStatusDetail(st, fm)
 	re := st.Err()
 	sd.logError(cs, re)
-
+	eh := sd.ErrorHandler
+	if eh != nil {
+		eh(cs.Context, cs.MethodName, err)
+	}
 	return i, st.Err()
 }

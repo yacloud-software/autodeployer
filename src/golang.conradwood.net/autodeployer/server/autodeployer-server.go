@@ -26,6 +26,7 @@ import (
 	"golang.conradwood.net/autodeployer/starter"
 	"golang.conradwood.net/go-easyops/auth"
 	"golang.conradwood.net/go-easyops/client"
+	"golang.conradwood.net/go-easyops/cmdline"
 	"golang.conradwood.net/go-easyops/linux" // add busy gauge
 	"golang.conradwood.net/go-easyops/logger"
 	"golang.conradwood.net/go-easyops/prometheus"
@@ -233,14 +234,19 @@ func testing() {
 type AutoDeployer struct {
 }
 
-func (s *AutoDeployer) StopAutodeployer(ctx context.Context, cr *common.Void) (*common.Void, error) {
+func (s *AutoDeployer) StopAutodeployer(ctx context.Context, cr *pb.StopRequest) (*pb.StopResponse, error) {
+	res := &pb.StopResponse{Version: cmdline.APP_BUILD_NUMBER}
+	if res.Version == cr.IfNotVersion {
+		return res, nil
+	}
 	go func() {
+		time.Sleep(time.Duration(3) * time.Second)
 		slayAll()
 		ctx := tokens.ContextWithToken()
 		GetDeployMonkeyClient().AutodeployerShutdown(ctx, &common.Void{})
 		os.Exit(0)
 	}()
-	return &common.Void{}, nil
+	return res, nil
 }
 func (s *AutoDeployer) Deploy(ctx context.Context, cr *pb.DeployRequest) (*pb.DeployResponse, error) {
 	defer setDeploymentsGauge()
@@ -732,7 +738,10 @@ func (s *AutoDeployer) GetMachineInfo(ctx context.Context, cr *pb.MachineInfoReq
 	if len(sx) == 0 {
 		sx = []string{"worker"}
 	}
-	res := pb.MachineInfoResponse{MachineGroup: sx}
+	res := pb.MachineInfoResponse{
+		MachineGroup:        sx,
+		AutoDeployerVersion: cmdline.APP_BUILD_NUMBER,
+	}
 	return &res, nil
 }
 

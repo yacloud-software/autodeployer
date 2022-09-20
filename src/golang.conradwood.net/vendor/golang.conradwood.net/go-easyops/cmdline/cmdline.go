@@ -3,7 +3,7 @@ package cmdline
 import (
 	"flag"
 	"fmt"
-	"golang.conradwood.net/go-easyops/utils"
+	"golang.conradwood.net/go-easyops/appinfo"
 	"os"
 	"strings"
 	"sync"
@@ -21,6 +21,7 @@ var (
 	registry_resolver = flag.String("registry_resolver", "", "address of the registry server (for lookups)")
 	instance_id       = flag.String("ge_instance_id", "", "autodeployers internal instance id. We may use this to get information about ourselves")
 	ext_help          = flag.Bool("X", false, "extended help")
+	XXdoappinfo       = ImmediatePara("ge_info", "print application build number", doappinfo)
 	print_easyops     = false
 	manreg            = ""
 )
@@ -35,6 +36,14 @@ func init() {
 		if o == "-X" {
 			go print_late_usage()
 		}
+	}
+	appinfo.OldAppInfo = &appinfo.AppVersionInfo{
+		Number:         APP_BUILD_NUMBER,
+		Description:    APP_BUILD_DESCRIPTION,
+		Timestamp:      APP_BUILD_TIMESTAMP,
+		RepositoryID:   APP_BUILD_REPOSITORY_ID,
+		RepositoryName: APP_BUILD_REPOSITORY,
+		CommitID:       APP_BUILD_COMMIT,
 	}
 }
 
@@ -60,11 +69,21 @@ func PrintUsage() {
 	fmt.Fprintf(os.Stdout, "  Go-Easyops build time       : %s\n", time.Unix(BUILD_TIMESTAMP, 0))
 	fmt.Fprintf(os.Stdout, "  Go-Easyops description      : %s\n", BUILD_DESCRIPTION)
 
-	fmt.Fprintf(os.Stdout, "  App version                 : %d\n", APP_BUILD_NUMBER)
-	fmt.Fprintf(os.Stdout, "  App build timestamp         : %d\n", APP_BUILD_TIMESTAMP)
-	fmt.Fprintf(os.Stdout, "  App build time              : %s\n", time.Unix(APP_BUILD_TIMESTAMP, 0))
-	fmt.Fprintf(os.Stdout, "  App description             : %s\n", APP_BUILD_DESCRIPTION)
-	fmt.Fprintf(os.Stdout, "  App repository              : %s\n", APP_BUILD_REPOSITORY)
+	if appinfo.AppInfo == nil {
+		fmt.Fprintf(os.Stdout, "  [old style vendor repository] \n")
+		fmt.Fprintf(os.Stdout, "  App version                 : %d\n", APP_BUILD_NUMBER)
+		fmt.Fprintf(os.Stdout, "  App build timestamp         : %d\n", APP_BUILD_TIMESTAMP)
+		fmt.Fprintf(os.Stdout, "  App build time              : %s\n", time.Unix(APP_BUILD_TIMESTAMP, 0))
+		fmt.Fprintf(os.Stdout, "  App description             : %s\n", APP_BUILD_DESCRIPTION)
+		fmt.Fprintf(os.Stdout, "  App repository              : %s\n", APP_BUILD_REPOSITORY)
+
+	} else {
+		fmt.Fprintf(os.Stdout, "  App version                 : %d\n", appinfo.AppInfo().Number)
+		fmt.Fprintf(os.Stdout, "  App build timestamp         : %d\n", appinfo.AppInfo().Timestamp)
+		fmt.Fprintf(os.Stdout, "  App build time              : %s\n", time.Unix(appinfo.AppInfo().Timestamp, 0))
+		fmt.Fprintf(os.Stdout, "  App description             : %s\n", appinfo.AppInfo().Description)
+		fmt.Fprintf(os.Stdout, "  App repository              : %d\n", appinfo.AppInfo().RepositoryID)
+	}
 	PrintDefaults()
 }
 func PrintDefaults() {
@@ -117,7 +136,7 @@ func GetInstanceID() string {
 		if *instance_id != "" {
 			return *instance_id
 		}
-		s = "L-" + utils.RandomString(32)
+		s = "L-" + RandomString(32)
 		*instance_id = s
 	}
 	return s
@@ -169,4 +188,8 @@ func OptEnvString(para, envname string) string {
 		return para
 	}
 	return os.Getenv(envname)
+}
+func doappinfo() {
+	fmt.Printf("%d\n", APP_BUILD_NUMBER)
+	os.Exit(0)
 }

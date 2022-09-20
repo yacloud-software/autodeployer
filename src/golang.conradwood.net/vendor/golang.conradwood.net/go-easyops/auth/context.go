@@ -7,10 +7,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"golang.conradwood.net/apis/auth"
 	rc "golang.conradwood.net/apis/rpcinterceptor"
+	//"google.golang.org/protobuf/proto"
 	//	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/common"
 	"golang.conradwood.net/go-easyops/rpc"
 	"golang.conradwood.net/go-easyops/tokens"
+	"golang.conradwood.net/go-easyops/utils"
 	"os"
 	"strings"
 	"time"
@@ -24,6 +26,11 @@ const (
 var (
 //	rpci rc.RPCInterceptorServiceClient
 )
+
+func ForkContext(ctx context.Context) (context.Context, error) {
+	u := GetUser(ctx)
+	return ContextForUser(u)
+}
 
 // return a context with token and/or from environment or so
 func Context(t time.Duration) context.Context {
@@ -183,4 +190,37 @@ func tryGetMetadata(ctx context.Context) *rc.InMetadata {
 		mt.UserID = u.ID
 	}
 	return mt
+}
+
+// get signed session or nil if none
+func GetSignedSession(ctx context.Context) *auth.SignedSession {
+	cs := rpc.CallStateFromContext(ctx)
+	if cs == nil {
+		return nil
+	}
+
+	s := cs.SignedSession()
+	if s == nil {
+		return nil
+	}
+	if !common.VerifyBytes(s.Session, s.Signature) {
+		return nil
+	}
+	return s
+}
+
+// get session token or "" if none
+func GetSessionToken(ctx context.Context) string {
+	s := GetSignedSession(ctx)
+	if s == nil {
+		return ""
+	}
+	sess := &auth.Session{}
+	err := utils.UnmarshalBytes(s.Session, sess)
+	if err != nil {
+		fmt.Printf("[go-easyops] invalid session (%s)\n", err)
+		return ""
+	}
+	return sess.Token
+
 }

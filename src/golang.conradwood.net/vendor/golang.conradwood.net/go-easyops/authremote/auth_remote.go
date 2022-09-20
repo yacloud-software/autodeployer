@@ -40,17 +40,35 @@ func Context() context.Context {
 
 /*
 create a new context with routing tags (routing criteria to route to specific instances of a service)
+if fallback is true, fallback to any service without tags if none is found (default was false)
 */
-func NewContextWithRouting(kv map[string]string) context.Context {
-	return DerivedContextWithRouting(Context(), kv)
+func NewContextWithRouting(kv map[string]string, fallback bool) context.Context {
+	return DerivedContextWithRouting(Context(), kv, fallback)
 }
 
 /*
 derive  a context with routing tags (routing criteria to route to specific instances of a service)
+if fallback is true, fallback to any service without tags if none is found (default was false)
 */
-func DerivedContextWithRouting(cv context.Context, kv map[string]string) context.Context {
-	cv = context.WithValue(cv, "routingtags", kv)
-	return cv
+func DerivedContextWithRouting(cv context.Context, kv map[string]string, fallback bool) context.Context {
+	cri := &rc.CTXRoutingTags{Tags: kv, FallbackToPlain: fallback}
+	cs := rpc.CallStateFromContext(cv)
+	if cs == nil || cs.Metadata == nil {
+		return NewContextWithRoutingTags(cri)
+	}
+	cs.Metadata.RoutingTags = cri
+	err := cs.UpdateContextFromResponseWithTimeout(time.Duration(10) * time.Second)
+	if err != nil {
+		panic(fmt.Sprintf("bad context: %s", err))
+	}
+	return cs.Context
+}
+
+/*
+get a context with routing tags, specified by proto
+*/
+func NewContextWithRoutingTags(rt *rc.CTXRoutingTags) context.Context {
+	return ContextWithTimeoutAndTags(time.Duration(10)*time.Second, rt)
 }
 
 /* this context gives a context with a full userobject
@@ -60,6 +78,13 @@ else if environment variable with context, will use auth.Context() (with variabl
 else create context by asking auth service for a signed user object
 */
 func ContextWithTimeout(t time.Duration) context.Context {
+	return ContextWithTimeoutAndTags(t, nil)
+}
+
+/*
+create a new context with routing tags. This is an EXPERIMENTAL API and very likely to change in future
+*/
+func ContextWithTimeoutAndTags(t time.Duration, rt *rc.CTXRoutingTags) context.Context {
 	if cmdline.Datacenter() {
 		return tokens.ContextWithTokenAndTimeout(uint64(t.Seconds()))
 	}
@@ -84,6 +109,7 @@ func ContextWithTimeout(t time.Duration) context.Context {
 			User:          common.VerifySignedUser(lastUser),
 			SignedService: lastService,
 			SignedUser:    lastUser,
+			RoutingTags:   rt,
 		},
 		RPCIResponse: &rc.InterceptRPCResponse{
 			CallerUser:          common.VerifySignedUser(lastUser),

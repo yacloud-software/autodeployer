@@ -45,6 +45,7 @@ const (
 )
 
 var (
+	reg_tags             = flag.String("ge_routing_tags", "", "comma seperated list of key-value pairs. For example -tags=foo=bar,foobar=true")
 	debug_internal_serve = flag.Bool("ge_debug_internal_server", false, "debug the server @ https://.../internal/... (serving metrics amongst other things)")
 	debug_rpc_serve      = flag.Bool("ge_debug_rpc_server", false, "debug the grpc server ")
 	deployDescriptor     = flag.String("ge_deployment_descriptor", "", "The deployment path by which other programs can refer to this deployment. expected is: a path of the format: \"V1:namespace/groupname/repository/buildid\"")
@@ -68,6 +69,11 @@ type UserCache struct {
 
 type Register func(server *grpc.Server) error
 
+//serverdef interface
+type Server interface {
+	AddTag(key, value string)
+}
+
 // no longer exported - please use NewServerDef instead
 type serverDef struct {
 	Port        int
@@ -86,6 +92,7 @@ type serverDef struct {
 	serviceID       uint64
 	asUser          *au.SignedUser // if we're running as a user rather than a server this is the account
 	tags            map[string]string
+	ErrorHandler    func(ctx context.Context, function_name string, err error)
 }
 
 func init() {
@@ -175,6 +182,25 @@ func stopping() {
 	}
 }
 
+func addTags(sd *serverDef) {
+	if *reg_tags == "" {
+		return
+	}
+	vals := strings.Split(*reg_tags, ",")
+	for _, v := range vals {
+		kv := strings.SplitN(v, "=", 2)
+		if len(kv) != 2 {
+			s := fmt.Sprintf("Invalid keyvalue tag: \"%s\" - it splits into %d parts instead of 2\n", v, len(kv))
+			panic(s)
+		}
+		tk := kv[0]
+		tv := kv[1]
+		fmt.Printf("Adding tag \"%s\" with value \"%s\"\n", tk, tv)
+		sd.AddTag(tk, tv)
+	}
+
+}
+
 // this is our typical gRPC server startup
 // it sets ourselves up with our own certificates
 // which is set for THIS SERVER, so installed/maintained
@@ -182,6 +208,7 @@ func stopping() {
 // it also configures the rpc server to expect a token to identify
 // the user in the rpc metadata call
 func ServerStartup(def *serverDef) error {
+	addTags(def)
 	go client.GetSignatureFromAuth() // init pubkey
 	go error_handler_startup()
 	var tk string
@@ -402,9 +429,6 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 			}
 			otherHandler.ServeHTTP(w, r)
 		} else {
-			if *debug_rpc_serve {
-				fancyPrintf("Debug-rpc Request: \"%s\"\n", path)
-			}
 			grpcServer.ServeHTTP(w, r)
 		}
 	})
@@ -628,8 +652,10 @@ func AddStatusDetail(st *status.Status, ct *fw.CallTrace) *status.Status {
 
 }
 
-// we have a good service token, lookup our serviceid for future calls to rpcinterceptor
-// this will PANIC if the token is invalid
+/*
+ we have a good service token, lookup our serviceid for future calls to rpcinterceptor
+ this will PANIC if the token is invalid
+*/
 func (sd *serverDef) lookupServiceID(token string) {
 	if token == "" {
 		return

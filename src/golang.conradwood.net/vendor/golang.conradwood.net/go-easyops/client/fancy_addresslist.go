@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"golang.conradwood.net/apis/registry"
 	"golang.conradwood.net/go-easyops/auth"
 	"google.golang.org/grpc/balancer"
@@ -26,6 +27,9 @@ type fancy_adr struct {
 	Target  *registry.Target
 }
 
+func (fa *fancy_adr) String() string {
+	return fmt.Sprintf("%s: %s[%s] removed=%v", fa.Target.ServiceName, fa.addr, fa.state.String(), fa.removed)
+}
 func (fal *FancyAddressList) Count() int {
 	return len(fal.addresses)
 }
@@ -100,12 +104,28 @@ func (fal *FancyAddressList) BySubCon(sc balancer.SubConn) *fancy_adr {
 	return fa
 }
 
+// return addresses with 0 tags
+func (fal *FancyAddressList) ByWithoutTags() []*fancy_adr {
+	var valids []*fancy_adr
+	// filter addresses to include only those which contain required all tags
+	for _, a := range fal.addresses {
+		if a.Target == nil {
+			continue
+		}
+		if a.Target.RoutingInfo == nil || a.Target.RoutingInfo.Tags == nil || len(a.Target.RoutingInfo.Tags) == 0 {
+			valids = append(valids, a)
+		}
+	}
+	return valids
+}
+
 /*
 called for _every_ rpc call when ge_honour_tags flag is true, adjusts the
 list of matches by checking whether the addresses matches all the routing tags
-supplied
+supplied.
+if no tags are supplied, return _ALL_ targets (including those with tags)
 */
-//func filterByTags(sn serviceNamer, in []*fancy_adr, tags map[string]string) []*fancy_adr {
+
 func (fal *FancyAddressList) ByMatchingTags(tags map[string]string) []*fancy_adr {
 	fancyPrintf(fal, "Filtering (%d) addresses by tags\n", len(fal.addresses))
 	if len(tags) == 0 {

@@ -8,6 +8,7 @@ import (
 	"golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/prometheus"
 	"google.golang.org/grpc/codes"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -113,19 +114,23 @@ type header struct {
 	Value string
 }
 type HTTPResponse struct {
-	httpCode   int
-	ht         *HTTP
-	body       []byte
-	err        error
-	finalurl   string
-	header     map[string]string
-	allheaders []*header // responses need multiple headers of same name, e.g. "Cookie"
+	httpCode         int
+	ht               *HTTP
+	body             []byte
+	err              error
+	finalurl         string
+	header           map[string]string
+	allheaders       []*header // responses need multiple headers of same name, e.g. "Cookie"
+	received_cookies []*http.Cookie
+	resp             *http.Response
 }
 
 func (h *HTTPResponse) HTTPCode() int {
 	return h.httpCode
 }
-
+func (h *HTTPResponse) Cookies() []*http.Cookie {
+	return h.received_cookies
+}
 func (h *HTTPResponse) AllHeaders() []*header {
 	return h.allheaders
 }
@@ -153,8 +158,21 @@ func (h *HTTP) Head(url string) *HTTPResponse {
 		hr.err = err
 		return hr
 	}
-	hr.do(req)
+	hr.do(req, true)
 	return hr
+}
+func (h *HTTP) GetStream(url string) *HTTPResponse {
+	hr := &HTTPResponse{ht: h}
+	if h.err != nil {
+		hr.err = h.err
+		return hr
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		hr.err = err
+		return hr
+	}
+	return hr.do(req, false)
 }
 func (h *HTTP) Get(url string) *HTTPResponse {
 	hr := &HTTPResponse{ht: h}
@@ -167,7 +185,7 @@ func (h *HTTP) Get(url string) *HTTPResponse {
 		hr.err = err
 		return hr
 	}
-	hr.do(req)
+	hr.do(req, true)
 	return hr
 }
 func (h *HTTP) Delete(url string, body []byte) *HTTPResponse {
@@ -182,7 +200,7 @@ func (h *HTTP) Delete(url string, body []byte) *HTTPResponse {
 		hr.err = err
 		return hr
 	}
-	hr.do(req)
+	hr.do(req, true)
 	return hr
 }
 func (h *HTTP) Post(url string, body []byte) *HTTPResponse {
@@ -200,7 +218,7 @@ func (h *HTTP) Post(url string, body []byte) *HTTPResponse {
 		hr.err = err
 		return hr
 	}
-	hr.do(req)
+	hr.do(req, true)
 	return hr
 }
 func (h *HTTP) Put(url string, body string) *HTTPResponse {
@@ -215,7 +233,7 @@ func (h *HTTP) Put(url string, body string) *HTTPResponse {
 		hr.err = err
 		return hr
 	}
-	hr.do(req)
+	hr.do(req, true)
 	return hr
 }
 
@@ -262,8 +280,10 @@ func (h *HTTP) Cookie(name string) *http.Cookie {
 	}
 	return nil
 }
-
-func (h *HTTPResponse) do(req *http.Request) *HTTPResponse {
+func (h *HTTPResponse) BodyReader() io.Reader {
+	return h.resp.Body
+}
+func (h *HTTPResponse) do(req *http.Request, readbody bool) *HTTPResponse {
 	if h.ht.jar == nil {
 		h.ht.jar = &Cookies{}
 	}
@@ -277,7 +297,9 @@ func (h *HTTPResponse) do(req *http.Request) *HTTPResponse {
 		tr = h.ht.transport
 	}
 	hclient := &http.Client{Transport: tr, Jar: h.ht.jar}
-	h.ht.jar.Print()
+	if *debug {
+		h.ht.jar.Print()
+	}
 	if h.ht.headers != nil {
 		for k, v := range h.ht.headers {
 			if *debug {
@@ -293,7 +315,9 @@ func (h *HTTPResponse) do(req *http.Request) *HTTPResponse {
 	}
 
 	for _, c := range h.ht.jar.cookies {
-		fmt.Printf("Adding cookie %s\n", c.Name)
+		if *debug {
+			fmt.Printf("Adding cookie %s\n", c.Name)
+		}
 		req.Header.Add("Cookie", fmt.Sprintf("%s=%s", c.Name, c.Value))
 	}
 	started := time.Now()
@@ -328,12 +352,16 @@ func (h *HTTPResponse) do(req *http.Request) *HTTPResponse {
 		}
 		h.header[k] = va[0]
 	}
-
-	defer resp.Body.Close()
-	pbody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		h.err = err
-		return h
+	h.resp = resp
+	h.received_cookies = resp.Cookies()
+	if readbody {
+		defer resp.Body.Close()
+		pbody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			h.err = err
+			return h
+		}
+		h.body = pbody
 	}
 	if resp.StatusCode == 404 {
 		if h.ht.doMetric() {
@@ -349,7 +377,6 @@ func (h *HTTPResponse) do(req *http.Request) *HTTPResponse {
 	if h.err == nil {
 		durationSummary.With(h.ht.promLabels()).Observe(time.Since(started).Seconds())
 	}
-	h.body = pbody
 	return h
 }
 
