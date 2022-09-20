@@ -22,6 +22,7 @@ import (
 	"golang.conradwood.net/autodeployer/config"
 	"golang.conradwood.net/autodeployer/deployments"
 	"golang.conradwood.net/autodeployer/downloader"
+	"golang.conradwood.net/autodeployer/packages"
 	"golang.conradwood.net/autodeployer/starter"
 	"golang.conradwood.net/go-easyops/auth"
 	"golang.conradwood.net/go-easyops/client"
@@ -75,6 +76,7 @@ var (
 	brutal            = flag.Bool("brutal", false, "brutally kill processes (-9 immediately)")
 	start_brutal      = flag.Bool("brutal_start", false, "brutally kill processes (-9 immediately) on STARTUP only")
 	deplMonkey        dm.DeployMonkeyClient
+	pkgMgr            packages.PackageManager
 )
 
 func isTestMode() bool {
@@ -137,6 +139,7 @@ func main() {
 			time.Sleep(time.Second * 1)
 		}
 	}
+	pkgMgr = packages.New()
 	fmt.Printf("Slaying all autodeployers currently active...\n")
 	// we are brutal - if we startup we slay all deployment users
 	slayAll()
@@ -709,6 +712,12 @@ func (s *AutoDeployer) GetDeployments(ctx context.Context, cr *pb.InfoRequest) (
 		res.Apps = append(res.Apps, da)
 	}
 	return &res, nil
+}
+func (s *AutoDeployer) CheckPackage(ctx context.Context, req *pb.PackageInstallRequest) (*pb.PackageInstallResponse, error) {
+	return pkgMgr.CheckPackage(ctx, req)
+}
+func (s *AutoDeployer) InstallPackage(ctx context.Context, req *pb.PackageInstallRequest) (*pb.PackageInstallResponse, error) {
+	return pkgMgr.InstallPackage(ctx, req)
 }
 
 func (s *AutoDeployer) GetMachineInfo(ctx context.Context, cr *pb.MachineInfoRequest) (*pb.MachineInfoResponse, error) {

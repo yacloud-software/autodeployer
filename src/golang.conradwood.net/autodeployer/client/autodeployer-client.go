@@ -21,26 +21,28 @@ import (
 
 // static variables for flag parser
 var (
-	details      = flag.Bool("details", false, "print details")
-	server       = flag.String("server", "", "If provided, connects to a specific autodeployer (instead of lookup via registry)")
-	clear        = flag.Bool("clear_actions", false, "clear list of applied actions on server")
-	downloaduser = flag.String("user", "", "the username to authenticate with at the downloadurl")
-	downloadpw   = flag.String("password", "", "the password to authenticate with at the downloadurl")
-	downloadurl  = flag.String("url", "", "The `URL` of the binary to deploy")
-	binary       = flag.String("binary", "", "The relative path to the binary to deploy")
-	paras        = flag.String("paras", "", "The parameters to pass to the binary")
-	buildid      = flag.Int("build", 1, "The BuildID of the binary to be deployed")
-	repo         = flag.Uint64("repo", 0, "The name of the repository where the source of the binary to be deployed lives.")
-	group        = flag.String("group", "grp", "The name of the group")
-	namespace    = flag.String("namespace", "namespc", "The namespace of the application")
-	deployid     = flag.String("deploy_id", "", "an opaque token that is linked to this particular deployment (and returned in deploymentrequest")
-	cfg          = flag.String("deploy", "", "a deploy.yaml `filename` to deploy")
-	list         = flag.Bool("list", false, "list deployments")
-	undeploy     = flag.Bool("undeploy", false, "undeploy [-deploy_id]")
-	setlimits    = flag.Bool("set_limits", true, "set max runtime limits")
-	maxmb        = flag.Int("max_mb", 1000, "runtime limit: maximum amount of memory (in megabytes) (see set_limits) ")
-	cl           pb.AutoDeployerClient
-	cache        = flag.String("cache", "", "download and cache a url")
+	pkgname         = flag.String("package", "", "query or install a package")
+	install_package = flag.Bool("install_package", false, "if true install package")
+	details         = flag.Bool("details", false, "print details")
+	server          = flag.String("server", "", "If provided, connects to a specific autodeployer (instead of lookup via registry)")
+	clear           = flag.Bool("clear_actions", false, "clear list of applied actions on server")
+	downloaduser    = flag.String("user", "", "the username to authenticate with at the downloadurl")
+	downloadpw      = flag.String("password", "", "the password to authenticate with at the downloadurl")
+	downloadurl     = flag.String("url", "", "The `URL` of the binary to deploy")
+	binary          = flag.String("binary", "", "The relative path to the binary to deploy")
+	paras           = flag.String("paras", "", "The parameters to pass to the binary")
+	buildid         = flag.Int("build", 1, "The BuildID of the binary to be deployed")
+	repo            = flag.Uint64("repo", 0, "The name of the repository where the source of the binary to be deployed lives.")
+	group           = flag.String("group", "grp", "The name of the group")
+	namespace       = flag.String("namespace", "namespc", "The namespace of the application")
+	deployid        = flag.String("deploy_id", "", "an opaque token that is linked to this particular deployment (and returned in deploymentrequest")
+	cfg             = flag.String("deploy", "", "a deploy.yaml `filename` to deploy")
+	list            = flag.Bool("list", false, "list deployments")
+	undeploy        = flag.Bool("undeploy", false, "undeploy [-deploy_id]")
+	setlimits       = flag.Bool("set_limits", true, "set max runtime limits")
+	maxmb           = flag.Int("max_mb", 1000, "runtime limit: maximum amount of memory (in megabytes) (see set_limits) ")
+	cl              pb.AutoDeployerClient
+	cache           = flag.String("cache", "", "download and cache a url")
 )
 
 func main() {
@@ -61,6 +63,10 @@ func main() {
 	}
 
 	cl = pb.NewAutoDeployerClient(conn)
+	if *pkgname != "" {
+		utils.Bail("failed to process package", QueryOrInstallPackage())
+		os.Exit(0)
+	}
 	if *cache != "" {
 		Cache()
 		os.Exit(0)
@@ -226,4 +232,27 @@ func Cache() {
 	p := float64(r.BytesDownloaded) / float64(r.TotalBytes) * 100
 	fmt.Printf("Downloaded %d of %d bytes (%0.1f%%)\n", r.BytesDownloaded, r.TotalBytes, p)
 
+}
+
+func QueryOrInstallPackage() error {
+	pname := *pkgname
+	inst := *install_package
+
+	var res *pb.PackageInstallResponse
+	var err error
+	ctx := authremote.Context()
+	req := &pb.PackageInstallRequest{Name: pname}
+	if inst {
+		fmt.Printf("Installing package \"%s\"\n", pname)
+		res, err = cl.InstallPackage(ctx, req)
+	} else {
+		fmt.Printf("Querying package \"%s\"\n", pname)
+		res, err = cl.CheckPackage(ctx, req)
+	}
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Package \"%s\" installed: %v\n", res.Name, res.Installed)
+
+	return nil
 }

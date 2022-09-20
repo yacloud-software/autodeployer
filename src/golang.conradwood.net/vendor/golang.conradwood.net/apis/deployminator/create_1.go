@@ -1,6 +1,6 @@
 // client create: DeployminatorClient
 /* geninfo:
-   filename  : golang.conradwood.net/apis/deployminator/deployminator.proto
+   filename  : protos/golang.conradwood.net/apis/deployminator/deployminator.proto
    gopackage : golang.conradwood.net/apis/deployminator
    importname: ai_0
    varname   : client_DeployminatorClient_0
