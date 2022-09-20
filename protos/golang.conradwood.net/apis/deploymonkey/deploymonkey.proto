@@ -275,6 +275,18 @@ message AutodeployerInfo {
 message AutodeployerList {
   repeated AutodeployerInfo Autodeployers=1;
 }
+message SuggestRequest {
+  uint32 MaxAgeSecs=1; // set to 0 to always force refresh
+}
+message Suggestion {
+  bool Start=1;
+  string Host=2;
+  ApplicationDefinition App=3;
+}
+
+message SuggestionList {
+  repeated Suggestion Suggestions=1;
+}
 
 /*
 the deploymonkeyservice orchestrates deployments
@@ -314,4 +326,6 @@ service DeployMonkey {
   rpc AutodeployerStartup(common.Void) returns (common.Void);
   // get all autodeployers that we currently know of
   rpc GetKnownAutodeployers(common.Void) returns (AutodeployerList);
+  // get suggestions
+  rpc GetSuggestions(SuggestRequest) returns (SuggestionList);
 }
