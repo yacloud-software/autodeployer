@@ -744,6 +744,7 @@ func (s *AutoDeployer) GetMachineInfo(ctx context.Context, cr *pb.MachineInfoReq
 	res := pb.MachineInfoResponse{
 		MachineGroup:        sx,
 		AutoDeployerVersion: cmdline.APP_BUILD_NUMBER,
+		Stopping:            shutting_down,
 	}
 	return &res, nil
 }
