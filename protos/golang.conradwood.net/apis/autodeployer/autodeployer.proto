@@ -169,6 +169,15 @@ message URLResponse {
   uint64 TotalBytes=3;
   bool CacheDisabled=4; // cache is disabled
 }
+message PackageInstallRequest {
+  string Name=1; //debian package name
+}
+
+message PackageInstallResponse {
+  string Name=1; // debian package name
+  bool Installed=2;
+}
+
 
 /*
 The Autodeployer automatically deploys binaries on linux machines
@@ -218,6 +227,10 @@ service AutoDeployer {
   rpc Download(StartedRequest) returns (stream BinaryDownload);
   // start a download and put it into cache
   rpc CacheURL(URLRequest) returns (URLResponse);
+  // install package (Asynchronous)
+  rpc InstallPackage(PackageInstallRequest) returns (PackageInstallResponse);
+  // check if package is installed
+  rpc CheckPackage(PackageInstallRequest) returns (PackageInstallResponse);
 }
 
 message BinaryDownload {
