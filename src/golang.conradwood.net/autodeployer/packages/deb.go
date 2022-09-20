@@ -56,6 +56,7 @@ func install_debian_package(name string) {
 	deblock.Lock()
 	defer deblock.Unlock()
 	l := linux.New()
+	l.SetRuntime(600)
 	com := add_sudo([]string{"apt-get", "update"})
 	out, err := l.SafelyExecuteWithDir(com, "/tmp", nil)
 	if *debug {
@@ -66,6 +67,7 @@ func install_debian_package(name string) {
 		return
 	}
 	l = linux.New()
+	l.SetRuntime(600)
 	com = add_sudo([]string{"apt-get", "install", "-y", name})
 	out, err = l.SafelyExecuteWithDir(com, "/tmp", nil)
 	if *debug {
