@@ -183,6 +183,7 @@ message StopRequest {
 }
 message StopResponse {
   uint64 Version=1;
+  bool Stopping=2;
 }
 /*
 The Autodeployer automatically deploys binaries on linux machines
