@@ -29,17 +29,19 @@ func (d *DeployMonkey) GetSuggestions(ctx context.Context, req *pb.SuggestReques
 	res := &pb.SuggestionList{}
 	for _, ac := range s.Starts {
 		sd := &pb.Suggestion{
-			Start: true,
-			Host:  ac.Host,
-			App:   ac.App,
+			Start:         true,
+			Host:          ac.Host,
+			App:           ac.App,
+			DeployRequest: ac.DeployRequest(),
 		}
 		res.Suggestions = append(res.Suggestions, sd)
 	}
 	for _, ac := range s.Stops {
 		sd := &pb.Suggestion{
-			Start: false,
-			Host:  ac.Host,
-			App:   ac.App,
+			Start:           false,
+			Host:            ac.Host,
+			App:             ac.App,
+			UndeployRequest: ac.UndeployRequest(),
 		}
 		res.Suggestions = append(res.Suggestions, sd)
 	}
