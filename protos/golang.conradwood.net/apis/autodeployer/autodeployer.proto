@@ -159,6 +159,7 @@ message MachineInfoResponse {
   repeated string MachineGroup = 1;
   uint64 AutoDeployerVersion=2;
   bool Stopping=3;
+  string AutodeployerBinary=4;
 }
 
 message URLRequest {
