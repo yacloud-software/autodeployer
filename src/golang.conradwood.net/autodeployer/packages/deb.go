@@ -48,8 +48,12 @@ func (s *deb) InstallPackage(ctx context.Context, req *pb.PackageInstallRequest)
 			return nil, err
 		}
 	}
+	res, err := s.CheckPackage(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 	go install_debian_package(req.Name)
-	return s.CheckPackage(ctx, req)
+	return res, nil
 
 }
 func install_debian_package(name string) {
