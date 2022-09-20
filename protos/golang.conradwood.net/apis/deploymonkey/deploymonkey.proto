@@ -282,6 +282,8 @@ message Suggestion {
   bool Start=1;
   string Host=2;
   ApplicationDefinition App=3;
+  DeployAppRequest DeployRequest=4; // set only if Start==true
+  UndeployAppRequest UndeployRequest=5; // set only if Start==false
 }
 
 message SuggestionList {
