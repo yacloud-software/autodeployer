@@ -431,7 +431,7 @@ func (s *AutoDeployer) Undeploy(ctx context.Context, cr *pb.UndeployRequest) (*p
 		}
 	}
 	dep.Log("Undeploy request received")
-	fmt.Printf("Undeploy request received: %v", dep)
+	fmt.Printf("Undeploy request received: %v\n", dep)
 	sb := ""
 	if cr.Block {
 		sb = fmt.Sprintf("Shutting down (sync): %s\n", dep.String())

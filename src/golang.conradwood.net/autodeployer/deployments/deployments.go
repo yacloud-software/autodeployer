@@ -113,6 +113,9 @@ func (d *Deployed) DeployInfoString() string {
 }
 
 func (d *Deployed) String() string {
+	if d == nil {
+		return fmt.Sprintf("[nil Deployed]")
+	}
 	return fmt.Sprintf("%d-%d (%s) %s", d.DeployRequest.RepositoryID, d.DeployRequest.BuildID, d.StartupMsg, d.Status)
 }
 func (d *Deployed) GenericString() string {
