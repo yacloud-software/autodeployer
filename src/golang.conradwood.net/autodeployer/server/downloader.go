@@ -60,6 +60,7 @@ func cleanDownloadLocks() {
 
 // this is called from deploymonkey to "pre-cache" a url
 func (a *AutoDeployer) CacheURL(ctx context.Context, req *ad.URLRequest) (*ad.URLResponse, error) {
+	fmt.Printf("Caching url %s\n", req.URL)
 	if *cache_v2 {
 		return downloader.CacheURL(ctx, req)
 	}
