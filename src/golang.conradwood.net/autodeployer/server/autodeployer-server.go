@@ -621,6 +621,7 @@ func Slay(username string, quick bool) {
 	}
 	l := linux.New()
 	l.SetAllowConcurrency(true)
+
 	out, err := l.SafelyExecute(cmd, nil)
 	if (*debug) && (err == nil) {
 		fmt.Printf("Slayed process of user %s\n", username)
