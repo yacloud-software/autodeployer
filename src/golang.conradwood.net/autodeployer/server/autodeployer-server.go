@@ -66,6 +66,7 @@ var (
 		})
 
 	processChangeLock sync.Mutex
+	startport         = flag.Int("start_port", 4100, "starting (lowest) port")
 	port              = flag.Int("port", 4000, "The server port")
 	test              = flag.Bool("test", false, "set to true if you testing the server")
 	debug             = flag.Bool("debug", false, "lots of debug output")
@@ -683,7 +684,7 @@ func (s *AutoDeployer) AllocResources(ctx context.Context, cr *pb.ResourceReques
 
 // we assume stuff is locked !
 func allocPort(du *deployments.Deployed) int32 {
-	startPort := 4100
+	startPort := *startport
 	endPort := 4499
 	for i := startPort; i < endPort; i++ {
 		if !isPortInUse(i) {
