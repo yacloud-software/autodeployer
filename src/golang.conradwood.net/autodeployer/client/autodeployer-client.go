@@ -11,7 +11,6 @@ import (
 	"golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
-	"golang.conradwood.net/go-easyops/tokens"
 	"golang.conradwood.net/go-easyops/utils"
 	"google.golang.org/grpc"
 	"os"
@@ -92,7 +91,7 @@ func main() {
 	}
 }
 func Clear() {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	_, err := cl.ClearActions(ctx, &cm.Void{})
 	utils.Bail("Failed to clear actions", err)
 	fmt.Printf("Done")
@@ -100,7 +99,7 @@ func Clear() {
 }
 
 func listDeployments() {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	ir, err := cl.GetDeployments(ctx, &pb.InfoRequest{})
 	utils.Bail("Failed to get deployments", err)
 	fmt.Printf("%d deployments\n", len(ir.Apps))
@@ -137,7 +136,7 @@ func listDeployments() {
 }
 
 func deploy() {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	d := *deployid
 	if d == "" {
 		d = "TEST_DEPLOY_ID"
@@ -174,7 +173,7 @@ func deploy() {
 }
 
 func deployFile() {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	d := *deployid
 	if d == "" {
 		d = "fake-deploymentid"
@@ -217,7 +216,7 @@ func Undeploy() {
 		fmt.Printf("Missing deployid\n")
 		os.Exit(10)
 	}
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	_, err := cl.Undeploy(ctx, &pb.UndeployRequest{ID: *deployid, Block: true})
 	utils.Bail("Failed to undeploy", err)
 	fmt.Printf("Done\n")

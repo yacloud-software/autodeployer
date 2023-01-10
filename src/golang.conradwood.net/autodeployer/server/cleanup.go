@@ -7,21 +7,21 @@ import (
 	"golang.conradwood.net/autodeployer/cgroups"
 	"golang.conradwood.net/autodeployer/config"
 	"golang.conradwood.net/autodeployer/deployments"
+	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/server"
-	"golang.conradwood.net/go-easyops/tokens"
 	"time"
 )
 
 // subset of deployments.Deployed
 
 /*
- code that cleans up once the process exited
- this code runs in the autodeployer-server process
- it is - as supposed to the child process - highly likely
- that it is run each time the processes terminates since it
- is trigger by process exit (SIGCHLD) rather than any notification.
- so even SIGKILL or SIGSEGV will end up here
+code that cleans up once the process exited
+this code runs in the autodeployer-server process
+it is - as supposed to the child process - highly likely
+that it is run each time the processes terminates since it
+is trigger by process exit (SIGCHLD) rather than any notification.
+so even SIGKILL or SIGSEGV will end up here
 */
 var (
 	regClient rpb.RegistryClient
@@ -35,7 +35,7 @@ func StartupCodeFinished(du *deployments.Deployed, exitCode error) {
 	}
 	fmt.Printf("child %s terminated\n", du.StartupMsg)
 	cgroups.RemoveCgroup(du)
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	ds := &rpb.DeregisterServiceRequest{ProcessID: du.StartupMsg}
 	_, err := regClient.V2DeregisterService(ctx, ds)
 	if err != nil {

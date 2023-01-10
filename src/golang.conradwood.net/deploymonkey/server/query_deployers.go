@@ -1,6 +1,7 @@
 package main
 
 import (
+    "golang.conradwood.net/go-easyops/authremote"
 	"flag"
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
@@ -11,7 +12,6 @@ import (
 	"golang.conradwood.net/deploymonkey/suggest"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/prometheus"
-	"golang.conradwood.net/go-easyops/tokens"
 	"strings"
 	"sync"
 	"time"
@@ -96,7 +96,7 @@ func StartScanner() {
 				}
 				continue
 			}
-			dl, err := INT_GetDeploymentsFromCache(tokens.ContextWithToken())
+			dl, err := INT_GetDeploymentsFromCache(authremote.Context())
 			if err != nil {
 				fmt.Printf("scanner: Failed to get deployments from cache: %s\n", err)
 				continue
@@ -231,7 +231,7 @@ func ScanAutodeployer(sa *rpb.ServiceAddress) error {
 	}
 	adc := ad.NewAutoDeployerClient(conn)
 	req := &ad.MachineInfoRequest{}
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	mir, err := adc.GetMachineInfo(ctx, req)
 	if err != nil {
 		s := fmt.Sprintf("Failed to get machineinfo on %s: %s", sa.Host, err)

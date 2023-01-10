@@ -11,8 +11,8 @@ import (
 	dc "golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/deploymonkey/config"
 	"golang.conradwood.net/deploymonkey/suggest"
+	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
-	"golang.conradwood.net/go-easyops/tokens"
 	"golang.conradwood.net/go-easyops/utils"
 	"google.golang.org/grpc"
 	"os"
@@ -114,7 +114,7 @@ func bail(err error, msg string) {
 }
 
 func undeployApplication(ID int) {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	uar := pb.UndeployApplicationRequest{ID: int64(ID)}
 	resp, err := depl.UndeployApplication(ctx, &uar)
 	if err != nil {
@@ -132,7 +132,7 @@ func undeployApplication(ID int) {
 }
 
 func callListVersions(repo string) {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	dr := pb.ListVersionByNameRequest{Name: repo}
 	resp, err := depl.ListVersionsByName(ctx, &dr)
 	if err != nil {
@@ -151,7 +151,7 @@ func callListVersions(repo string) {
 
 func applyVersion() {
 	fmt.Printf("Applying Version...\n")
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 
 	dr := pb.DeployRequest{VersionID: fmt.Sprintf("%d", *apply_version)}
 	resp, err := depl.DeployVersion(ctx, &dr)
@@ -234,7 +234,7 @@ func updateRepo() {
 		RepositoryID: *repository,
 		BuildID:      uint64(*buildid),
 	}
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	resp, err := depl.UpdateRepo(ctx, &ur)
 	bail(err, "Failed to update repo")
 	fmt.Printf("Response to updaterepo: %v\n", resp)
@@ -253,7 +253,7 @@ func updateApp() {
 		App:       &ad,
 	}
 	fmt.Printf("Updating app %s\n", *binary)
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 
 	resp, err := depl.UpdateApp(ctx, &uar)
 	if err != nil {
@@ -287,7 +287,7 @@ func processFile() {
 	*namespace = fd.Namespace
 	fmt.Printf("Set namespace to \"%s\"\n", *namespace)
 	grpc.EnableTracing = true
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 
 	for _, req := range fd.Groups {
 		resp, err := depl.DefineGroup(ctx, req)
@@ -310,7 +310,7 @@ func processFile() {
 }
 
 func listSuggestions() {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
 	utils.Bail("Failed to get deployments from cache", err)
 	cfg, err := config.GetConfig(depl)
@@ -323,7 +323,7 @@ func listSuggestions() {
 	}
 }
 func applySuggestions() {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
 	utils.Bail("Failed to get deployments from cache", err)
 	cfg, err := config.GetConfig(depl)
@@ -332,7 +332,7 @@ func applySuggestions() {
 	utils.Bail("Suggestion failed", err)
 	fmt.Printf("Executing %d start requests...\n", len(s.Starts))
 	for _, start := range s.Starts {
-		ctx := tokens.ContextWithToken()
+		ctx := authremote.Context()
 		fmt.Printf("Deploying %s...\n", start.String())
 		d := start.DeployRequest()
 		_, err = depl.DeployAppOnTarget(ctx, d)
@@ -343,7 +343,7 @@ func applySuggestions() {
 	fmt.Printf("Executing %d stop requests...\n", len(s.Stops))
 	for _, stop := range s.Stops {
 		d := stop.UndeployRequest()
-		ctx := tokens.ContextWithToken()
+		ctx := authremote.Context()
 		fmt.Printf("Undeploying %s...\n", stop.String())
 		_, err = depl.UndeployAppOnTarget(ctx, d)
 		if err != nil {
@@ -358,7 +358,7 @@ func applySuggestions() {
 }
 
 func listDeployments() {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
 	utils.Bail("Failed to get deployments from cache", err)
 	fmt.Printf("Current Deployments:\n")
@@ -382,7 +382,7 @@ func listDeployments() {
 
 func listDeployers() {
 	t := &utils.Table{}
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	depls, err := depl.GetKnownAutodeployers(ctx, &common.Void{})
 	utils.Bail("Failed to get deployers from cache", err)
 	t.AddHeaders("IP", "Groups", "GroupCount")

@@ -7,6 +7,7 @@ import (
 	"golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/linux"
 	"sync"
+	"time"
 )
 
 var (
@@ -60,7 +61,7 @@ func install_debian_package(name string) {
 	deblock.Lock()
 	defer deblock.Unlock()
 	l := linux.New()
-	l.SetRuntime(600)
+	l.SetMaxRuntime(time.Duration(600) * time.Second)
 	com := add_sudo([]string{"apt-get", "update"})
 	out, err := l.SafelyExecuteWithDir(com, "/tmp", nil)
 	if *debug {
@@ -71,7 +72,7 @@ func install_debian_package(name string) {
 		return
 	}
 	l = linux.New()
-	l.SetRuntime(600)
+	l.SetMaxRuntime(time.Duration(600) * time.Second)
 	com = add_sudo([]string{"apt-get", "install", "-y", name})
 	out, err = l.SafelyExecuteWithDir(com, "/tmp", nil)
 	if *debug {

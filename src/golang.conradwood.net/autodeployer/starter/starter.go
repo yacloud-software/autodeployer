@@ -4,8 +4,9 @@ import (
 	"flag"
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
+	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
-	"golang.conradwood.net/go-easyops/tokens"
+	//	"golang.conradwood.net/go-easyops/tokens"
 	"golang.conradwood.net/go-easyops/utils"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
@@ -29,7 +30,7 @@ var (
 
 // this is the non-privileged section of the autodeployer
 
-//*********************************************************************
+// *********************************************************************
 // execute whatever passed in as msgid and never returns
 // (exits if childprocess exits)
 // this is the 2nd part of the server (execed by main, this part is running unprivileged)
@@ -50,7 +51,7 @@ func Execute(mid string, autodeployer_port int) {
 	defer conn.Close()
 	fmt.Println("Creating client...")
 	adc = ad.NewAutoDeployerClient(conn)
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 
 	// the the server we're starting to deploy and get the parameters for deployment
 	pid := os.Getpid()
@@ -126,7 +127,7 @@ func Execute(mid string, autodeployer_port int) {
 	ports := countPortCommands(srp.Args)
 
 	fmt.Printf("Getting resources\n")
-	ctx = tokens.ContextWithToken()
+	ctx = authremote.Context()
 	resources, err := adc.AllocResources(ctx, &ad.ResourceRequest{Msgid: message_id, Ports: int32(ports)})
 	if err != nil {
 		fmt.Printf("Failed to alloc resources: %s\n", err)
@@ -313,7 +314,8 @@ func DownloadFromServer(srp *ad.StartupResponse, id string, ctr int) error {
 	if strings.HasSuffix(srp.URL, ".tar.bz2") {
 		filename = "download.tar.bz2"
 	}
-	ctx := tokens.ContextWithTokenAndTimeout(uint64(*download_timeout))
+	//ctx := tokens.ContextWithTokenAndTimeout(uint64(*download_timeout))
+	ctx := authremote.Context()
 	sr := &ad.StartedRequest{Msgid: message_id}
 	if ctr > 0 {
 		sr.DownloadFailed = true

@@ -24,9 +24,10 @@ import (
 	"golang.conradwood.net/autodeployer/downloader"
 	"golang.conradwood.net/autodeployer/packages"
 	"golang.conradwood.net/autodeployer/starter"
+	"golang.conradwood.net/go-easyops/appinfo"
 	"golang.conradwood.net/go-easyops/auth"
+	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
-	"golang.conradwood.net/go-easyops/cmdline"
 	"golang.conradwood.net/go-easyops/linux" // add busy gauge
 	"golang.conradwood.net/go-easyops/logger"
 	"golang.conradwood.net/go-easyops/prometheus"
@@ -174,12 +175,12 @@ func GetDeployMonkeyClient() dm.DeployMonkeyClient {
 	return res
 }
 
-//*********************************************************************
+// *********************************************************************
 // called just before registering at the registry
 func started() {
 	for {
 		time.Sleep(time.Duration(3) * time.Second)
-		ctx := tokens.ContextWithToken()
+		ctx := authremote.Context()
 		_, err := GetDeployMonkeyClient().AutodeployerStartup(ctx, &common.Void{})
 		if err == nil {
 			break
@@ -237,7 +238,7 @@ type AutoDeployer struct {
 }
 
 func (s *AutoDeployer) StopAutodeployer(ctx context.Context, cr *pb.StopRequest) (*pb.StopResponse, error) {
-	res := &pb.StopResponse{Version: cmdline.APP_BUILD_NUMBER}
+	res := &pb.StopResponse{Version: appinfo.AppInfo().Number}
 	if res.Version == cr.IfNotVersion {
 		return res, nil
 	}
@@ -246,7 +247,7 @@ func (s *AutoDeployer) StopAutodeployer(ctx context.Context, cr *pb.StopRequest)
 	go func() {
 		time.Sleep(time.Duration(3) * time.Second)
 		slayAll()
-		ctx := tokens.ContextWithToken()
+		ctx := authremote.Context()
 		GetDeployMonkeyClient().AutodeployerShutdown(ctx, &common.Void{})
 		os.Exit(0)
 	}()
@@ -495,7 +496,7 @@ func (s *AutoDeployer) InternalStartup(ctx context.Context, cr *pb.StartupReques
 	}
 	if retr {
 		fmt.Printf("Getting secure args...\n")
-		nc := tokens.ContextWithToken() // use autodeployer context to get secure args
+		nc := authremote.Context() // use autodeployer context to get secure args
 		v, err := secureargs.GetSecureArgsServiceClient().GetArgs(nc, &secureargs.GetArgsRequest{RepositoryID: d.RepositoryID()})
 		if err != nil {
 			fmt.Printf("Failed to get secure args: %s\n", utils.ErrorString(err))
@@ -666,7 +667,7 @@ func (s *AutoDeployer) AllocResources(ctx context.Context, cr *pb.ResourceReques
 	if regClient == nil {
 		regClient = client.GetRegistryClient()
 	}
-	ctx = tokens.ContextWithToken() // we use the autodeployer token to create a service
+	ctx = authremote.Context() // we use the autodeployer token to create a service
 	csr := &rpb.CreateServiceRequest{
 		ProcessID:  d.StartupMsg,
 		Partition:  "",
@@ -747,7 +748,7 @@ func (s *AutoDeployer) GetMachineInfo(ctx context.Context, cr *pb.MachineInfoReq
 	bin, _ := os.Executable()
 	res := pb.MachineInfoResponse{
 		MachineGroup:        sx,
-		AutoDeployerVersion: cmdline.APP_BUILD_NUMBER,
+		AutoDeployerVersion: appinfo.AppInfo().Number,
 		Stopping:            shutting_down,
 		AutodeployerBinary:  bin,
 	}

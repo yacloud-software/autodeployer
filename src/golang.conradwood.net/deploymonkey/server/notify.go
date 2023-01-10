@@ -1,11 +1,11 @@
 package main
 
 import (
+    "golang.conradwood.net/go-easyops/authremote"
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	sb "golang.conradwood.net/apis/slackgateway"
 	"golang.conradwood.net/go-easyops/client"
-	"golang.conradwood.net/go-easyops/tokens"
 )
 
 const (
@@ -24,7 +24,7 @@ func NotifyPeopleAboutDeploy(dbgroup *DBGroup, apps []*pb.ApplicationDefinition,
 	if slack == nil {
 		slack = sb.NewSlackGatewayClient(client.Connect("slackgateway.SlackGateway"))
 	}
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	msg := fmt.Sprintf("Datacenter update:\nApplied change #%d (%s), containing: \n", version, dbgroup.groupDef.Namespace)
 	for _, app := range apps {
 		msg = msg + fmt.Sprintf("   %d instances: build #%d of application %s\n", app.Instances, app.BuildID, app.Binary)
@@ -50,7 +50,7 @@ func NotifyPeopleAboutCancel(sr *stopRequest, emsg string) {
 	if sr.deployInfo != nil {
 		name = fmt.Sprintf("Repository #%d", sr.deployInfo.RepositoryID)
 	}
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	msg := fmt.Sprintf("Datacenter update of \"%s\" cancelled: %s\n", name, emsg)
 	fmt.Printf("slack: Posting message: %s\n", msg)
 	pm := &sb.PublishMessageRequest{OriginService: "originservicenotfilledinyet",

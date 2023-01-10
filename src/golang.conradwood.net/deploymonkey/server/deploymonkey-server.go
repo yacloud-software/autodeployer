@@ -1,6 +1,7 @@
 package main
 
 import (
+    "golang.conradwood.net/go-easyops/authremote"
 	"context"
 	"database/sql"
 	"errors"
@@ -16,7 +17,6 @@ import (
 	"golang.conradwood.net/deploymonkey/scheduler"
 	"golang.conradwood.net/go-easyops/server"
 	gesql "golang.conradwood.net/go-easyops/sql"
-	"golang.conradwood.net/go-easyops/tokens"
 	"golang.conradwood.net/go-easyops/utils"
 	"google.golang.org/grpc"
 	"os"
@@ -87,7 +87,7 @@ func main() {
 	go func() {
 		for {
 			ap := <-applyChannel
-			ctx := tokens.ContextWithToken()
+			ctx := authremote.Context()
 			err := applyVersionWithInfo(ctx, ap)
 			if err != nil {
 				fmt.Printf("Failed to apply %d: %s\n", ap.version, err)

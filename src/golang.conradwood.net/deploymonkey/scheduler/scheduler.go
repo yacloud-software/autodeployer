@@ -17,11 +17,11 @@ package scheduler
 import (
 	"flag"
 	"fmt"
-	"golang.conradwood.net/go-easyops/prometheus"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/suggest"
+	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
-	"golang.conradwood.net/go-easyops/tokens"
+	"golang.conradwood.net/go-easyops/prometheus"
 	"golang.conradwood.net/go-easyops/utils"
 	"time"
 )
@@ -118,7 +118,7 @@ func (s *Scheduler) applySuggestions() {
 		fmt.Printf("[scheduler] Abort applying - sched_dryrun flag is set\n")
 		return
 	}
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	var haderr error
 	for _, start := range s.lastSuggestion.Starts {
 		d := start.DeployRequest()

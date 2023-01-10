@@ -23,7 +23,6 @@ import (
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/cmdline"
 	"golang.conradwood.net/go-easyops/prometheus"
-	"golang.conradwood.net/go-easyops/tokens"
 	"golang.conradwood.net/go-easyops/utils"
 	"google.golang.org/grpc"
 	"strconv"
@@ -182,7 +181,7 @@ func replaceVars(text string, vars map[string]string) string {
 // deploys an instance
 // returns deploymentid or error
 func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinition) (string, error) {
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	fmt.Printf("Deploying app on host %s:\n", sa.Host)
 	dc.PrintApp(app)
 	conn, err := DialService(sa)
@@ -231,7 +230,7 @@ func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinit
 		}
 	}
 	fmt.Printf("Sending deploy request to %s...\n", sa)
-	ctx = tokens.ContextWithToken()
+	ctx = authremote.Context()
 	ad_lock := lockAutodeployerHost(sa.Host)
 	defer ad_lock.Unlock()
 
@@ -309,7 +308,7 @@ func setPreCacheGauge(host string, total, done uint64) {
 func getDeployments(adc ad.AutoDeployerClient, sa *rpb.ServiceAddress, deplid string) ([]*ad.DeployedApp, error) {
 	//	var res []*pb.ApplicationDefinition
 	var res []*ad.DeployedApp
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	info, err := adc.GetDeployments(ctx, &ad.InfoRequest{})
 	if err != nil {
 		fmt.Printf("Failed to query service %v: %s\n", sa, err)
@@ -339,7 +338,7 @@ func getDeployersInGroup(name string, all []*rpb.ServiceAddress) ([]*rpb.Service
 			fmt.Printf("Failed to connect to service %v\n", sa)
 			continue
 		}
-		ctx := tokens.ContextWithToken()
+		ctx := authremote.Context()
 		adc := ad.NewAutoDeployerClient(conn)
 		req := &ad.MachineInfoRequest{}
 		mir, err := adc.GetMachineInfo(ctx, req)
@@ -373,7 +372,7 @@ func GetDeployers() ([]*rpb.ServiceAddress, error) {
 	}
 	defer conn.Close()
 	rcl := rpb.NewRegistryClient(conn)
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	lr := rpb.V2ListRequest{}
 	lr.NameMatch = "autodeployer.AutoDeployer"
 	resp, err := rcl.ListRegistrations(ctx, &lr)
@@ -434,7 +433,7 @@ func stopSingleApp(stop *StopRequest) ([]string, error) {
 			fmt.Printf("Undeploying: %s\n", an)
 
 			ud := ad.UndeployRequest{ID: ap.ID}
-			_, err = adc.Undeploy(tokens.ContextWithToken(), &ud)
+			_, err = adc.Undeploy(authremote.Context(), &ud)
 			if err != nil {
 				fmt.Printf("Failed to shutdown %s (%s)\n", an, err)
 			}

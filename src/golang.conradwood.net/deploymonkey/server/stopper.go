@@ -3,11 +3,11 @@ package main
 // responsible for shutting down services which are no longer needed
 // (rather: marked for shutdown)
 import (
+    "golang.conradwood.net/go-easyops/authremote"
 	"flag"
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
 	rg "golang.conradwood.net/apis/registry"
-	"golang.conradwood.net/go-easyops/tokens"
 	"sync"
 	"time"
 )
@@ -202,7 +202,7 @@ func stopExecute(sr *stopRequest) error {
 	adc := ad.NewAutoDeployerClient(conn)
 
 	ud := ad.UndeployRequest{ID: sr.id}
-	_, err = adc.Undeploy(tokens.ContextWithToken(), &ud)
+	_, err = adc.Undeploy(authremote.Context(), &ud)
 	if err != nil {
 		fmt.Printf("Failed to shutdown %s @ %s: %s\n", sr.id, sr.autodeployer.Host, err)
 		return fmt.Errorf("Failed to shutdown %s @ %s: %s\n", sr.id, sr.autodeployer.Host, err)
@@ -359,7 +359,7 @@ func GetDeployments(host string) (*ad.InfoResponse, error) {
 	}
 	defer conn.Close()
 	adc := ad.NewAutoDeployerClient(conn)
-	ctx := tokens.ContextWithToken()
+	ctx := authremote.Context()
 	info, err := adc.GetDeployments(ctx, &ad.InfoRequest{})
 	return info, err
 }

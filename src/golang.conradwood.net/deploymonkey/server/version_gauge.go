@@ -1,10 +1,10 @@
 package main
 
 import (
+    "golang.conradwood.net/go-easyops/authremote"
 	"flag"
 	"fmt"
 	"golang.conradwood.net/go-easyops/prometheus"
-	"golang.conradwood.net/go-easyops/tokens"
 	"time"
 	//	pb "golang.conradwood.net/apis/deploymonkey"
 )
@@ -37,7 +37,7 @@ func updateVersionGauge() {
 		fmt.Printf("updating version gauge...\n")
 	}
 	s := new(DeployMonkey)
-	cfg, err := s.GetConfig(tokens.ContextWithToken(), nil)
+	cfg, err := s.GetConfig(authremote.Context(), nil)
 	if err != nil {
 		fmt.Printf("Failed to update version gauge: %s\n", err)
 		return

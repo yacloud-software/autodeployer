@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"golang.conradwood.net/apis/common"
 	pb "golang.conradwood.net/apis/deploymonkey"
-	"golang.conradwood.net/go-easyops/tokens"
+	"golang.conradwood.net/go-easyops/authremote"
 )
 
 var (
@@ -195,7 +195,7 @@ func (d *Deployers) ByIP(ip string) *Deployers {
 func GetConfig(depl pb.DeployMonkeyClient) (*Config, error) {
 	var err error
 	var res = &Config{}
-	pbc, err := depl.GetConfig(tokens.ContextWithToken(), &common.Void{})
+	pbc, err := depl.GetConfig(authremote.Context(), &common.Void{})
 	if err != nil {
 		return nil, err
 	}
