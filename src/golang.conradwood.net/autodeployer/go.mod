@@ -11,7 +11,7 @@ require (
 	golang.conradwood.net/apis/registry v1.1.2091
 	golang.conradwood.net/apis/secureargs v1.1.2091
 	golang.conradwood.net/deploymonkey v0.0.0-00010101000000-000000000000
-	golang.conradwood.net/go-easyops v0.1.15143
+	golang.conradwood.net/go-easyops v0.1.15145
 	golang.org/x/sys v0.3.0
 	google.golang.org/grpc v1.51.0
 	gopkg.in/yaml.v2 v2.4.0
