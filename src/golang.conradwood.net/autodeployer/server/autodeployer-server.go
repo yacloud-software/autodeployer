@@ -28,6 +28,7 @@ import (
 	"golang.conradwood.net/go-easyops/auth"
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
+	"golang.conradwood.net/go-easyops/cmdline"
 	"golang.conradwood.net/go-easyops/linux" // add busy gauge
 	"golang.conradwood.net/go-easyops/logger"
 	"golang.conradwood.net/go-easyops/prometheus"
@@ -342,6 +343,7 @@ func (s *AutoDeployer) Deploy(ctx context.Context, cr *pb.DeployRequest) (*pb.De
 	}
 	cmd := exec.Command(sucom(), "-s", binname, du.User.Username, "--",
 		fmt.Sprintf("-token=%s", tokens.GetServiceTokenParameter()),
+		fmt.Sprintf("-registry=%s", cmdline.GetRegistryAddress()),
 		fmt.Sprintf("-msgid=%s", du.StartupMsg))
 	du.Log("Executing: %v", cmd)
 	// fill our deploystatus with stuff

@@ -116,6 +116,9 @@ func (d *Deployed) String() string {
 	if d == nil {
 		return fmt.Sprintf("[nil Deployed]")
 	}
+	if d.DeployRequest == nil {
+		return fmt.Sprintf("[nil deployrequest]")
+	}
 	return fmt.Sprintf("%d-%d (%s) %s", d.DeployRequest.RepositoryID, d.DeployRequest.BuildID, d.StartupMsg, d.Status)
 }
 func (d *Deployed) GenericString() string {
@@ -182,9 +185,9 @@ func (d *Deployed) GetExitCode() int {
 }
 
 /*
-func (d *Deployed) SetLimits(rl *dm.Limits) {
-	d.limits = rl
-}
+	func (d *Deployed) SetLimits(rl *dm.Limits) {
+		d.limits = rl
+	}
 */
 func (d *Deployed) Limits() *dm.Limits {
 	if d.DeployRequest == nil {
@@ -245,9 +248,11 @@ func (d *Deployed) AutoRegistrations() []*dm.AutoRegistration {
 	return d.DeployRequest.AutoRegistration
 }
 
-/*******************************************************
+/*
+******************************************************
 // cgroup stuff
-*******************************************************/
+******************************************************
+*/
 func (d *Deployed) GetCgroup() int {
 	return d.Cgroup
 }
