@@ -3,11 +3,11 @@ package main
 // responsible for shutting down services which are no longer needed
 // (rather: marked for shutdown)
 import (
-    "golang.conradwood.net/go-easyops/authremote"
 	"flag"
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
 	rg "golang.conradwood.net/apis/registry"
+	"golang.conradwood.net/go-easyops/authremote"
 	"sync"
 	"time"
 )
@@ -241,6 +241,7 @@ func stop(stopPrefix string) (int, error) {
 			fmt.Printf("Unable to get deployments from %v: %s\n", sa, err)
 			continue
 		}
+		fmt.Printf("Queried service %s:%d\n", sa.Host, sa.Port)
 
 		/*******************************************************
 		// set the timers on what happens next
