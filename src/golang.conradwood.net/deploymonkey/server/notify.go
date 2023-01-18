@@ -1,10 +1,10 @@
 package main
 
 import (
-    "golang.conradwood.net/go-easyops/authremote"
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	sb "golang.conradwood.net/apis/slackgateway"
+	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 )
 
@@ -48,7 +48,12 @@ func NotifyPeopleAboutCancel(sr *stopRequest, emsg string) {
 	}
 	name := "unknown"
 	if sr.deployInfo != nil {
-		name = fmt.Sprintf("Repository #%d", sr.deployInfo.RepositoryID)
+		x := fmt.Sprintf("(%s)", sr.deployInfo.Namespace)
+		if sr.deployInfo.AppReference != nil && sr.deployInfo.AppReference.AppDef != nil {
+			ad := sr.deployInfo.AppReference.AppDef
+			x = fmt.Sprintf("(%s)", ad.Binary)
+		}
+		name = fmt.Sprintf("Repository #%d%s", sr.deployInfo.RepositoryID, x)
 	}
 	ctx := authremote.Context()
 	msg := fmt.Sprintf("Datacenter update of \"%s\" cancelled: %s\n", name, emsg)
