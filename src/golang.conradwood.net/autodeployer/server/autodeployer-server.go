@@ -651,7 +651,7 @@ func Slay(username string, quick bool) {
 	}
 	l := linux.New()
 	l.SetAllowConcurrency(true)
-
+	l.SetMaxRuntime(time.Duration(15) * time.Second) // slay might sleep for 10 seconds between signals
 	out, err := l.SafelyExecute(cmd, nil)
 	if (*debug) && (err == nil) {
 		fmt.Printf("Slayed process of user %s\n", username)
