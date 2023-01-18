@@ -1,7 +1,6 @@
 package main
 
 import (
-    "golang.conradwood.net/go-easyops/authremote"
 	"flag"
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
@@ -10,6 +9,7 @@ import (
 	"golang.conradwood.net/deploymonkey/config"
 	"golang.conradwood.net/deploymonkey/scheduler"
 	"golang.conradwood.net/deploymonkey/suggest"
+	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/prometheus"
 	"strings"
@@ -63,8 +63,8 @@ type AutoDeployer struct {
 }
 
 /*
- this starts a timer which periodically scans all autodeployers
- we maintain a copy of the deployments in-cache
+this starts a timer which periodically scans all autodeployers
+we maintain a copy of the deployments in-cache
 */
 func StartScanner() {
 	if *debug {
