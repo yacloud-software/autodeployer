@@ -8,7 +8,7 @@ require (
 	golang.conradwood.net/apis/deployminator v1.1.2106
 	golang.conradwood.net/apis/deploymonkey v1.1.2106
 	golang.conradwood.net/apis/registry v1.1.2106
-	golang.conradwood.net/go-easyops v0.1.15450
+	golang.conradwood.net/go-easyops v0.1.15572
 	google.golang.org/grpc v1.52.0
 	gopkg.in/yaml.v2 v2.4.0
 )
