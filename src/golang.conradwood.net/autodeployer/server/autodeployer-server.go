@@ -633,9 +633,7 @@ func Slay(username string, quick bool) {
 	su := sucom()
 	kill := killcom()
 	// we clean up - to make sure we really really release resources, we "slay" the user
-	if *debug {
-		fmt.Printf("Slaying process of user %s (quick=%v)...\n", username, quick)
-	}
+	fmt.Printf("Slaying process of user %s (quick=%v)...\n", username, quick)
 	if quick {
 		cmd = []string{su, "-m", username, "-c", kill + ` -KILL -1`}
 	} else {
