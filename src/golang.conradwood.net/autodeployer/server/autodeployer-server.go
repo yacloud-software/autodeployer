@@ -341,10 +341,38 @@ func (s *AutoDeployer) Deploy(ctx context.Context, cr *pb.DeployRequest) (*pb.De
 	if binname == "" {
 		return nil, errors.New("Failed to re-exec self. check startup path of daemon")
 	}
-	cmd := exec.Command(sucom(), "-s", binname, du.User.Username, "--",
-		fmt.Sprintf("-token=%s", tokens.GetServiceTokenParameter()),
-		fmt.Sprintf("-registry=%s", cmdline.GetRegistryAddress()),
-		fmt.Sprintf("-msgid=%s", du.StartupMsg))
+	as_root := false
+	ar := du.AppReference()
+	binary := sucom()
+	var args []string
+	if ar != nil && ar.AppDef != nil {
+		as_root = ar.AppDef.AsRoot
+	}
+
+	if as_root {
+		binary = binname
+		args = []string{
+			fmt.Sprintf("-token=%s", tokens.GetServiceTokenParameter()),
+			fmt.Sprintf("-registry=%s", cmdline.GetRegistryAddress()),
+			fmt.Sprintf("-msgid=%s", du.StartupMsg),
+		}
+	} else {
+		binary = sucom()
+		args = []string{
+			"-s",
+			binname, du.User.Username, "--",
+			fmt.Sprintf("-token=%s", tokens.GetServiceTokenParameter()),
+			fmt.Sprintf("-registry=%s", cmdline.GetRegistryAddress()),
+			fmt.Sprintf("-msgid=%s", du.StartupMsg),
+		}
+	}
+	cmd := exec.Command(binary, args...)
+	/*
+		cmd := exec.Command(sucom(), "-s", binname, du.User.Username, "--",
+			fmt.Sprintf("-token=%s", tokens.GetServiceTokenParameter()),
+			fmt.Sprintf("-registry=%s", cmdline.GetRegistryAddress()),
+			fmt.Sprintf("-msgid=%s", du.StartupMsg))
+	*/
 	du.Log("Executing: %v", cmd)
 	// fill our deploystatus with stuff
 	// copy deployment request to deployment descriptor

@@ -19,8 +19,8 @@ Main Table:
  CREATE TABLE deployminator_argument (id integer primary key default nextval('deployminator_argument_seq'),instancedef bigint not null  references deployminator_instancedef (id) on delete cascade  ,argument text not null  );
 
 Alter statements:
-ALTER TABLE deployminator_argument ADD COLUMN instancedef bigint not null references deployminator_instancedef (id) on delete cascade  default 0;
-ALTER TABLE deployminator_argument ADD COLUMN argument text not null default '';
+ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS instancedef bigint not null references deployminator_instancedef (id) on delete cascade  default 0;
+ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS argument text not null default '';
 
 
 Archive Table: (structs can be moved from main to archive using Archive() function)
@@ -34,14 +34,42 @@ import (
 	"fmt"
 	savepb "golang.conradwood.net/apis/deployminator"
 	"golang.conradwood.net/go-easyops/sql"
+	"os"
+)
+
+var (
+	default_def_DBArgument *DBArgument
 )
 
 type DBArgument struct {
-	DB *sql.DB
+	DB                  *sql.DB
+	SQLTablename        string
+	SQLArchivetablename string
 }
 
+func DefaultDBArgument() *DBArgument {
+	if default_def_DBArgument != nil {
+		return default_def_DBArgument
+	}
+	psql, err := sql.Open()
+	if err != nil {
+		fmt.Printf("Failed to open database: %s\n", err)
+		os.Exit(10)
+	}
+	res := NewDBArgument(psql)
+	ctx := context.Background()
+	err = res.CreateTable(ctx)
+	if err != nil {
+		fmt.Printf("Failed to create table: %s\n", err)
+		os.Exit(10)
+	}
+	default_def_DBArgument = res
+	return res
+}
 func NewDBArgument(db *sql.DB) *DBArgument {
 	foo := DBArgument{DB: db}
+	foo.SQLTablename = "deployminator_argument"
+	foo.SQLArchivetablename = "deployminator_argument_archive"
 	return &foo
 }
 
@@ -55,7 +83,7 @@ func (a *DBArgument) Archive(ctx context.Context, id uint64) error {
 	}
 
 	// now save it to archive:
-	_, e := a.DB.ExecContext(ctx, "insert_DBArgument", "insert into deployminator_argument_archive (id,instancedef, argument) values ($1,$2, $3) ", p.ID, p.InstanceDef.ID, p.Argument)
+	_, e := a.DB.ExecContext(ctx, "archive_DBArgument", "insert into "+a.SQLArchivetablename+" (id,instancedef, argument) values ($1,$2, $3) ", p.ID, p.InstanceDef.ID, p.Argument)
 	if e != nil {
 		return e
 	}
@@ -68,7 +96,7 @@ func (a *DBArgument) Archive(ctx context.Context, id uint64) error {
 // Save (and use database default ID generation)
 func (a *DBArgument) Save(ctx context.Context, p *savepb.Argument) (uint64, error) {
 	qn := "DBArgument_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into deployminator_argument (instancedef, argument) values ($1, $2) returning id", p.InstanceDef.ID, p.Argument)
+	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (instancedef, argument) values ($1, $2) returning id", p.InstanceDef.ID, p.Argument)
 	if e != nil {
 		return 0, a.Error(ctx, qn, e)
 	}
@@ -88,13 +116,13 @@ func (a *DBArgument) Save(ctx context.Context, p *savepb.Argument) (uint64, erro
 // Save using the ID specified
 func (a *DBArgument) SaveWithID(ctx context.Context, p *savepb.Argument) error {
 	qn := "insert_DBArgument"
-	_, e := a.DB.ExecContext(ctx, qn, "insert into deployminator_argument (id,instancedef, argument) values ($1,$2, $3) ", p.ID, p.InstanceDef.ID, p.Argument)
+	_, e := a.DB.ExecContext(ctx, qn, "insert into "+a.SQLTablename+" (id,instancedef, argument) values ($1,$2, $3) ", p.ID, p.InstanceDef.ID, p.Argument)
 	return a.Error(ctx, qn, e)
 }
 
 func (a *DBArgument) Update(ctx context.Context, p *savepb.Argument) error {
 	qn := "DBArgument_Update"
-	_, e := a.DB.ExecContext(ctx, qn, "update deployminator_argument set instancedef=$1, argument=$2 where id = $3", p.InstanceDef.ID, p.Argument, p.ID)
+	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set instancedef=$1, argument=$2 where id = $3", p.InstanceDef.ID, p.Argument, p.ID)
 
 	return a.Error(ctx, qn, e)
 }
@@ -102,14 +130,14 @@ func (a *DBArgument) Update(ctx context.Context, p *savepb.Argument) error {
 // delete by id field
 func (a *DBArgument) DeleteByID(ctx context.Context, p uint64) error {
 	qn := "deleteDBArgument_ByID"
-	_, e := a.DB.ExecContext(ctx, qn, "delete from deployminator_argument where id = $1", p)
+	_, e := a.DB.ExecContext(ctx, qn, "delete from "+a.SQLTablename+" where id = $1", p)
 	return a.Error(ctx, qn, e)
 }
 
 // get it by primary id
 func (a *DBArgument) ByID(ctx context.Context, p uint64) (*savepb.Argument, error) {
 	qn := "DBArgument_ByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from deployminator_argument where id = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from "+a.SQLTablename+" where id = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error querying (%s)", e))
 	}
@@ -119,10 +147,31 @@ func (a *DBArgument) ByID(ctx context.Context, p uint64) (*savepb.Argument, erro
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error scanning (%s)", e))
 	}
 	if len(l) == 0 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("No Argument with id %d", p))
+		return nil, a.Error(ctx, qn, fmt.Errorf("No Argument with id %v", p))
 	}
 	if len(l) != 1 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) Argument with id %d", len(l), p))
+		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) Argument with id %v", len(l), p))
+	}
+	return l[0], nil
+}
+
+// get it by primary id (nil if no such ID row, but no error either)
+func (a *DBArgument) TryByID(ctx context.Context, p uint64) (*savepb.Argument, error) {
+	qn := "DBArgument_TryByID"
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from "+a.SQLTablename+" where id = $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error querying (%s)", e))
+	}
+	defer rows.Close()
+	l, e := a.FromRows(ctx, rows)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error scanning (%s)", e))
+	}
+	if len(l) == 0 {
+		return nil, nil
+	}
+	if len(l) != 1 {
+		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) Argument with id %v", len(l), p))
 	}
 	return l[0], nil
 }
@@ -130,7 +179,7 @@ func (a *DBArgument) ByID(ctx context.Context, p uint64) (*savepb.Argument, erro
 // get all rows
 func (a *DBArgument) All(ctx context.Context) ([]*savepb.Argument, error) {
 	qn := "DBArgument_all"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from deployminator_argument order by id")
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from "+a.SQLTablename+" order by id")
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("All: error querying (%s)", e))
 	}
@@ -149,7 +198,7 @@ func (a *DBArgument) All(ctx context.Context) ([]*savepb.Argument, error) {
 // get all "DBArgument" rows with matching InstanceDef
 func (a *DBArgument) ByInstanceDef(ctx context.Context, p uint64) ([]*savepb.Argument, error) {
 	qn := "DBArgument_ByInstanceDef"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from deployminator_argument where instancedef = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from "+a.SQLTablename+" where instancedef = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstanceDef: error querying (%s)", e))
 	}
@@ -164,7 +213,7 @@ func (a *DBArgument) ByInstanceDef(ctx context.Context, p uint64) ([]*savepb.Arg
 // the 'like' lookup
 func (a *DBArgument) ByLikeInstanceDef(ctx context.Context, p uint64) ([]*savepb.Argument, error) {
 	qn := "DBArgument_ByLikeInstanceDef"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from deployminator_argument where instancedef ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from "+a.SQLTablename+" where instancedef ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstanceDef: error querying (%s)", e))
 	}
@@ -179,7 +228,7 @@ func (a *DBArgument) ByLikeInstanceDef(ctx context.Context, p uint64) ([]*savepb
 // get all "DBArgument" rows with matching Argument
 func (a *DBArgument) ByArgument(ctx context.Context, p string) ([]*savepb.Argument, error) {
 	qn := "DBArgument_ByArgument"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from deployminator_argument where argument = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from "+a.SQLTablename+" where argument = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByArgument: error querying (%s)", e))
 	}
@@ -194,7 +243,7 @@ func (a *DBArgument) ByArgument(ctx context.Context, p string) ([]*savepb.Argume
 // the 'like' lookup
 func (a *DBArgument) ByLikeArgument(ctx context.Context, p string) ([]*savepb.Argument, error) {
 	qn := "DBArgument_ByLikeArgument"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from deployminator_argument where argument ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,instancedef, argument from "+a.SQLTablename+" where argument ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByArgument: error querying (%s)", e))
 	}
@@ -223,14 +272,14 @@ func (a *DBArgument) FromQuery(ctx context.Context, query_where string, args ...
 * Helper to convert from an SQL Row to struct
 **********************************************************************/
 func (a *DBArgument) Tablename() string {
-	return "deployminator_argument"
+	return a.SQLTablename
 }
 
 func (a *DBArgument) SelectCols() string {
 	return "id,instancedef, argument"
 }
 func (a *DBArgument) SelectColsQualified() string {
-	return "deployminator_argument.id,deployminator_argument.instancedef, deployminator_argument.argument"
+	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".instancedef, " + a.SQLTablename + ".argument"
 }
 
 func (a *DBArgument) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.Argument, error) {
@@ -251,11 +300,14 @@ func (a *DBArgument) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.
 **********************************************************************/
 func (a *DBArgument) CreateTable(ctx context.Context) error {
 	csql := []string{
-		`create sequence deployminator_argument_seq;`,
-		`CREATE TABLE deployminator_argument (id integer primary key default nextval('deployminator_argument_seq'),instancedef bigint not null,argument text not null);`,
+		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),instancedef bigint not null  references deployminator_instancedef (id) on delete cascade  ,argument text not null  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),instancedef bigint not null  references deployminator_instancedef (id) on delete cascade  ,argument text not null  );`,
+		`ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS instancedef bigint not null references deployminator_instancedef (id) on delete cascade  default 0;`,
+		`ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS argument text not null default '';`,
 	}
 	for i, c := range csql {
-		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_deployminator_argument_%d", i), c)
+		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
@@ -270,5 +322,5 @@ func (a *DBArgument) Error(ctx context.Context, q string, e error) error {
 	if e == nil {
 		return nil
 	}
-	return fmt.Errorf("[table=deployminator_argument, query=%s] Error: %s", q, e)
+	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }

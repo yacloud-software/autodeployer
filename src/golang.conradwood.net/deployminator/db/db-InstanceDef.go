@@ -19,10 +19,10 @@ Main Table:
  CREATE TABLE deployminator_instancedef (id integer primary key default nextval('deployminator_instancedef_seq'),deploymentid bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  ,machinegroup text not null  ,instances integer not null  ,instancecountispermachine boolean not null  );
 
 Alter statements:
-ALTER TABLE deployminator_instancedef ADD COLUMN deploymentid bigint not null references deployminator_deploymentdescriptor (id) on delete cascade  default 0;
-ALTER TABLE deployminator_instancedef ADD COLUMN machinegroup text not null default '';
-ALTER TABLE deployminator_instancedef ADD COLUMN instances integer not null default 0;
-ALTER TABLE deployminator_instancedef ADD COLUMN instancecountispermachine boolean not null default false;
+ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS deploymentid bigint not null references deployminator_deploymentdescriptor (id) on delete cascade  default 0;
+ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS machinegroup text not null default '';
+ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS instances integer not null default 0;
+ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS instancecountispermachine boolean not null default false;
 
 
 Archive Table: (structs can be moved from main to archive using Archive() function)
@@ -36,14 +36,42 @@ import (
 	"fmt"
 	savepb "golang.conradwood.net/apis/deployminator"
 	"golang.conradwood.net/go-easyops/sql"
+	"os"
+)
+
+var (
+	default_def_DBInstanceDef *DBInstanceDef
 )
 
 type DBInstanceDef struct {
-	DB *sql.DB
+	DB                  *sql.DB
+	SQLTablename        string
+	SQLArchivetablename string
 }
 
+func DefaultDBInstanceDef() *DBInstanceDef {
+	if default_def_DBInstanceDef != nil {
+		return default_def_DBInstanceDef
+	}
+	psql, err := sql.Open()
+	if err != nil {
+		fmt.Printf("Failed to open database: %s\n", err)
+		os.Exit(10)
+	}
+	res := NewDBInstanceDef(psql)
+	ctx := context.Background()
+	err = res.CreateTable(ctx)
+	if err != nil {
+		fmt.Printf("Failed to create table: %s\n", err)
+		os.Exit(10)
+	}
+	default_def_DBInstanceDef = res
+	return res
+}
 func NewDBInstanceDef(db *sql.DB) *DBInstanceDef {
 	foo := DBInstanceDef{DB: db}
+	foo.SQLTablename = "deployminator_instancedef"
+	foo.SQLArchivetablename = "deployminator_instancedef_archive"
 	return &foo
 }
 
@@ -57,7 +85,7 @@ func (a *DBInstanceDef) Archive(ctx context.Context, id uint64) error {
 	}
 
 	// now save it to archive:
-	_, e := a.DB.ExecContext(ctx, "insert_DBInstanceDef", "insert into deployminator_instancedef_archive (id,deploymentid, machinegroup, instances, instancecountispermachine) values ($1,$2, $3, $4, $5) ", p.ID, p.DeploymentID.ID, p.MachineGroup, p.Instances, p.InstanceCountIsPerMachine)
+	_, e := a.DB.ExecContext(ctx, "archive_DBInstanceDef", "insert into "+a.SQLArchivetablename+" (id,deploymentid, machinegroup, instances, instancecountispermachine) values ($1,$2, $3, $4, $5) ", p.ID, p.DeploymentID.ID, p.MachineGroup, p.Instances, p.InstanceCountIsPerMachine)
 	if e != nil {
 		return e
 	}
@@ -70,7 +98,7 @@ func (a *DBInstanceDef) Archive(ctx context.Context, id uint64) error {
 // Save (and use database default ID generation)
 func (a *DBInstanceDef) Save(ctx context.Context, p *savepb.InstanceDef) (uint64, error) {
 	qn := "DBInstanceDef_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into deployminator_instancedef (deploymentid, machinegroup, instances, instancecountispermachine) values ($1, $2, $3, $4) returning id", p.DeploymentID.ID, p.MachineGroup, p.Instances, p.InstanceCountIsPerMachine)
+	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (deploymentid, machinegroup, instances, instancecountispermachine) values ($1, $2, $3, $4) returning id", p.DeploymentID.ID, p.MachineGroup, p.Instances, p.InstanceCountIsPerMachine)
 	if e != nil {
 		return 0, a.Error(ctx, qn, e)
 	}
@@ -90,13 +118,13 @@ func (a *DBInstanceDef) Save(ctx context.Context, p *savepb.InstanceDef) (uint64
 // Save using the ID specified
 func (a *DBInstanceDef) SaveWithID(ctx context.Context, p *savepb.InstanceDef) error {
 	qn := "insert_DBInstanceDef"
-	_, e := a.DB.ExecContext(ctx, qn, "insert into deployminator_instancedef (id,deploymentid, machinegroup, instances, instancecountispermachine) values ($1,$2, $3, $4, $5) ", p.ID, p.DeploymentID.ID, p.MachineGroup, p.Instances, p.InstanceCountIsPerMachine)
+	_, e := a.DB.ExecContext(ctx, qn, "insert into "+a.SQLTablename+" (id,deploymentid, machinegroup, instances, instancecountispermachine) values ($1,$2, $3, $4, $5) ", p.ID, p.DeploymentID.ID, p.MachineGroup, p.Instances, p.InstanceCountIsPerMachine)
 	return a.Error(ctx, qn, e)
 }
 
 func (a *DBInstanceDef) Update(ctx context.Context, p *savepb.InstanceDef) error {
 	qn := "DBInstanceDef_Update"
-	_, e := a.DB.ExecContext(ctx, qn, "update deployminator_instancedef set deploymentid=$1, machinegroup=$2, instances=$3, instancecountispermachine=$4 where id = $5", p.DeploymentID.ID, p.MachineGroup, p.Instances, p.InstanceCountIsPerMachine, p.ID)
+	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set deploymentid=$1, machinegroup=$2, instances=$3, instancecountispermachine=$4 where id = $5", p.DeploymentID.ID, p.MachineGroup, p.Instances, p.InstanceCountIsPerMachine, p.ID)
 
 	return a.Error(ctx, qn, e)
 }
@@ -104,14 +132,14 @@ func (a *DBInstanceDef) Update(ctx context.Context, p *savepb.InstanceDef) error
 // delete by id field
 func (a *DBInstanceDef) DeleteByID(ctx context.Context, p uint64) error {
 	qn := "deleteDBInstanceDef_ByID"
-	_, e := a.DB.ExecContext(ctx, qn, "delete from deployminator_instancedef where id = $1", p)
+	_, e := a.DB.ExecContext(ctx, qn, "delete from "+a.SQLTablename+" where id = $1", p)
 	return a.Error(ctx, qn, e)
 }
 
 // get it by primary id
 func (a *DBInstanceDef) ByID(ctx context.Context, p uint64) (*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where id = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where id = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error querying (%s)", e))
 	}
@@ -121,10 +149,31 @@ func (a *DBInstanceDef) ByID(ctx context.Context, p uint64) (*savepb.InstanceDef
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error scanning (%s)", e))
 	}
 	if len(l) == 0 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("No InstanceDef with id %d", p))
+		return nil, a.Error(ctx, qn, fmt.Errorf("No InstanceDef with id %v", p))
 	}
 	if len(l) != 1 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) InstanceDef with id %d", len(l), p))
+		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) InstanceDef with id %v", len(l), p))
+	}
+	return l[0], nil
+}
+
+// get it by primary id (nil if no such ID row, but no error either)
+func (a *DBInstanceDef) TryByID(ctx context.Context, p uint64) (*savepb.InstanceDef, error) {
+	qn := "DBInstanceDef_TryByID"
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where id = $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error querying (%s)", e))
+	}
+	defer rows.Close()
+	l, e := a.FromRows(ctx, rows)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error scanning (%s)", e))
+	}
+	if len(l) == 0 {
+		return nil, nil
+	}
+	if len(l) != 1 {
+		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) InstanceDef with id %v", len(l), p))
 	}
 	return l[0], nil
 }
@@ -132,7 +181,7 @@ func (a *DBInstanceDef) ByID(ctx context.Context, p uint64) (*savepb.InstanceDef
 // get all rows
 func (a *DBInstanceDef) All(ctx context.Context) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_all"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef order by id")
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" order by id")
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("All: error querying (%s)", e))
 	}
@@ -151,7 +200,7 @@ func (a *DBInstanceDef) All(ctx context.Context) ([]*savepb.InstanceDef, error) 
 // get all "DBInstanceDef" rows with matching DeploymentID
 func (a *DBInstanceDef) ByDeploymentID(ctx context.Context, p uint64) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByDeploymentID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where deploymentid = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where deploymentid = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeploymentID: error querying (%s)", e))
 	}
@@ -166,7 +215,7 @@ func (a *DBInstanceDef) ByDeploymentID(ctx context.Context, p uint64) ([]*savepb
 // the 'like' lookup
 func (a *DBInstanceDef) ByLikeDeploymentID(ctx context.Context, p uint64) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByLikeDeploymentID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where deploymentid ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where deploymentid ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeploymentID: error querying (%s)", e))
 	}
@@ -181,7 +230,7 @@ func (a *DBInstanceDef) ByLikeDeploymentID(ctx context.Context, p uint64) ([]*sa
 // get all "DBInstanceDef" rows with matching MachineGroup
 func (a *DBInstanceDef) ByMachineGroup(ctx context.Context, p string) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByMachineGroup"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where machinegroup = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where machinegroup = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByMachineGroup: error querying (%s)", e))
 	}
@@ -196,7 +245,7 @@ func (a *DBInstanceDef) ByMachineGroup(ctx context.Context, p string) ([]*savepb
 // the 'like' lookup
 func (a *DBInstanceDef) ByLikeMachineGroup(ctx context.Context, p string) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByLikeMachineGroup"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where machinegroup ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where machinegroup ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByMachineGroup: error querying (%s)", e))
 	}
@@ -211,7 +260,7 @@ func (a *DBInstanceDef) ByLikeMachineGroup(ctx context.Context, p string) ([]*sa
 // get all "DBInstanceDef" rows with matching Instances
 func (a *DBInstanceDef) ByInstances(ctx context.Context, p uint32) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByInstances"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where instances = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where instances = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstances: error querying (%s)", e))
 	}
@@ -226,7 +275,7 @@ func (a *DBInstanceDef) ByInstances(ctx context.Context, p uint32) ([]*savepb.In
 // the 'like' lookup
 func (a *DBInstanceDef) ByLikeInstances(ctx context.Context, p uint32) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByLikeInstances"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where instances ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where instances ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstances: error querying (%s)", e))
 	}
@@ -241,7 +290,7 @@ func (a *DBInstanceDef) ByLikeInstances(ctx context.Context, p uint32) ([]*savep
 // get all "DBInstanceDef" rows with matching InstanceCountIsPerMachine
 func (a *DBInstanceDef) ByInstanceCountIsPerMachine(ctx context.Context, p bool) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByInstanceCountIsPerMachine"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where instancecountispermachine = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where instancecountispermachine = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstanceCountIsPerMachine: error querying (%s)", e))
 	}
@@ -256,7 +305,7 @@ func (a *DBInstanceDef) ByInstanceCountIsPerMachine(ctx context.Context, p bool)
 // the 'like' lookup
 func (a *DBInstanceDef) ByLikeInstanceCountIsPerMachine(ctx context.Context, p bool) ([]*savepb.InstanceDef, error) {
 	qn := "DBInstanceDef_ByLikeInstanceCountIsPerMachine"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from deployminator_instancedef where instancecountispermachine ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,deploymentid, machinegroup, instances, instancecountispermachine from "+a.SQLTablename+" where instancecountispermachine ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstanceCountIsPerMachine: error querying (%s)", e))
 	}
@@ -285,14 +334,14 @@ func (a *DBInstanceDef) FromQuery(ctx context.Context, query_where string, args 
 * Helper to convert from an SQL Row to struct
 **********************************************************************/
 func (a *DBInstanceDef) Tablename() string {
-	return "deployminator_instancedef"
+	return a.SQLTablename
 }
 
 func (a *DBInstanceDef) SelectCols() string {
 	return "id,deploymentid, machinegroup, instances, instancecountispermachine"
 }
 func (a *DBInstanceDef) SelectColsQualified() string {
-	return "deployminator_instancedef.id,deployminator_instancedef.deploymentid, deployminator_instancedef.machinegroup, deployminator_instancedef.instances, deployminator_instancedef.instancecountispermachine"
+	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".deploymentid, " + a.SQLTablename + ".machinegroup, " + a.SQLTablename + ".instances, " + a.SQLTablename + ".instancecountispermachine"
 }
 
 func (a *DBInstanceDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.InstanceDef, error) {
@@ -313,11 +362,16 @@ func (a *DBInstanceDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*save
 **********************************************************************/
 func (a *DBInstanceDef) CreateTable(ctx context.Context) error {
 	csql := []string{
-		`create sequence deployminator_instancedef_seq;`,
-		`CREATE TABLE deployminator_instancedef (id integer primary key default nextval('deployminator_instancedef_seq'),deploymentid bigint not null,machinegroup text not null,instances integer not null,instancecountispermachine boolean not null);`,
+		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),deploymentid bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  ,machinegroup text not null  ,instances integer not null  ,instancecountispermachine boolean not null  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),deploymentid bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  ,machinegroup text not null  ,instances integer not null  ,instancecountispermachine boolean not null  );`,
+		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS deploymentid bigint not null references deployminator_deploymentdescriptor (id) on delete cascade  default 0;`,
+		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS machinegroup text not null default '';`,
+		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS instances integer not null default 0;`,
+		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS instancecountispermachine boolean not null default false;`,
 	}
 	for i, c := range csql {
-		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_deployminator_instancedef_%d", i), c)
+		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
@@ -332,5 +386,5 @@ func (a *DBInstanceDef) Error(ctx context.Context, q string, e error) error {
 	if e == nil {
 		return nil
 	}
-	return fmt.Errorf("[table=deployminator_instancedef, query=%s] Error: %s", q, e)
+	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }

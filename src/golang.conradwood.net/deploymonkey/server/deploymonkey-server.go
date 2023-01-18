@@ -1,7 +1,6 @@
 package main
 
 import (
-    "golang.conradwood.net/go-easyops/authremote"
 	"context"
 	"database/sql"
 	"errors"
@@ -15,6 +14,7 @@ import (
 	dc "golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/deploymonkey/db"
 	"golang.conradwood.net/deploymonkey/scheduler"
+	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/server"
 	gesql "golang.conradwood.net/go-easyops/sql"
 	"golang.conradwood.net/go-easyops/utils"
@@ -77,7 +77,7 @@ func main() {
 	flag.Parse() // parse stuff. see "var" section above
 	dbcon, err = gesql.Open()
 	utils.Bail("failed to open postgres", err)
-	appdef_store = db.NewDBApplicationDefinition(dbcon)
+	appdef_store = db.DefaultDBApplicationDefinition()
 	if *testScanner {
 		ScanAutodeployersTest()
 		os.Exit(0)
@@ -134,9 +134,9 @@ func applyAllVersions(ctx context.Context, pendingonly bool) error {
 	var err error
 	var rows *sql.Rows
 	if pendingonly {
-		rows, err = dbcon.QueryContext(ctx, "queryname", "SELECT pendingversion from appgroup where deployedversion != pendingversion")
+		rows, err = dbcon.QueryContext(ctx, "applypendingversions", "SELECT pendingversion from appgroup where deployedversion != pendingversion")
 	} else {
-		rows, err = dbcon.QueryContext(ctx, "queryname", "SELECT deployedversion from appgroup ")
+		rows, err = dbcon.QueryContext(ctx, "applyallversions", "SELECT deployedversion from appgroup ")
 	}
 	if err != nil {
 		fmt.Printf("Failed to get deployedversions: %s\n", err)
@@ -165,7 +165,7 @@ type DBGroup struct {
 }
 
 func getGroupForAppByID(ctx context.Context, appid int) (*DBGroup, error) {
-	rows, err := dbcon.QueryContext(ctx, "queryname", "select appgroup.id,appgroup.groupname,appgroup.deployedversion,appgroup.pendingversion,appgroup.namespace from appgroup,group_version,lnk_app_grp where appgroup.id = group_version.group_id and lnk_app_grp.group_version_id = group_version.id and lnk_app_grp.app_id=$1", appid)
+	rows, err := dbcon.QueryContext(ctx, "getgroupforapp", "select appgroup.id,appgroup.groupname,appgroup.deployedversion,appgroup.pendingversion,appgroup.namespace from appgroup,group_version,lnk_app_grp where appgroup.id = group_version.group_id and lnk_app_grp.group_version_id = group_version.id and lnk_app_grp.app_id=$1", appid)
 	if err != nil {
 		fmt.Printf("Failed to get for app #%d: %s\n", appid, err)
 		return nil, err
@@ -176,7 +176,7 @@ func getGroupForAppByID(ctx context.Context, appid int) (*DBGroup, error) {
 
 // get the group with given id from database. if no such group will return nil
 func getGroupFromDatabaseByID(ctx context.Context, id int) (*DBGroup, error) {
-	rows, err := dbcon.QueryContext(ctx, "queryname", "SELECT id,groupname,deployedversion,pendingversion,namespace from appgroup where id=$1", id)
+	rows, err := dbcon.QueryContext(ctx, "getgroupbyid", "SELECT id,groupname,deployedversion,pendingversion,namespace from appgroup where id=$1", id)
 	if err != nil {
 		fmt.Printf("Failed to get group #%d: %s\n", id, err)
 		return nil, err
@@ -186,7 +186,7 @@ func getGroupFromDatabaseByID(ctx context.Context, id int) (*DBGroup, error) {
 
 // get the group with given name from database. if no such group will return nil
 func getGroupFromDatabase(ctx context.Context, nameSpace string, groupName string) (*DBGroup, error) {
-	rows, err := dbcon.QueryContext(ctx, "queryname", "SELECT id,groupname,deployedversion,pendingversion,namespace from appgroup where groupname=$1 and namespace=$2", groupName, nameSpace)
+	rows, err := dbcon.QueryContext(ctx, "getgroup", "SELECT id,groupname,deployedversion,pendingversion,namespace from appgroup where groupname=$1 and namespace=$2", groupName, nameSpace)
 	if err != nil {
 		fmt.Printf("Failed to get groupname %s\n", groupName)
 		return nil, err
@@ -292,7 +292,7 @@ func saveApp(app *pb.ApplicationDefinition) (string, error) {
 
 // given a group version will load all its apps into objects
 func getGroupLatestVersion(ctx context.Context, namespace string, groupname string) (int, error) {
-	rows, err := dbcon.QueryContext(ctx, "queryname", "SELECT MAX(group_version.id) as maxid from group_version,appgroup where group_id = appgroup.id and appgroup.namespace = $1 and appgroup.groupname = $2", namespace, groupname)
+	rows, err := dbcon.QueryContext(ctx, "getgrouplatestversion", "SELECT MAX(group_version.id) as maxid from group_version,appgroup where group_id = appgroup.id and appgroup.namespace = $1 and appgroup.groupname = $2", namespace, groupname)
 	if err != nil {
 		fmt.Printf("Failed to get latest version for (%s,%s):%s\n", namespace, groupname, err)
 		return 0, err
@@ -316,19 +316,25 @@ func loadAppGroupVersion(ctx context.Context, version int) ([]*pb.ApplicationDef
 	//if *testmode {
 	//fmt.Printf("Loading appgroup version #%d\n", version)
 	//}
-	rows, err := dbcon.QueryContext(ctx, "queryname", "SELECT lnk_app_grp.app_id from lnk_app_grp where lnk_app_grp.group_version_id = $1", version)
+	rows, err := dbcon.QueryContext(ctx, "loadappgroupversion", "SELECT lnk_app_grp.app_id from lnk_app_grp where lnk_app_grp.group_version_id = $1", version)
 	if err != nil {
 		fmt.Printf("Failed to get apps for version %d:%s\n", version, err)
 		return nil, err
 	}
-	defer rows.Close()
+	var ids []uint64
 	for rows.Next() {
 		var id uint64
 		err = rows.Scan(&id)
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	for _, id := range ids {
 		r, err := loadApp(ctx, id)
+
 		if err != nil {
 			fmt.Printf("Failed to get app for version %d:%s\n", version, err)
 			return nil, err
@@ -387,7 +393,7 @@ func loadApp(ctx context.Context, id uint64) (*pb.ApplicationDefinition, error) 
 // given an application id, loads "app limits"
 func loadAppLimits(id uint64) (*pb.Limits, error) {
 	// add new limits here...
-	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "queryname", "SELECT maxmemory,priority from applimits where app_id = $1", id)
+	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "loadapplimits", "SELECT maxmemory,priority from applimits where app_id = $1", id)
 	if err != nil {
 		fmt.Printf("Failed to get app with id %d:%s\n", id, err)
 		return nil, err
@@ -409,7 +415,7 @@ func loadAppLimits(id uint64) (*pb.Limits, error) {
 func loadAppArgs(id uint64) ([]string, error) {
 	var res []string
 	var s string
-	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "queryname", "SELECT argument from args where app_id = $1", id)
+	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "loadappargs", "SELECT argument from args where app_id = $1", id)
 	if err != nil {
 		s := fmt.Sprintf("Failed to get tags for app %d:%s\n", id, err)
 		return nil, errors.New(s)
@@ -432,7 +438,7 @@ func loadAutoReg(id uint64) ([]*pb.AutoRegistration, error) {
 	if *testmode {
 		fmt.Printf("Loading auto registration for app_id %d\n", id)
 	}
-	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "queryname", "SELECT portdef,servicename,apitypes from autoreg where app_id = $1", id)
+	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "loadautoreg", "SELECT portdef,servicename,apitypes from autoreg where app_id = $1", id)
 	if err != nil {
 		s := fmt.Sprintf("Failed to get autoregs for app %d:%s\n", id, err)
 		return nil, errors.New(s)
@@ -636,9 +642,9 @@ func getStringsFromDB(sqls string, val string) ([]string, error) {
 	var err error
 	var rows *sql.Rows
 	if val != "" {
-		rows, err = dbcon.QueryContext(TEMPCONTEXT(), "queryname", sqls, val)
+		rows, err = dbcon.QueryContext(TEMPCONTEXT(), "getstrfromdb", sqls, val)
 	} else {
-		rows, err = dbcon.QueryContext(TEMPCONTEXT(), "queryname", sqls)
+		rows, err = dbcon.QueryContext(TEMPCONTEXT(), "getstrfromdb", sqls)
 	}
 	if err != nil {
 		fmt.Printf("Failed to query \"%s\": %s\n", sqls, err)
@@ -721,16 +727,16 @@ func (s *DeployMonkey) UndeployApplication(ctx context.Context, uar *pb.Undeploy
 }
 
 /*
-func (s *DeployMonkey) SetMachineStatus(ctx context.Context, req *pb.SetMachineStatusRequest) (*pb.EmptyMessage, error) {
-	if req.Status == nil {
-		return nil, fmt.Errorf("No status specified (ip=%s)", req.Ip)
+	func (s *DeployMonkey) SetMachineStatus(ctx context.Context, req *pb.SetMachineStatusRequest) (*pb.EmptyMessage, error) {
+		if req.Status == nil {
+			return nil, fmt.Errorf("No status specified (ip=%s)", req.Ip)
+		}
+		err := fmt.Errorf("SetMachineStatus not implemented")
+		if err != nil {
+			return nil, err
+		}
+		return &pb.EmptyMessage{}, nil
 	}
-	err := fmt.Errorf("SetMachineStatus not implemented")
-	if err != nil {
-		return nil, err
-	}
-	return &pb.EmptyMessage{}, nil
-}
 */
 func (s *DeployMonkey) GetDeploymentsFromCache(ctx context.Context, req *common.Void) (*pb.DeploymentList, error) {
 	return INT_GetDeploymentsFromCache(ctx)

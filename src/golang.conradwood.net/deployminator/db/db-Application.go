@@ -19,9 +19,9 @@ Main Table:
  CREATE TABLE deployminator_application (id integer primary key default nextval('deployminator_application_seq'),r_binary text not null  ,repositoryid bigint not null  ,downloadurl text not null  );
 
 Alter statements:
-ALTER TABLE deployminator_application ADD COLUMN r_binary text not null default '';
-ALTER TABLE deployminator_application ADD COLUMN repositoryid bigint not null default 0;
-ALTER TABLE deployminator_application ADD COLUMN downloadurl text not null default '';
+ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS r_binary text not null default '';
+ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;
+ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS downloadurl text not null default '';
 
 
 Archive Table: (structs can be moved from main to archive using Archive() function)
@@ -35,14 +35,42 @@ import (
 	"fmt"
 	savepb "golang.conradwood.net/apis/deployminator"
 	"golang.conradwood.net/go-easyops/sql"
+	"os"
+)
+
+var (
+	default_def_DBApplication *DBApplication
 )
 
 type DBApplication struct {
-	DB *sql.DB
+	DB                  *sql.DB
+	SQLTablename        string
+	SQLArchivetablename string
 }
 
+func DefaultDBApplication() *DBApplication {
+	if default_def_DBApplication != nil {
+		return default_def_DBApplication
+	}
+	psql, err := sql.Open()
+	if err != nil {
+		fmt.Printf("Failed to open database: %s\n", err)
+		os.Exit(10)
+	}
+	res := NewDBApplication(psql)
+	ctx := context.Background()
+	err = res.CreateTable(ctx)
+	if err != nil {
+		fmt.Printf("Failed to create table: %s\n", err)
+		os.Exit(10)
+	}
+	default_def_DBApplication = res
+	return res
+}
 func NewDBApplication(db *sql.DB) *DBApplication {
 	foo := DBApplication{DB: db}
+	foo.SQLTablename = "deployminator_application"
+	foo.SQLArchivetablename = "deployminator_application_archive"
 	return &foo
 }
 
@@ -56,7 +84,7 @@ func (a *DBApplication) Archive(ctx context.Context, id uint64) error {
 	}
 
 	// now save it to archive:
-	_, e := a.DB.ExecContext(ctx, "insert_DBApplication", "insert into deployminator_application_archive (id,r_binary, repositoryid, downloadurl) values ($1,$2, $3, $4) ", p.ID, p.Binary, p.RepositoryID, p.DownloadURL)
+	_, e := a.DB.ExecContext(ctx, "archive_DBApplication", "insert into "+a.SQLArchivetablename+" (id,r_binary, repositoryid, downloadurl) values ($1,$2, $3, $4) ", p.ID, p.Binary, p.RepositoryID, p.DownloadURL)
 	if e != nil {
 		return e
 	}
@@ -69,7 +97,7 @@ func (a *DBApplication) Archive(ctx context.Context, id uint64) error {
 // Save (and use database default ID generation)
 func (a *DBApplication) Save(ctx context.Context, p *savepb.Application) (uint64, error) {
 	qn := "DBApplication_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into deployminator_application (r_binary, repositoryid, downloadurl) values ($1, $2, $3) returning id", p.Binary, p.RepositoryID, p.DownloadURL)
+	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (r_binary, repositoryid, downloadurl) values ($1, $2, $3) returning id", p.Binary, p.RepositoryID, p.DownloadURL)
 	if e != nil {
 		return 0, a.Error(ctx, qn, e)
 	}
@@ -89,13 +117,13 @@ func (a *DBApplication) Save(ctx context.Context, p *savepb.Application) (uint64
 // Save using the ID specified
 func (a *DBApplication) SaveWithID(ctx context.Context, p *savepb.Application) error {
 	qn := "insert_DBApplication"
-	_, e := a.DB.ExecContext(ctx, qn, "insert into deployminator_application (id,r_binary, repositoryid, downloadurl) values ($1,$2, $3, $4) ", p.ID, p.Binary, p.RepositoryID, p.DownloadURL)
+	_, e := a.DB.ExecContext(ctx, qn, "insert into "+a.SQLTablename+" (id,r_binary, repositoryid, downloadurl) values ($1,$2, $3, $4) ", p.ID, p.Binary, p.RepositoryID, p.DownloadURL)
 	return a.Error(ctx, qn, e)
 }
 
 func (a *DBApplication) Update(ctx context.Context, p *savepb.Application) error {
 	qn := "DBApplication_Update"
-	_, e := a.DB.ExecContext(ctx, qn, "update deployminator_application set r_binary=$1, repositoryid=$2, downloadurl=$3 where id = $4", p.Binary, p.RepositoryID, p.DownloadURL, p.ID)
+	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set r_binary=$1, repositoryid=$2, downloadurl=$3 where id = $4", p.Binary, p.RepositoryID, p.DownloadURL, p.ID)
 
 	return a.Error(ctx, qn, e)
 }
@@ -103,14 +131,14 @@ func (a *DBApplication) Update(ctx context.Context, p *savepb.Application) error
 // delete by id field
 func (a *DBApplication) DeleteByID(ctx context.Context, p uint64) error {
 	qn := "deleteDBApplication_ByID"
-	_, e := a.DB.ExecContext(ctx, qn, "delete from deployminator_application where id = $1", p)
+	_, e := a.DB.ExecContext(ctx, qn, "delete from "+a.SQLTablename+" where id = $1", p)
 	return a.Error(ctx, qn, e)
 }
 
 // get it by primary id
 func (a *DBApplication) ByID(ctx context.Context, p uint64) (*savepb.Application, error) {
 	qn := "DBApplication_ByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from deployminator_application where id = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" where id = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error querying (%s)", e))
 	}
@@ -120,10 +148,31 @@ func (a *DBApplication) ByID(ctx context.Context, p uint64) (*savepb.Application
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error scanning (%s)", e))
 	}
 	if len(l) == 0 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("No Application with id %d", p))
+		return nil, a.Error(ctx, qn, fmt.Errorf("No Application with id %v", p))
 	}
 	if len(l) != 1 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) Application with id %d", len(l), p))
+		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) Application with id %v", len(l), p))
+	}
+	return l[0], nil
+}
+
+// get it by primary id (nil if no such ID row, but no error either)
+func (a *DBApplication) TryByID(ctx context.Context, p uint64) (*savepb.Application, error) {
+	qn := "DBApplication_TryByID"
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" where id = $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error querying (%s)", e))
+	}
+	defer rows.Close()
+	l, e := a.FromRows(ctx, rows)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error scanning (%s)", e))
+	}
+	if len(l) == 0 {
+		return nil, nil
+	}
+	if len(l) != 1 {
+		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) Application with id %v", len(l), p))
 	}
 	return l[0], nil
 }
@@ -131,7 +180,7 @@ func (a *DBApplication) ByID(ctx context.Context, p uint64) (*savepb.Application
 // get all rows
 func (a *DBApplication) All(ctx context.Context) ([]*savepb.Application, error) {
 	qn := "DBApplication_all"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from deployminator_application order by id")
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" order by id")
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("All: error querying (%s)", e))
 	}
@@ -150,7 +199,7 @@ func (a *DBApplication) All(ctx context.Context) ([]*savepb.Application, error) 
 // get all "DBApplication" rows with matching Binary
 func (a *DBApplication) ByBinary(ctx context.Context, p string) ([]*savepb.Application, error) {
 	qn := "DBApplication_ByBinary"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from deployminator_application where r_binary = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" where r_binary = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByBinary: error querying (%s)", e))
 	}
@@ -165,7 +214,7 @@ func (a *DBApplication) ByBinary(ctx context.Context, p string) ([]*savepb.Appli
 // the 'like' lookup
 func (a *DBApplication) ByLikeBinary(ctx context.Context, p string) ([]*savepb.Application, error) {
 	qn := "DBApplication_ByLikeBinary"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from deployminator_application where r_binary ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" where r_binary ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByBinary: error querying (%s)", e))
 	}
@@ -180,7 +229,7 @@ func (a *DBApplication) ByLikeBinary(ctx context.Context, p string) ([]*savepb.A
 // get all "DBApplication" rows with matching RepositoryID
 func (a *DBApplication) ByRepositoryID(ctx context.Context, p uint64) ([]*savepb.Application, error) {
 	qn := "DBApplication_ByRepositoryID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from deployminator_application where repositoryid = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" where repositoryid = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByRepositoryID: error querying (%s)", e))
 	}
@@ -195,7 +244,7 @@ func (a *DBApplication) ByRepositoryID(ctx context.Context, p uint64) ([]*savepb
 // the 'like' lookup
 func (a *DBApplication) ByLikeRepositoryID(ctx context.Context, p uint64) ([]*savepb.Application, error) {
 	qn := "DBApplication_ByLikeRepositoryID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from deployminator_application where repositoryid ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" where repositoryid ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByRepositoryID: error querying (%s)", e))
 	}
@@ -210,7 +259,7 @@ func (a *DBApplication) ByLikeRepositoryID(ctx context.Context, p uint64) ([]*sa
 // get all "DBApplication" rows with matching DownloadURL
 func (a *DBApplication) ByDownloadURL(ctx context.Context, p string) ([]*savepb.Application, error) {
 	qn := "DBApplication_ByDownloadURL"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from deployminator_application where downloadurl = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" where downloadurl = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadURL: error querying (%s)", e))
 	}
@@ -225,7 +274,7 @@ func (a *DBApplication) ByDownloadURL(ctx context.Context, p string) ([]*savepb.
 // the 'like' lookup
 func (a *DBApplication) ByLikeDownloadURL(ctx context.Context, p string) ([]*savepb.Application, error) {
 	qn := "DBApplication_ByLikeDownloadURL"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from deployminator_application where downloadurl ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,r_binary, repositoryid, downloadurl from "+a.SQLTablename+" where downloadurl ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadURL: error querying (%s)", e))
 	}
@@ -254,14 +303,14 @@ func (a *DBApplication) FromQuery(ctx context.Context, query_where string, args 
 * Helper to convert from an SQL Row to struct
 **********************************************************************/
 func (a *DBApplication) Tablename() string {
-	return "deployminator_application"
+	return a.SQLTablename
 }
 
 func (a *DBApplication) SelectCols() string {
 	return "id,r_binary, repositoryid, downloadurl"
 }
 func (a *DBApplication) SelectColsQualified() string {
-	return "deployminator_application.id,deployminator_application.r_binary, deployminator_application.repositoryid, deployminator_application.downloadurl"
+	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".r_binary, " + a.SQLTablename + ".repositoryid, " + a.SQLTablename + ".downloadurl"
 }
 
 func (a *DBApplication) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.Application, error) {
@@ -282,11 +331,15 @@ func (a *DBApplication) FromRows(ctx context.Context, rows *gosql.Rows) ([]*save
 **********************************************************************/
 func (a *DBApplication) CreateTable(ctx context.Context) error {
 	csql := []string{
-		`create sequence deployminator_application_seq;`,
-		`CREATE TABLE deployminator_application (id integer primary key default nextval('deployminator_application_seq'),r_binary text not null,repositoryid bigint not null,downloadurl text not null);`,
+		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),r_binary text not null  ,repositoryid bigint not null  ,downloadurl text not null  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),r_binary text not null  ,repositoryid bigint not null  ,downloadurl text not null  );`,
+		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS r_binary text not null default '';`,
+		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;`,
+		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS downloadurl text not null default '';`,
 	}
 	for i, c := range csql {
-		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_deployminator_application_%d", i), c)
+		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
@@ -301,5 +354,5 @@ func (a *DBApplication) Error(ctx context.Context, q string, e error) error {
 	if e == nil {
 		return nil
 	}
-	return fmt.Errorf("[table=deployminator_application, query=%s] Error: %s", q, e)
+	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
