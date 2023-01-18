@@ -13,6 +13,7 @@ func (s *DeployMonkey) AutodeployerShutdown(ctx context.Context, req *common.Voi
 func (s *DeployMonkey) AutodeployerStartup(ctx context.Context, req *common.Void) (*common.Void, error) {
 	fmt.Printf("Autodeployer startedup.\n")
 	ScanAutodeployers()
+	PrintAutodeployers()
 	/*
 		sa := &rpb.ServiceAddress{IP:[fromcontext],Port:[fromcontext]}
 		err := ScanAutodeployer(sa)
