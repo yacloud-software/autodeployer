@@ -29,7 +29,7 @@ import (
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/cmdline"
-	"golang.conradwood.net/go-easyops/linux" // add busy gauge
+	//"golang.conradwood.net/go-easyops/linux" // add busy gauge
 	"golang.conradwood.net/go-easyops/logger"
 	"golang.conradwood.net/go-easyops/prometheus"
 	"golang.conradwood.net/go-easyops/server"
@@ -191,26 +191,6 @@ func started() {
 	fmt.Printf("Deploymonkey was told about us starting up.\n")
 }
 
-// kill all processes
-func slayAll() {
-	if isTestMode() {
-		fmt.Printf("Not slaying - testmode activated\n")
-		return
-	}
-	processChangeLock.Lock()
-	defer processChangeLock.Unlock()
-	users := getListOfUsers()
-	var wg sync.WaitGroup
-	for _, un := range users {
-		wg.Add(1)
-		go func(user string) {
-			defer wg.Done()
-			Slay(user, *start_brutal)
-		}(un.Username)
-	}
-	wg.Wait()
-
-}
 func testing() {
 	time.Sleep(time.Second * 1) // server needs starting up...
 	ad := new(AutoDeployer)
@@ -468,11 +448,11 @@ func (s *AutoDeployer) Undeploy(ctx context.Context, cr *pb.UndeployRequest) (*p
 	if cr.Block {
 		sb = fmt.Sprintf("Shutting down (sync): %s\n", dep.String())
 		fmt.Println(s)
-		Slay(dep.User.Username, *brutal)
+		StopProcess(dep, *brutal)
 	} else {
 		sb = fmt.Sprintf("Shutting down (async): %s\n", dep.String())
 		fmt.Println(s)
-		go Slay(dep.User.Username, *brutal)
+		go StopProcess(dep, *brutal)
 	}
 	dep.Log(sb)
 	res := pb.UndeployResponse{}
@@ -603,7 +583,7 @@ func waitForCommand(du *deployments.Deployed) {
 			if *slay_corrupt_stdout {
 				du.Log("Killed process because of corrupt stdout: %s", err)
 				du.Log("Last corrupt line: \"%s\"\n", lineOut.getBuf())
-				Slay(du.User.Username, true)
+				StopProcess(du, true)
 			}
 			lineOut.clearBuf()
 		}
@@ -627,52 +607,6 @@ func waitForCommand(du *deployments.Deployed) {
 	// server
 	StartupCodeFinished(du, err)
 
-}
-func Slay(username string, quick bool) {
-	var cmd []string
-	su := sucom()
-	kill := killcom()
-	// we clean up - to make sure we really really release resources, we "slay" the user
-	fmt.Printf("Slaying process of user %s (quick=%v)...\n", username, quick)
-	if quick {
-		cmd = []string{su, "-m", username, "-c", kill + ` -KILL -1`}
-	} else {
-		xcmd := exec.Command(su, "-m", username, "-c", kill+` -TERM -1`)
-		err := xcmd.Run()
-		if err != nil {
-			fmt.Printf("failed to kill %s: %s\n", username, err)
-		}
-		time.Sleep(time.Duration(2) * time.Second)
-		cmd = []string{su, "-m", username, "-c", kill + ` -KILL -1`}
-
-	}
-	if *debug {
-		fmt.Printf("Command: %v\n", cmd)
-	}
-	l := linux.New()
-	l.SetAllowConcurrency(true)
-	l.SetMaxRuntime(time.Duration(15) * time.Second) // slay might sleep for 10 seconds between signals
-	out, err := l.SafelyExecute(cmd, nil)
-	if (*debug) && (err == nil) {
-		fmt.Printf("Slayed process of user %s\n", username)
-	}
-	if err != nil {
-		fmt.Printf("Command output: \n%s\n", out)
-		fmt.Printf("su/kill -1 user %s failed: %s (trying slay executable)\n", username, err)
-		if quick {
-			cmd = []string{"slay", "-9", username}
-		} else {
-			cmd = []string{"slay", "-clean", username}
-		}
-		l := linux.New()
-		out, err := l.SafelyExecute(cmd, nil)
-		if err != nil {
-			fmt.Printf("slay failed: %s\n%s", err, out)
-		} else {
-			fmt.Printf("fallback method using slay suceeded for user %s\n", username)
-		}
-	}
-	setDeploymentsGauge()
 }
 
 // this is called by the starter

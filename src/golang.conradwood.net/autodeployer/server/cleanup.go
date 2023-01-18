@@ -7,6 +7,7 @@ import (
 	"golang.conradwood.net/autodeployer/cgroups"
 	"golang.conradwood.net/autodeployer/config"
 	"golang.conradwood.net/autodeployer/deployments"
+	"golang.conradwood.net/autodeployer/killer"
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/server"
@@ -58,11 +59,19 @@ func StartupCodeFinished(du *deployments.Deployed, exitCode error) {
 	}
 
 	config.AppStopped()
-	Slay(du.User.Username, *brutal)
+	StopProcess(du, *brutal)
 
 	if du.Logger != nil {
 		du.Logger.LogCommandStdout(s, fmt.Sprintf("%s", du.Status))
 		du.Logger.Close(du.GetExitCode())
 	}
 	setDeploymentsGauge()
+}
+
+func StopProcess(du *deployments.Deployed, brutal bool) {
+	if du.AppReference().AppDef.AsRoot {
+		killer.KillPID(int(du.Pid), brutal)
+		return
+	}
+	slay(du.User.Username, brutal)
 }
