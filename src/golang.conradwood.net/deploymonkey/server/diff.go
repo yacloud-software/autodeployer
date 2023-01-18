@@ -189,6 +189,9 @@ func IsIdentical(ad1, ad2 *pb.ApplicationDefinition) bool {
 	if (ad1.DownloadURL != ad2.DownloadURL) || (ad1.DownloadUser != ad2.DownloadUser) || (ad1.DownloadPassword != ad2.DownloadPassword) || (ad1.Binary != ad2.Binary) || (ad1.BuildID != ad2.BuildID) || (ad1.Instances != ad2.Instances) || (ad1.Machines != ad2.Machines) || (ad1.Critical != ad2.Critical) || (ad1.AlwaysOn != ad2.AlwaysOn) {
 		return false
 	}
+	if ad1.AsRoot != ad2.AsRoot {
+		return false
+	}
 	if ad1.StaticTargetDir != ad2.StaticTargetDir {
 		return false
 	}

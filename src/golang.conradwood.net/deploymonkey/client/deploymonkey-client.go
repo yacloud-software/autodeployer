@@ -40,6 +40,7 @@ var (
 	list           = flag.String("list", "", "list this `repository` previous versions")
 	deployers      = flag.Bool("list_deployers", false, "if true list all known autodeployers")
 	undeploy_app   = flag.Int("undeploy_version", 0, "undeploy applications of a given version (expects `versionid`)")
+	print_sample   = flag.Bool("print_sample", false, "print a sample deploy.yaml")
 	depl           pb.DeployMonkeyClient
 )
 
@@ -54,6 +55,11 @@ func main() {
 		listDeployers()
 		os.Exit(0)
 	}
+	if *print_sample {
+		dc.PrintSample()
+		os.Exit(0)
+	}
+
 	if *depllocal {
 		DeployLocal()
 		os.Exit(0)
@@ -269,7 +275,6 @@ func processFile() {
 		fmt.Printf("-configfile and -namespace are mutually exclusive\n")
 		os.Exit(10)
 	}
-	//	dc.PrintSample()
 	fd, err := dc.ParseFile(*filename, *repository)
 	if err != nil {
 		fmt.Printf("Failed to parse file %s: %s\n", *filename, err)
