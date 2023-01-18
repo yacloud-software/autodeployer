@@ -1345,7 +1345,9 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for DeployMonkey service
 
 type DeployMonkeyClient interface {
+	// called by build repository if new deploy.yamls are submitted
 	DefineGroup(ctx context.Context, in *GroupDefinitionRequest, opts ...grpc.CallOption) (*GroupDefResponse, error)
+	// called by build repository after new deploy.yamls was submitted in DefineGroup() and accepted
 	DeployVersion(ctx context.Context, in *DeployRequest, opts ...grpc.CallOption) (*DeployResponse, error)
 	//  deploymonkey-client: update all apps in a repo in a group to a new buildid
 	UpdateRepo(ctx context.Context, in *UpdateRepoRequest, opts ...grpc.CallOption) (*GroupDefResponse, error)
@@ -1534,7 +1536,9 @@ func (c *deployMonkeyClient) GetSuggestions(ctx context.Context, in *SuggestRequ
 // Server API for DeployMonkey service
 
 type DeployMonkeyServer interface {
+	// called by build repository if new deploy.yamls are submitted
 	DefineGroup(context.Context, *GroupDefinitionRequest) (*GroupDefResponse, error)
+	// called by build repository after new deploy.yamls was submitted in DefineGroup() and accepted
 	DeployVersion(context.Context, *DeployRequest) (*DeployResponse, error)
 	//  deploymonkey-client: update all apps in a repo in a group to a new buildid
 	UpdateRepo(context.Context, *UpdateRepoRequest) (*GroupDefResponse, error)
