@@ -294,7 +294,9 @@ message SuggestionList {
 the deploymonkeyservice orchestrates deployments
  */
 service DeployMonkey {
+  // called by build repository if new deploy.yamls are submitted
   rpc DefineGroup(GroupDefinitionRequest) returns (GroupDefResponse);
+  // called by build repository after new deploy.yamls was submitted in DefineGroup() and accepted
   rpc DeployVersion(DeployRequest) returns (DeployResponse);
   //  deploymonkey-client: update all apps in a repo in a group to a new buildid
   rpc UpdateRepo(UpdateRepoRequest) returns (GroupDefResponse);
