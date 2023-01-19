@@ -20,6 +20,7 @@ import (
 
 // static variables for flag parser
 var (
+	stop            = flag.Bool("stop", false, "stop autodeployer")
 	pkgname         = flag.String("package", "", "query or install a package")
 	install_package = flag.Bool("install_package", false, "if true install package")
 	details         = flag.Bool("details", false, "print details")
@@ -62,6 +63,10 @@ func main() {
 	}
 
 	cl = pb.NewAutoDeployerClient(conn)
+	if *stop {
+		utils.Bail("failed to stop: %s\n", Stop())
+		os.Exit(0)
+	}
 	if *pkgname != "" {
 		utils.Bail("failed to process package", QueryOrInstallPackage())
 		os.Exit(0)
@@ -262,4 +267,9 @@ func QueryOrInstallPackage() error {
 	fmt.Printf("Package \"%s\" installed: %v\n", res.Name, res.Installed)
 
 	return nil
+}
+func Stop() error {
+	ctx := authremote.Context()
+	_, err := cl.StopAutodeployer(ctx, &pb.StopRequest{})
+	return err
 }
