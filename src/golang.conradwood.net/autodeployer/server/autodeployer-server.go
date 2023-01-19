@@ -442,16 +442,17 @@ func (s *AutoDeployer) Undeploy(ctx context.Context, cr *pb.UndeployRequest) (*p
 			return nil, errors.New(fmt.Sprintf("No deployment with id %s", cr.ID))
 		}
 	}
+	dep.SetUndeployRequest(cr)
 	dep.Log("Undeploy request received")
-	fmt.Printf("Undeploy request received: %v\n", dep)
+	fmt.Printf("Undeploy request received: %v (%s)\n", dep, dep.Binary())
 	sb := ""
 	if cr.Block {
 		sb = fmt.Sprintf("Shutting down (sync): %s\n", dep.String())
-		fmt.Println(s)
+		fmt.Println(sb)
 		StopProcess(dep, *brutal)
 	} else {
 		sb = fmt.Sprintf("Shutting down (async): %s\n", dep.String())
-		fmt.Println(s)
+		fmt.Println(sb)
 		go StopProcess(dep, *brutal)
 	}
 	dep.Log(sb)
@@ -601,7 +602,11 @@ func waitForCommand(du *deployments.Deployed) {
 		}
 	}
 	err := du.Cmd.Wait()
-	fmt.Printf("terminated: %s\n", du.String())
+	b := "NO"
+	if du.GetUndeployReqest() != nil {
+		b = "YES"
+	}
+	fmt.Printf("terminated: %s (undeployrequest received: %s)\n", du.String(), b)
 
 	// here we end up when our command terminates. it's still the privileged
 	// server

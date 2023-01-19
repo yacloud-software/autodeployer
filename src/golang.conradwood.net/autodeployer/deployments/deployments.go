@@ -4,10 +4,12 @@ import (
 	"fmt"
 	pb "golang.conradwood.net/apis/autodeployer"
 	dm "golang.conradwood.net/apis/deploymonkey"
+	"golang.conradwood.net/go-easyops/linux"
 	"golang.conradwood.net/go-easyops/logger"
 	"io"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -44,6 +46,7 @@ type Deployed struct {
 	Cgroup         int
 	DeployRequest  *pb.DeployRequest
 	ResolvedArgs   []string
+	undeploy_req   *pb.UndeployRequest
 }
 
 func (d *Deployed) DeployedApp() *pb.DeployedApp {
@@ -79,6 +82,19 @@ func (d *Deployed) DeployInfo() *pb.DeployInfo {
 		RuntimeSeconds:   uint64(time.Now().Unix() - d.Started.Unix()),
 		Ports:            d.PortsUint32(),
 		ResolvedArgs:     d.ResolvedArgs,
+		Pid:              d.GetPid(),
+		UserID:           d.User.Uid,
+		UserName:         d.User.Username,
+		GroupID:          d.User.Gid,
+	}
+	ps := linux.PidStatus(int(dr.Pid))
+	chp, err := ps.Children()
+	if err != nil {
+		fmt.Printf("Failed to get children of pid %d: %s\n", dr.Pid, err)
+	} else {
+		for _, cp := range chp {
+			dr.ChildPids = append(dr.ChildPids, uint64(cp.Pid()))
+		}
 	}
 
 	return dr
@@ -108,7 +124,9 @@ func (d *Deployed) DeployInfoString() string {
 	if app == nil {
 		return "noappdef"
 	}
-	return fmt.Sprintf("buildid=%d, instances=%d, machines=%s, deplid=%s, repoid=%d", app.BuildID, app.Instances, app.Machines, app.DeploymentID, app.RepositoryID)
+	an := app.Binary
+	an = filepath.Base(an)
+	return fmt.Sprintf("buildid=%d, instances=%d, machines=%s, deplid=%s, repoid=%d, binary=%s", app.BuildID, app.Instances, app.Machines, app.DeploymentID, app.RepositoryID, an)
 
 }
 
@@ -119,7 +137,16 @@ func (d *Deployed) String() string {
 	if d.DeployRequest == nil {
 		return fmt.Sprintf("[nil deployrequest]")
 	}
-	return fmt.Sprintf("%d-%d (%s) %s", d.DeployRequest.RepositoryID, d.DeployRequest.BuildID, d.StartupMsg, d.Status)
+	da := d.AppReference()
+	an := "[noname]"
+	if da != nil {
+		app := da.AppDef
+		if app != nil {
+			an = app.Binary
+			an = filepath.Base(an)
+		}
+	}
+	return fmt.Sprintf("%d-%d (%s) %s %s", d.DeployRequest.RepositoryID, d.DeployRequest.BuildID, d.StartupMsg, an, d.Status)
 }
 func (d *Deployed) GenericString() string {
 	return fmt.Sprintf("%s/%s/%d/%s-%d (%s) %s", d.DeployRequest.Namespace, d.DeployRequest.Groupname, d.DeployRequest.RepositoryID, d.DeployRequest.Binary, d.DeployRequest.BuildID, d.StartupMsg, d.Status)
@@ -261,4 +288,10 @@ func (d *Deployed) SetCgroup(i int) {
 }
 func (d *Deployed) GetPid() uint64 {
 	return d.Pid
+}
+func (d *Deployed) SetUndeployRequest(cr *pb.UndeployRequest) {
+	d.undeploy_req = cr
+}
+func (d *Deployed) GetUndeployReqest() *pb.UndeployRequest {
+	return d.undeploy_req
 }

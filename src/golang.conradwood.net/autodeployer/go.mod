@@ -3,6 +3,7 @@ module golang.conradwood.net/autodeployer
 go 1.18
 
 replace golang.conradwood.net/deploymonkey => ../deploymonkey
+replace golang.conradwood.net/apis/autodeployer => ../apis/autodeployer
 
 require (
 	golang.conradwood.net/apis/autodeployer v1.1.2106

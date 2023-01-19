@@ -104,7 +104,7 @@ func listDeployments() {
 	utils.Bail("Failed to get deployments", err)
 	fmt.Printf("%d deployments\n", len(ir.Apps))
 	t := utils.Table{}
-	t.AddHeaders("#", "AppID", "DeploymentID", "BuildID", "Binary", "RepositoryID", "Status", "Since")
+	t.AddHeaders("#", "AppID", "User", "Group", "DeploymentID", "BuildID", "Binary", "RepositoryID", "Status", "Since", "Pids", "CPids")
 	sort.Slice(ir.Apps, func(i, j int) bool {
 		return ir.Apps[i].Deployment.RepositoryID < ir.Apps[j].Deployment.RepositoryID
 	})
@@ -113,12 +113,20 @@ func listDeployments() {
 		rs := fmt.Sprintf("%d seconds", di.RuntimeSeconds)
 		t.AddInt(i)
 		t.AddString(app.ID)
+		t.AddString(di.UserID)
+		t.AddString(di.GroupID)
 		t.AddString(di.DeploymentID)
 		t.AddUint64(di.BuildID)
 		t.AddString(di.Binary)
 		t.AddUint64(di.RepositoryID)
 		t.AddString(fmt.Sprintf("%v", di.Status))
 		t.AddString(rs)
+		t.AddUint64(di.Pid)
+		s := ""
+		for _, p := range di.ChildPids {
+			s = s + fmt.Sprintf("%d ", p)
+		}
+		t.AddString(s)
 		if *details {
 			s := ""
 			as := di.Args
