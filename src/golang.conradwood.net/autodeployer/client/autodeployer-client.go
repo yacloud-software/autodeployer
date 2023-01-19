@@ -64,7 +64,7 @@ func main() {
 
 	cl = pb.NewAutoDeployerClient(conn)
 	if *stop {
-		utils.Bail("failed to stop: %s\n", Stop())
+		utils.Bail(fmt.Sprintf("failed to stop: %s\n", *server), Stop())
 		os.Exit(0)
 	}
 	if *pkgname != "" {
