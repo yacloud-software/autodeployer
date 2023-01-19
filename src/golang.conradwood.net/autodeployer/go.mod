@@ -3,6 +3,7 @@ module golang.conradwood.net/autodeployer
 go 1.18
 
 replace golang.conradwood.net/deploymonkey => ../deploymonkey
+
 replace golang.conradwood.net/apis/autodeployer => ../apis/autodeployer
 
 require (
@@ -12,7 +13,7 @@ require (
 	golang.conradwood.net/apis/registry v1.1.2106
 	golang.conradwood.net/apis/secureargs v1.1.2106
 	golang.conradwood.net/deploymonkey v0.0.0-00010101000000-000000000000
-	golang.conradwood.net/go-easyops v0.1.15584
+	golang.conradwood.net/go-easyops v0.1.15597
 	golang.org/x/sys v0.4.0
 	google.golang.org/grpc v1.52.0
 	gopkg.in/yaml.v2 v2.4.0
