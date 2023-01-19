@@ -51,6 +51,11 @@ message DeployInfo {
   deploymonkey.AppReference AppReference = 19;
   uint64 RepositoryID = 20; // the git repository id
   repeated string ResolvedArgs=21; // args with things like ${PORT1} resolved to actual parameters
+  uint64 Pid=22;
+  repeated uint64 ChildPids=23;
+  string UserID=24; // local userid
+  string UserName=25; // local username
+  string GroupID=26; // local gid
 }
 
 enum DeploymentStatus {
