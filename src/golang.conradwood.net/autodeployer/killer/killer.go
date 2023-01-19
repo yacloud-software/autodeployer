@@ -7,15 +7,34 @@ import (
 	"time"
 )
 
-func KillPID(pid int, brutal bool) {
-	name := fmt.Sprintf("Pid #%d", pid)
-	fmt.Printf("Killing process %s in status %s\n", name, pidStatus(pid))
-	syscall.Kill(pid, syscall.SIGTERM)
-	for i := 0; i < 10; i++ {
-		fmt.Printf("Whilst killing process %s, status is still %s\n", name, pidStatus(pid))
-		time.Sleep(time.Duration(1) * time.Second)
+func KillPID(ppid int, brutal bool) {
+	pids := []int{ppid}
+	children, err := pidStatus(ppid).Children()
+	if err != nil {
+		fmt.Printf("failed to get children of pid %d: %s\n", ppid, err)
+	} else {
+		for _, c := range children {
+			pids = append(pids, c.Pid())
+		}
 	}
-	syscall.Kill(pid, syscall.SIGKILL)
+	for _, pid := range pids {
+		ps := pidStatus(pid)
+		name := fmt.Sprintf("Pid #%d (%s)", pid, ps.Binary())
+		fmt.Printf("Killing process %s in status %s\n", name, ps.Status())
+		syscall.Kill(pid, syscall.SIGTERM)
+		done := false
+		for i := 0; i < 10; i++ {
+			if ps.Status() == linux.STATUS_STOPPED {
+				done = true
+				break
+			}
+			fmt.Printf("Whilst killing process %s, status is still %s\n", name, ps.Status())
+			time.Sleep(time.Duration(1) * time.Second)
+		}
+		if !done {
+			syscall.Kill(pid, syscall.SIGKILL)
+		}
+	}
 }
 
 func pidStatus(pid int) *linux.ProcessState {
