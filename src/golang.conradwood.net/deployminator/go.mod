@@ -8,7 +8,7 @@ require (
 	golang.conradwood.net/apis/deployminator v1.1.2107
 	golang.conradwood.net/apis/deploymonkey v1.1.2107
 	golang.conradwood.net/apis/registry v1.1.2107
-	golang.conradwood.net/go-easyops v0.1.15613
+	golang.conradwood.net/go-easyops v0.1.15691
 	google.golang.org/grpc v1.52.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -27,7 +27,7 @@ require (
 	github.com/prometheus/procfs v0.9.0 // indirect
 	golang.conradwood.net/apis/auth v1.1.2107 // indirect
 	golang.conradwood.net/apis/echoservice v1.1.2107 // indirect
-	golang.conradwood.net/apis/errorlogger v1.1.2107 // indirect
+	golang.conradwood.net/apis/errorlogger v1.1.2121 // indirect
 	golang.conradwood.net/apis/framework v1.1.2107 // indirect
 	golang.conradwood.net/apis/goeasyops v1.1.2107 // indirect
 	golang.conradwood.net/apis/objectstore v1.1.2107 // indirect
