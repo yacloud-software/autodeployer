@@ -830,7 +830,7 @@ func checkLogger(d *deployments.Deployed) {
 	if d.Logger != nil {
 		return
 	}
-	l, err := logger.NewAsyncLogQueue(d.Binary(), d.RepositoryID(), d.Groupname(), d.Namespace(), d.DeploymentID())
+	l, err := logger.NewAsyncLogQueue(d.Binary(), d.Build(), d.RepositoryID(), d.Groupname(), d.Namespace(), d.DeploymentID())
 	if err != nil {
 		fmt.Printf("Failed to initialize logger! %s\n", err)
 	} else {
