@@ -20,6 +20,7 @@ import (
 
 // static variables for flag parser
 var (
+	pversion        = flag.Bool("print_version", false, "print autodeployer-server version")
 	stop            = flag.Bool("stop", false, "stop autodeployer")
 	pkgname         = flag.String("package", "", "query or install a package")
 	install_package = flag.Bool("install_package", false, "if true install package")
@@ -55,7 +56,7 @@ func main() {
 		if !strings.Contains(s, ":") {
 			s = fmt.Sprintf("%s:4000", *server)
 		}
-		fmt.Printf("Connecting to server %s\n", s)
+		//fmt.Printf("Connecting to server %s\n", s)
 		conn, err = grpc.Dial(s, grpc.WithTransportCredentials(client.GetClientCreds()))
 		utils.Bail("Unable to connect to server", err)
 	} else {
@@ -85,6 +86,10 @@ func main() {
 	}
 	if *clear {
 		Clear()
+		os.Exit(0)
+	}
+	if *pversion {
+		utils.Bail("version failed", version())
 		os.Exit(0)
 	}
 	if *list {
@@ -272,4 +277,13 @@ func Stop() error {
 	ctx := authremote.Context()
 	_, err := cl.StopAutodeployer(ctx, &pb.StopRequest{})
 	return err
+}
+func version() error {
+	ctx := authremote.Context()
+	v, err := cl.GetMachineInfo(ctx, &pb.MachineInfoRequest{})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%d\n", v.AutoDeployerVersion)
+	return nil
 }
