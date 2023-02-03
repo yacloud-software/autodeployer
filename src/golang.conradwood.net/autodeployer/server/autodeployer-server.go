@@ -51,17 +51,19 @@ import (
 
 // static variables for flag parser
 var (
-	shutting_down       = false
-	max_users           = flag.Int("max_users", 0, "if non zero, limit number of users to manage to this number")
-	print_to_stdout     = flag.Bool("print_to_stdout", false, "print commands stdout to autodeployer stdout as well as to the logservice")
-	slay_corrupt_stdout = flag.Bool("slay_corrupt_stdout", true, "if true, slay commands with a lines on stdout that cannot be processed, e.g. too long")
-	stophandler         = flag.Bool("activate_stop_handler", true, "activates the stop handler. however this prevents us from writing panic() to stdout")
-	force_registry      = flag.String("force_registry", "", "if not empty, all -registry=xx parameters will be rewritten to this `hostname`")
-	use_cgroups         = flag.Bool("use_cgroups", true, "use cgroups (instead of other mechanisms)")
-	msgid               = flag.String("msgid", "", "A msgid indicating that we've been forked() and execing the command. used internally only")
-	add_instance_id     = flag.Bool("add_instance_id", true, "pass ge_instance_id to each binary being started")
-	max_downloads       = flag.Int("max_downloads", 3, "max simultanous deployments in status DOWNLOADING")
-	deploymentsGauge    = prometheus.NewGauge(
+	autodeployer_started      = time.Now()
+	random_lifetime_stable_id string
+	shutting_down             = false
+	max_users                 = flag.Int("max_users", 0, "if non zero, limit number of users to manage to this number")
+	print_to_stdout           = flag.Bool("print_to_stdout", false, "print commands stdout to autodeployer stdout as well as to the logservice")
+	slay_corrupt_stdout       = flag.Bool("slay_corrupt_stdout", true, "if true, slay commands with a lines on stdout that cannot be processed, e.g. too long")
+	stophandler               = flag.Bool("activate_stop_handler", true, "activates the stop handler. however this prevents us from writing panic() to stdout")
+	force_registry            = flag.String("force_registry", "", "if not empty, all -registry=xx parameters will be rewritten to this `hostname`")
+	use_cgroups               = flag.Bool("use_cgroups", true, "use cgroups (instead of other mechanisms)")
+	msgid                     = flag.String("msgid", "", "A msgid indicating that we've been forked() and execing the command. used internally only")
+	add_instance_id           = flag.Bool("add_instance_id", true, "pass ge_instance_id to each binary being started")
+	max_downloads             = flag.Int("max_downloads", 3, "max simultanous deployments in status DOWNLOADING")
+	deploymentsGauge          = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "autodeployer_deployments",
 			Help: "V=1 UNIT=ops DESC=current count of deployments on this instance",
@@ -109,6 +111,7 @@ func main() {
 	var err error
 	flag.Parse() // parse stuff. see "var" section above
 	fmt.Printf("Starting autodeployer...\n")
+	random_lifetime_stable_id = utils.RandomString(64)
 	// if file does not exist, this will do NOTHING,
 	// thus save to leave it in here w/o switch
 	err = config.Start()
@@ -223,15 +226,27 @@ func (s *AutoDeployer) StopAutodeployer(ctx context.Context, cr *pb.StopRequest)
 	if res.Version == cr.IfNotVersion {
 		return res, nil
 	}
+	ctx = authremote.Context()
+	_, err := GetDeployMonkeyClient().AutodeployerShutdown(ctx, &common.Void{})
+	if err != nil {
+		return nil, err
+	}
 	res.Stopping = true
 	shutting_down = true
+	ch := make(chan bool, 5)
+
 	go func() {
-		time.Sleep(time.Duration(3) * time.Second)
 		slayAll()
-		ctx := authremote.Context()
-		GetDeployMonkeyClient().AutodeployerShutdown(ctx, &common.Void{})
+		ch <- true
+		time.Sleep(time.Duration(3) * time.Second) // allow result to be returned
 		os.Exit(0)
 	}()
+	select {
+	case <-ch:
+	//done waiting
+	case <-time.After(time.Duration(5) * time.Second):
+		// also done waiting
+	}
 	return res, nil
 }
 func (s *AutoDeployer) Deploy(ctx context.Context, cr *pb.DeployRequest) (*pb.DeployResponse, error) {
@@ -718,6 +733,8 @@ func (s *AutoDeployer) GetMachineInfo(ctx context.Context, cr *pb.MachineInfoReq
 		AutoDeployerVersion: appinfo.AppInfo().Number,
 		Stopping:            shutting_down,
 		AutodeployerBinary:  bin,
+		SecondsRunning:      uint32(time.Since(autodeployer_started).Seconds()),
+		InstanceID:          random_lifetime_stable_id,
 	}
 	return &res, nil
 }
