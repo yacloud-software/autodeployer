@@ -112,6 +112,7 @@ func main() {
 	flag.Parse() // parse stuff. see "var" section above
 	fmt.Printf("Starting autodeployer...\n")
 	random_lifetime_stable_id = utils.RandomString(64)
+	fmt.Printf("This autodeployer instance id: \"%s\"\n", random_lifetime_stable_id)
 	// if file does not exist, this will do NOTHING,
 	// thus save to leave it in here w/o switch
 	err = config.Start()

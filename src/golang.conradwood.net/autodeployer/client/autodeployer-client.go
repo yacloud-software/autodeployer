@@ -21,6 +21,7 @@ import (
 // static variables for flag parser
 var (
 	pversion        = flag.Bool("print_version", false, "print autodeployer-server version")
+	pmachineinfo    = flag.Bool("print_machineinfo", false, "print autodeployer-server machineinfo")
 	stop            = flag.Bool("stop", false, "stop autodeployer")
 	pkgname         = flag.String("package", "", "query or install a package")
 	install_package = flag.Bool("install_package", false, "if true install package")
@@ -90,6 +91,10 @@ func main() {
 	}
 	if *pversion {
 		utils.Bail("version failed", version())
+		os.Exit(0)
+	}
+	if *pmachineinfo {
+		utils.Bail("machineinfo failed", machineinfo())
 		os.Exit(0)
 	}
 	if *list {
@@ -285,5 +290,19 @@ func version() error {
 		return err
 	}
 	fmt.Printf("%d\n", v.AutoDeployerVersion)
+	return nil
+}
+
+// suitable for reading in bash like so:
+// read -r version id secs <<<$(autodeployer-client -pmachine_info) ; echo "$version|$id|$secs"
+func machineinfo() error {
+	ctx := authremote.Context()
+	v, err := cl.GetMachineInfo(ctx, &pb.MachineInfoRequest{})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%d\n", v.AutoDeployerVersion)
+	fmt.Printf("%s\n", v.InstanceID)
+	fmt.Printf("%d\n", v.SecondsRunning)
 	return nil
 }
