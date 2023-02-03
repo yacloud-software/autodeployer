@@ -165,6 +165,8 @@ message MachineInfoResponse {
   uint64 AutoDeployerVersion=2;
   bool Stopping=3;
   string AutodeployerBinary=4;
+  uint32 SecondsRunning=5; // seconds since started
+  string InstanceID=6; // a random string generated at startup 
 }
 
 message URLRequest {
