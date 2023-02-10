@@ -22,6 +22,7 @@ import (
 
 // static variables for flag parser
 var (
+	del_version    = flag.Uint64("delete_version", 0, "if not 0, undeploy and delete this version")
 	depllocal      = flag.Bool("deploy_local", false, "deploy the files in current git repository on local machine (using deploy.yaml in current directory)")
 	depllist       = flag.Bool("deployments", false, "list current deployments")
 	list_deployers = flag.Bool("deployers", false, "list known autodeployers")
@@ -51,6 +52,10 @@ func main() {
 	depl = pb.NewDeployMonkeyClient(client.Connect("deploymonkey.DeployMonkey"))
 
 	done := false
+	if *del_version != 0 {
+		utils.Bail("failed to delete version", delVersion())
+		os.Exit(0)
+	}
 	if *deployers {
 		listDeployers()
 		os.Exit(0)
@@ -399,4 +404,12 @@ func listDeployers() {
 	}
 	fmt.Println(t.ToPrettyString())
 
+}
+
+func delVersion() error {
+	ctx := authremote.Context()
+	vers := *del_version
+	_, err := depl.DeleteVersion(ctx, &pb.DelVersionRequest{Version: vers})
+	utils.Bail("Failed to get deployers from cache", err)
+	return nil
 }

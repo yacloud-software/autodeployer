@@ -38,8 +38,6 @@ golang.conradwood.net/apis/autodeployer v1.1.2136 h1:vBLeS+Og8J7XE193jkvdK4OCsAL
 golang.conradwood.net/apis/autodeployer v1.1.2136/go.mod h1:bKp8jIIPJSi2DrkGBXdRyM23x+DHvuy8L/AlfbE15mY=
 golang.conradwood.net/apis/common v1.1.2136 h1:IqzjMTke/HO9XGlkIF0nVOGAnlC3VoMgWeDalUwtz9U=
 golang.conradwood.net/apis/common v1.1.2136/go.mod h1:/5HJvhoIroSYRmgSMQ0z2iniuoy/mTB2l7h+ACVwDJ0=
-golang.conradwood.net/apis/deploymonkey v1.1.2136 h1:PMppWy9oLHqtMPbUMgD8nwJuJOAtCURuvDLmPF5UuRo=
-golang.conradwood.net/apis/deploymonkey v1.1.2136/go.mod h1:pc8QMicO61wHDDza/6mhvbUPzZr0cvHpLOFPExss6pE=
 golang.conradwood.net/apis/echoservice v1.1.2125 h1:aH8KnG+qY3cXBQIGiv+UMx1MWhxY6mXr/n2oPxKLuqU=
 golang.conradwood.net/apis/echoservice v1.1.2125/go.mod h1:zHEAELQIQpArJQxFTI1okaHRABOalsKsjD7YOXot0ws=
 golang.conradwood.net/apis/errorlogger v1.1.2125 h1:De+F4/GVmr337kYkwyG3sHka8x/SDTiITh49QIsNl7Q=

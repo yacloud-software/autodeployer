@@ -2,6 +2,8 @@ module golang.conradwood.net/deploymonkey
 
 go 1.18
 
+replace golang.conradwood.net/apis/deploymonkey => ../apis/deploymonkey
+
 require (
 	github.com/lib/pq v1.10.7
 	golang.conradwood.net/apis/autodeployer v1.1.2136
