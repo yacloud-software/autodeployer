@@ -289,6 +289,9 @@ message Suggestion {
 message SuggestionList {
   repeated Suggestion Suggestions=1;
 }
+message DelVersionRequest {
+  uint64 Version=1;
+}
 
 /*
 the deploymonkeyservice orchestrates deployments
@@ -332,4 +335,6 @@ service DeployMonkey {
   rpc GetKnownAutodeployers(common.Void) returns (AutodeployerList);
   // get suggestions
   rpc GetSuggestions(SuggestRequest) returns (SuggestionList);
+  // delete an application definition
+  rpc DeleteVersion(DelVersionRequest) returns (common.Void);
 }
