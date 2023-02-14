@@ -113,6 +113,9 @@ func (d *Deployed) Log(format string, a ...interface{}) {
 	dn.LogCommandStdout(s, fmt.Sprintf("%s", d.Status))
 }
 func (d *Deployed) AppReference() *dm.AppReference {
+	if d.DeployRequest == nil {
+		return nil
+	}
 	return d.DeployRequest.AppReference
 }
 func (d *Deployed) DeployInfoString() string {

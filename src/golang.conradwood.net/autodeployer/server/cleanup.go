@@ -69,7 +69,18 @@ func StartupCodeFinished(du *deployments.Deployed, exitCode error) {
 }
 
 func StopProcess(du *deployments.Deployed, brutal bool) {
-	if du.AppReference().AppDef.AsRoot {
+	ar := du.AppReference()
+	if ar == nil {
+		return
+	}
+	ad := ar.AppDef
+	if ad == nil {
+		return
+	}
+	if du.User == nil {
+		return
+	}
+	if ad.AsRoot {
 		killer.KillPID(int(du.Pid), brutal)
 		return
 	}
