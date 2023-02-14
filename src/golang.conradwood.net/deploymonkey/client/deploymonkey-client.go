@@ -342,22 +342,30 @@ func applySuggestions() {
 	utils.Bail("Suggestion failed", err)
 	fmt.Printf("Executing %d start requests...\n", len(s.Starts))
 	for _, start := range s.Starts {
-		ctx := authremote.Context()
-		fmt.Printf("Deploying %s...\n", start.String())
-		d := start.DeployRequest()
-		_, err = depl.DeployAppOnTarget(ctx, d)
-		if err != nil {
+		for i := 0; i < 5; i++ {
+			ctx := authremote.Context()
+			fmt.Printf("Deploying %s...\n", start.String())
+			d := start.DeployRequest()
+			_, err = depl.DeployAppOnTarget(ctx, d)
+			if err == nil {
+				break
+			}
 			fmt.Printf("Failed to deploy %v: %s\n", start, err)
+			time.Sleep(time.Duration(5) * time.Second)
 		}
 	}
 	fmt.Printf("Executing %d stop requests...\n", len(s.Stops))
 	for _, stop := range s.Stops {
-		d := stop.UndeployRequest()
-		ctx := authremote.Context()
-		fmt.Printf("Undeploying %s...\n", stop.String())
-		_, err = depl.UndeployAppOnTarget(ctx, d)
-		if err != nil {
+		for i := 0; i < 5; i++ {
+			d := stop.UndeployRequest()
+			ctx := authremote.Context()
+			fmt.Printf("Undeploying %s...\n", stop.String())
+			_, err = depl.UndeployAppOnTarget(ctx, d)
+			if err == nil {
+				break
+			}
 			fmt.Printf("Failed to apply %v: %s\n", stop, err)
+			time.Sleep(time.Duration(5) * time.Second)
 		}
 	}
 	fmt.Println(s.String())
