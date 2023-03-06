@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+// CNW_OPTION: create_create=false
+
 package autodeployer;
 option java_package = "net.conradwood.golang.apis.autodeployer";
 import "golang.conradwood.net/apis/common/common.proto";
