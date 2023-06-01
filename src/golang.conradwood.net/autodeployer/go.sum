@@ -48,8 +48,8 @@ golang.conradwood.net/apis/rpcinterceptor v1.1.2289 h1:4YQGcUX73dZkgdK3OYZthSvMh
 golang.conradwood.net/apis/rpcinterceptor v1.1.2289/go.mod h1:pwpotS9IwUT5Y7ZlbQY0KbzTtpgXvO2cBha/Y8uLvDw=
 golang.conradwood.net/apis/secureargs v1.1.2287 h1:b1QlScYadlVwN2JCVOmhhOfDo2IyF+RnTtHEsDKAWD4=
 golang.conradwood.net/apis/secureargs v1.1.2287/go.mod h1:mhbJi3y4F70oZhde9uLhwzcOUOZDgkYhOiPEXxumj0M=
-golang.conradwood.net/go-easyops v0.1.17335 h1:Zpk7BIRtljYXxIDii4tJmBcpHfNQIJBDBC4XhMPgykA=
-golang.conradwood.net/go-easyops v0.1.17335/go.mod h1:FGllaMpni3cOG9TlvxhvOQ7T0raylSa6Cq/63J3RxCA=
+golang.conradwood.net/go-easyops v0.1.17366 h1:pA8Tk3A18i2zfmpafZ9EF0G8ZAMiK+rJ+nWb5MM7Y78=
+golang.conradwood.net/go-easyops v0.1.17366/go.mod h1:FGllaMpni3cOG9TlvxhvOQ7T0raylSa6Cq/63J3RxCA=
 golang.org/x/net v0.10.0 h1:X2//UzNDwYmtCLn7To6G58Wr6f5ahEAQgKNzv9Y951M=
 golang.org/x/net v0.10.0/go.mod h1:0qNGK6F8kojg2nk9dLZ2mShWaEBan6FAoqfSigmmuDg=
 golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
