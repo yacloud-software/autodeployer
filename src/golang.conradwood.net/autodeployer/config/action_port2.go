@@ -11,7 +11,7 @@ whenever they change
 
 import (
 	"bytes"
-	//	"flag"
+	"flag"
 	"fmt"
 	"golang.conradwood.net/autodeployer/deployments"
 	"golang.conradwood.net/go-easyops/linux"
@@ -22,7 +22,7 @@ import (
 
 const (
 	nf_templ1 = `
-table ip nat {
+table {{.Family}} nat {
         chain autodeployer_nat {
 {{range .Ports}} tcp dport {{.PublicPort}} dnat to :{{.ModulePort}}
 {{end}}
@@ -30,7 +30,7 @@ table ip nat {
 }
 `
 	nf_templ2 = `
-table ip filter {
+table {{.Family}} filter {
         chain autodeployer_filter {
 {{range .Ports}} tcp dport {{.ModulePort}} mark set 412 accept
 {{end}}
@@ -41,13 +41,15 @@ table ip filter {
 )
 
 var (
+	nft_family = flag.String("nft_family", "inet", "usually either ip or inet")
 	//	dir        = flag.String("template_dir", "/etc/cnw/autodeployer/templates/", "directory with templates")
 	nf_portmap = make(map[int]int) // module's port(key) -> public port(value)
 	nf_lock    sync.Mutex
 )
 
 type TemplateData struct {
-	Ports []*TemplatePortData
+	Family string
+	Ports  []*TemplatePortData
 }
 type TemplatePortData struct {
 	ModulePort int
@@ -125,11 +127,11 @@ func ResetNFPorts() {
 	if *debug_apply {
 		fmt.Printf("Resetting ports...\n")
 	}
-	out, err := linux.New().SafelyExecute([]string{"/usr/sbin/nft", "flush", "chain", "nat", "autodeployer_nat"}, nil)
+	out, err := linux.New().SafelyExecute([]string{"/usr/sbin/nft", "flush", "chain", *nft_family, "nat", "autodeployer_nat"}, nil)
 	if err != nil {
 		fmt.Printf("(2) nftables flush failed: %s\n%s\n", out, err)
 	}
-	out, err = linux.New().SafelyExecute([]string{"/usr/sbin/nft", "flush", "chain", "filter", "autodeployer_filter"}, nil)
+	out, err = linux.New().SafelyExecute([]string{"/usr/sbin/nft", "flush", "chain", *nft_family, "filter", "autodeployer_filter"}, nil)
 	if err != nil {
 		fmt.Printf("(3) nftables flush failed: %s\n%s\n", out, err)
 	}
@@ -140,13 +142,13 @@ func getNFTemplates() []string {
 }
 
 func (pa *NFPortAction) exe() error {
-	out, err := linux.New().SafelyExecute([]string{"/usr/sbin/nft", "flush", "chain", "nat", "autodeployer_nat"}, nil)
+	out, err := linux.New().SafelyExecute([]string{"/usr/sbin/nft", "flush", "chain", *nft_family, "nat", "autodeployer_nat"}, nil)
 	if err != nil {
 		fmt.Printf("(1) nftables flush failed: %s\n%s\n", out, err)
 		// must continue here. because it might just be a conditrion where table does not exist
 		//		return err
 	}
-	out, err = linux.New().SafelyExecute([]string{"/usr/sbin/nft", "flush", "chain", "filter", "autodeployer_filter"}, nil)
+	out, err = linux.New().SafelyExecute([]string{"/usr/sbin/nft", "flush", "chain", *nft_family, "filter", "autodeployer_filter"}, nil)
 	if err != nil {
 		fmt.Printf("(1) nftables flush failed: %s\n%s\n", out, err)
 		// must continue here. because it might just be a conditrion where table does not exist
@@ -159,7 +161,7 @@ func (pa *NFPortAction) exe() error {
 			fmt.Printf("nftables action_port2.go: Template broken! (%s)\n", err)
 			return err
 		}
-		data := &TemplateData{}
+		data := &TemplateData{Family: *nft_family}
 		for k, v := range nf_portmap {
 			tp := &TemplatePortData{ModulePort: k, PublicPort: v}
 			data.Ports = append(data.Ports, tp)
