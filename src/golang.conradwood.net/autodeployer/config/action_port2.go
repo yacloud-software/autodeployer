@@ -43,7 +43,7 @@ table {{.Family}} filter {
 var (
 	nft_family = flag.String("nft_family", "inet", "usually either ip or inet")
 	//	dir        = flag.String("template_dir", "/etc/cnw/autodeployer/templates/", "directory with templates")
-	nf_portmap = make(map[int]int) // module's port(key) -> public port(value)
+	nf_portmap = make(map[int]int) // in-mem representation of the nat table, that is: module's port -> public port
 	nf_lock    sync.Mutex
 )
 
@@ -89,7 +89,7 @@ func (pa *NFPortAction) Apply() error {
 	are redirected to
 	module's port (pa.du.Ports[pa.cfg.PortIndex[pa.cfg.PortIndex-1])
 	*/
-	nf_portmap[pa.du.Ports[pa.cfg.PortIndex-1]] = pa.cfg.PublicPort
+	nf_portmap[pa.module_port()] = pa.cfg.PublicPort
 	err := pa.exe()
 	if err != nil {
 		fmt.Printf("Failed to apply nftables port action %s: %s\n", pa.String(), err)
@@ -97,6 +97,9 @@ func (pa *NFPortAction) Apply() error {
 	}
 	fmt.Printf("Applied nftables port action: %s\n", pa.String())
 	return nil
+}
+func (pa *NFPortAction) module_port() int {
+	return pa.du.Ports[pa.cfg.PortIndex-1]
 }
 func (pa *NFPortAction) Unapply() error {
 	nf_lock.Lock()
@@ -108,7 +111,7 @@ func (pa *NFPortAction) Unapply() error {
 	if len(pa.du.Ports) < pa.cfg.PortIndex {
 		return fmt.Errorf("No such port #%d", pa.cfg.PortIndex)
 	}
-	delete(nf_portmap, pa.du.Ports[pa.cfg.PortIndex-1])
+	delete(nf_portmap, pa.module_port())
 	err := pa.exe()
 	if err != nil {
 		fmt.Printf("Failed to unapply nftables port action %s: %s\n", pa.String(), err)
@@ -118,7 +121,7 @@ func (pa *NFPortAction) Unapply() error {
 	return err
 }
 func (pa *NFPortAction) String() string {
-	return fmt.Sprintf("%d->%d", pa.cfg.PortIndex, pa.cfg.PublicPort)
+	return fmt.Sprintf("%d(index %d)->%d", pa.module_port(), pa.cfg.PortIndex, pa.cfg.PublicPort) // wish we had the actual port here
 }
 
 func ResetNFPorts() {
