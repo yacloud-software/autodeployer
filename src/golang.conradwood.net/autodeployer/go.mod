@@ -6,9 +6,12 @@ replace golang.conradwood.net/deploymonkey => ../deploymonkey
 
 replace golang.conradwood.net/apis/autodeployer => ../apis/autodeployer
 
+replace golang.conradwood.net/apis/commondeploy => ../apis/commondeploy
+
 require (
 	golang.conradwood.net/apis/autodeployer v1.1.2309
 	golang.conradwood.net/apis/common v1.1.2309
+	golang.conradwood.net/apis/commondeploy v0.0.0-00010101000000-000000000000
 	golang.conradwood.net/apis/deploymonkey v1.1.2309
 	golang.conradwood.net/apis/registry v1.1.2309
 	golang.conradwood.net/apis/secureargs v1.1.2309

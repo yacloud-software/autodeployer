@@ -20,6 +20,7 @@ import (
 
 // static variables for flag parser
 var (
+	do_mkenv        = flag.Bool("mkenv", false, "if true call mkenv (only)")
 	pversion        = flag.Bool("print_version", false, "print autodeployer-server version")
 	pmachineinfo    = flag.Bool("print_machineinfo", false, "print autodeployer-server machineinfo")
 	stop            = flag.Bool("stop", false, "stop autodeployer")
@@ -67,6 +68,10 @@ func main() {
 	cl = pb.NewAutoDeployerClient(conn)
 	if *stop {
 		utils.Bail(fmt.Sprintf("failed to stop: %s\n", *server), Stop())
+		os.Exit(0)
+	}
+	if *do_mkenv {
+		utils.Bail(fmt.Sprintf("failed to mkenv on: %s\n", *server), Mkenv())
 		os.Exit(0)
 	}
 	if *pkgname != "" {
