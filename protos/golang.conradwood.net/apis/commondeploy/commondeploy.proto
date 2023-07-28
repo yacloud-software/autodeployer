@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package commondeploy;
+option java_package = "net.conradwood.golang.apis.commondeploy";
+import "golang.conradwood.net/apis/common/common.proto";
+//import "golang.conradwood.net/apis/deploymonkey/deploymonkey.proto";
+
+
+
+// message to make an environment, e.g. prep chroots
+message MkenvRequest {
+  string RootFileSystemID=1; // which root file system to use
+  string TargetDirectory=2; // where to put the root filesystem. the "Targetdirectory" will be the new root
+}
+message MkenvResponse {
+}
+
+message CacheRequest {
+  string URL=1;
+}
+message CacheEntry {
+  string CachedURL=1;
+  bool Downloading=2; // true whilst this cache entry is still downloading
+  uint32 DownloadStarted=3; // timestamp when download started
+  bool Downloaded=4; // true if completely downloaded
+  uint32 DownloadedTimestamp=5; // when was download completed
+  string LastError=6; // if non-nil some error occured whilst downloading
+  uint32 Failures=7; // incremented each time it fails to download
+  string CacheDir=8; // the directory with files for this cacheentry
+  repeated DerivedCacheEntry DerivedEntries=9; // files that are cached and derived from cachedurl
+}
+message DerivedCacheEntry {
+  string FileID=1; // user fileid, e.g. rootfs.tar (derived from rootfs.tar.bz2)
+  string FileRef=2; // filename "on disk"
+  string Function=3; // function to create it
+  bool Deriving=4; // true whilst deriving
+  bool Completed=5; // usable
+}
