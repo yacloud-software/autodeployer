@@ -5,7 +5,6 @@ import (
 	"fmt"
 	pb "golang.conradwood.net/apis/commondeploy"
 	"golang.conradwood.net/autodeployer/fscache"
-	"io"
 )
 
 func Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvResponse, error) {
@@ -29,12 +28,6 @@ func (oe *oneenv) CacheRootFS() error {
 	if err != nil {
 		return err
 	}
-
-	unbzip2_function := func(r io.Reader, w io.Writer) error {
-		_, err := io.Copy(w, r)
-		return err
-	}
-	oe.fscache.RegisterDeriveFunction("unbzip2", unbzip2_function)
 
 	_, err = oe.fscache.GetDerivedFile(ce, "rootfs.tar", "unbzip2")
 	if err != nil {
