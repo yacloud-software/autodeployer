@@ -21,8 +21,8 @@ type FSCache interface {
 	ActiveDownloads() int
 	// user may register functions to derive files from others, e.g. "de-bzip2"
 	RegisterDeriveFunction(function_id string, f func(io.Reader, io.Writer) error)
-	// derive another file from the (fully downloaded) cache entry and cache it for future
-	GetDerivedFile(ce *pb.CacheEntry, file_id string, function_id string) ([]byte, error)
+	// derive another file from the (fully downloaded) cache entry and cache it for future (returns fully qualified filename)
+	GetDerivedFile(ce *pb.CacheEntry, file_id string, function_id string) (string, error)
 }
 
 type fscache struct {
@@ -42,8 +42,6 @@ func NewFSCache(maxsizeMB int, statedir string) FSCache {
 		maxdownloads:     4,
 		derive_functions: make(map[string]*derive_function),
 	}
-	// register default functions
-	register_default_functions(res)
 	res.resetDownloads()
 
 	return res

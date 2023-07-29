@@ -19,12 +19,12 @@ func (f *fscache) RegisterDeriveFunction(function_id string, ff func(io.Reader, 
 	f.derive_functions[function_id] = &derive_function{df: ff}
 }
 
-func (f *fscache) GetDerivedFile(ce *pb.CacheEntry, file_id string, funcname string) ([]byte, error) {
+func (f *fscache) GetDerivedFile(ce *pb.CacheEntry, file_id string, funcname string) (string, error) {
 	f.lock.Lock()
 	ce, err := f.reloadEntry(ce)
 	if err != nil {
 		f.lock.Unlock()
-		return nil, err
+		return "", err
 	}
 	f.debugf("Deriving in cachentry %#v\n", ce)
 	var dce *pb.DerivedCacheEntry
@@ -34,7 +34,7 @@ func (f *fscache) GetDerivedFile(ce *pb.CacheEntry, file_id string, funcname str
 			if dce.Completed {
 				f.lock.Unlock()
 				f.debugf("Derived file %s served from cache", file_id)
-				return f.read_bytes_for_derived(ce, dce)
+				return f.get_filename_for_derived(ce, dce)
 			}
 			if dce.Deriving {
 				f.debugf("Derived file %s in progress atm", file_id)
@@ -52,7 +52,7 @@ func (f *fscache) GetDerivedFile(ce *pb.CacheEntry, file_id string, funcname str
 	// no such file - must derive
 	ff, found := f.derive_functions[funcname]
 	if !found {
-		return nil, fmt.Errorf("no such function \"%s\"", funcname)
+		return "", fmt.Errorf("no such function \"%s\"", funcname)
 	}
 
 	if dce == nil {
@@ -68,30 +68,27 @@ func (f *fscache) GetDerivedFile(ce *pb.CacheEntry, file_id string, funcname str
 	err = f.updateEntry(ce)
 	if err != nil {
 		f.lock.Unlock()
-		return nil, err
+		return "", err
 	}
 
 	f.lock.Unlock()
 
 	r, err := os.Open(f.get_cache_dir(ce) + "/orig_file")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	w, err := os.Create(f.get_cache_dir(ce) + "/" + dce.FileRef)
 	if err != nil {
-		r.Close()
-		return nil, err
+		return "", err
 	}
 	err = ff.df(r, w) // do the actual conversion
-	r.Close()
-	w.Close()
 	if err != nil {
 		f.debugf("Derive failed (%s)", err)
 		f.lock.Lock()
 		dce.Deriving = false
 		f.updateDerived(ce, dce)
 		f.lock.Unlock()
-		return nil, err
+		return "", err
 	}
 	f.debugf("Derive complete")
 	f.lock.Lock()
@@ -100,16 +97,16 @@ func (f *fscache) GetDerivedFile(ce *pb.CacheEntry, file_id string, funcname str
 	xerr := f.updateDerived(ce, dce)
 	f.lock.Unlock()
 	if xerr != nil {
-		return nil, xerr
+		return "", xerr
 	}
-	return nil, nil
+	return "", nil
 }
 
-func (f *fscache) wait_for_derive(ce *pb.CacheEntry, dce *pb.DerivedCacheEntry) ([]byte, error) {
+func (f *fscache) wait_for_derive(ce *pb.CacheEntry, dce *pb.DerivedCacheEntry) (string, error) {
 	for {
 		ce, err := f.reloadEntry(ce)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		var nd *pb.DerivedCacheEntry
 		for _, xdce := range ce.DerivedEntries {
@@ -119,13 +116,13 @@ func (f *fscache) wait_for_derive(ce *pb.CacheEntry, dce *pb.DerivedCacheEntry) 
 			}
 		}
 		if nd == nil {
-			return nil, fmt.Errorf("no such derived cache entry")
+			return "", fmt.Errorf("no such derived cache entry")
 		}
 		if nd.Completed {
-			return f.read_bytes_for_derived(ce, nd)
+			return f.get_filename_for_derived(ce, nd)
 		}
 		if !nd.Deriving {
-			return nil, fmt.Errorf("not deriving, cannot wait for it")
+			return "", fmt.Errorf("not deriving, cannot wait for it")
 		}
 		time.Sleep(time.Duration(1) * time.Second)
 	}
@@ -135,6 +132,10 @@ func (f *fscache) read_bytes_for_derived(ce *pb.CacheEntry, dce *pb.DerivedCache
 	fname := f.get_cache_dir(ce) + "/" + dce.FileRef
 	res, err := utils.ReadFile(fname)
 	return res, err
+}
+func (f *fscache) get_filename_for_derived(ce *pb.CacheEntry, dce *pb.DerivedCacheEntry) (string, error) {
+	fname := f.get_cache_dir(ce) + "/" + dce.FileRef
+	return fname, nil
 }
 func (f *fscache) updateDerived(ce *pb.CacheEntry, dce *pb.DerivedCacheEntry) error {
 	ce, err := f.reloadEntry(ce)
