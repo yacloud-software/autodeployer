@@ -750,7 +750,7 @@ func (a *DBApplicationDefinition) SelectColsQualified() string {
 func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ApplicationDefinition, error) {
 	var res []*savepb.ApplicationDefinition
 	for rows.Next() {
-		foo := savepb.ApplicationDefinition{Limits: &savepb.Limits{}}
+		foo := savepb.ApplicationDefinition{Limits: &savepb.Limits{}, Container: &savepb.ContainerDef{}}
 		err := rows.Scan(&foo.ID, &foo.DownloadURL, &foo.DownloadUser, &foo.DownloadPassword, &foo.Binary, &foo.BuildID, &foo.Instances, &foo.DeploymentID, &foo.Machines, &foo.DeployType, &foo.Critical, &foo.AlwaysOn, &foo.StaticTargetDir, &foo.Public, &foo.Java, &foo.RepositoryID, &foo.AsRoot, &foo.Container.ID)
 		if err != nil {
 			return nil, a.Error(ctx, "fromrow-scan", err)

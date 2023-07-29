@@ -9,7 +9,6 @@ import (
 	_ "github.com/lib/pq"
 	apb "golang.conradwood.net/apis/autodeployer"
 	common "golang.conradwood.net/apis/common"
-	"golang.conradwood.net/apis/commondeploy"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	rpb "golang.conradwood.net/apis/registry"
 	dc "golang.conradwood.net/deploymonkey/common"
@@ -78,7 +77,7 @@ func main() {
 	flag.Parse() // parse stuff. see "var" section above
 	dbcon, err = gesql.Open()
 	utils.Bail("failed to open postgres", err)
-	db.DefaultDBContainerDef()
+	db.DefaultDBContainerDef().SaveWithID(context.Background(), &pb.ContainerDef{ID: 0})
 	appdef_store = db.DefaultDBApplicationDefinition()
 	if *testScanner {
 		ScanAutodeployersTest()
@@ -270,7 +269,7 @@ func saveApp(app *pb.ApplicationDefinition) (string, error) {
 			return "", err
 		}
 	} else {
-		app.Container = &commondeploy.ContainerDef{ID: 0}
+		app.Container = &pb.ContainerDef{ID: 0}
 	}
 	id, err := appdef_store.Save(TEMPCONTEXT(), app)
 	if err != nil {

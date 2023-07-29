@@ -31,7 +31,7 @@ import (
 	"context"
 	gosql "database/sql"
 	"fmt"
-	savepb "golang.conradwood.net/apis/commondeploy"
+	savepb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/go-easyops/sql"
 	"os"
 )
