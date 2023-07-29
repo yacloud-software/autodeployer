@@ -16,7 +16,7 @@ package db
 
 Main Table:
 
- CREATE TABLE applicationdefinition (id integer primary key default nextval('applicationdefinition_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references container (id) on delete cascade  );
+ CREATE TABLE applicationdefinition (id integer primary key default nextval('applicationdefinition_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references containerdef (id) on delete cascade  );
 
 Alter statements:
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS downloadurl text not null default '';
@@ -35,7 +35,7 @@ ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS r_public boolean not 
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS java boolean not null default false;
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS asroot boolean not null default false;
-ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS container bigint not null references container (id) on delete cascade  default 0;
+ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS container bigint not null references containerdef (id) on delete cascade  default 0;
 
 
 Archive Table: (structs can be moved from main to archive using Archive() function)
@@ -766,8 +766,8 @@ func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows
 func (a *DBApplicationDefinition) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references container (id) on delete cascade  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references container (id) on delete cascade  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references containerdef (id) on delete cascade  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references containerdef (id) on delete cascade  );`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS downloadurl text not null default '';`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS downloaduser text not null default '';`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS downloadpassword text not null default '';`,
@@ -784,7 +784,7 @@ func (a *DBApplicationDefinition) CreateTable(ctx context.Context) error {
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS java boolean not null default false;`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS asroot boolean not null default false;`,
-		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS container bigint not null references container (id) on delete cascade  default 0;`,
+		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS container bigint not null references containerdef (id) on delete cascade  default 0;`,
 	}
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
