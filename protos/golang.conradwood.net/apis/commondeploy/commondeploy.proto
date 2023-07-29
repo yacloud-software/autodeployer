@@ -38,3 +38,8 @@ message DerivedCacheEntry {
   bool Completed=5; // usable
   uint32 LastUsed=6; // timestamp of last time this was used 
 }
+
+message ContainerDef {
+  uint64 ID=1;
+  string URL=2;
+}

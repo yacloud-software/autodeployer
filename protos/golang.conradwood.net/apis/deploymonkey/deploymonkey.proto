@@ -6,6 +6,7 @@ package deploymonkey;
 option java_package = "net.conradwood.golang.apis.deploymonkey";
 
 // import "golang.conradwood.net/apis/autodeployer/autodeployer.proto";
+import "golang.conradwood.net/apis/commondeploy/commondeploy.proto";
 import "golang.conradwood.net/apis/common/common.proto";
 
 /*
@@ -80,6 +81,8 @@ message ApplicationDefinition {
   bool Java = 19;
   uint64 RepositoryID = 20; // the git repository id
   bool AsRoot=21; // if true, run this as root
+  commondeploy.ContainerDef Container=22 [(common.sql_type)="uint64",(common.sql_reference)="container.id"];
+; // if set, a container is going to be created to run the app in
 }
 message Limits {
   // max memory available to this process in Megabyte (default = 3000Mb )
