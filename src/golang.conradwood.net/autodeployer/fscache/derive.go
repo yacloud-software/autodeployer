@@ -61,6 +61,7 @@ func (f *fscache) GetDerivedFile(ce *pb.CacheEntry, file_id string, funcname str
 			Function:  funcname,
 			Completed: false,
 			FileRef:   utils.RandomString(64),
+			LastUsed:  uint32(time.Now().Unix()),
 		}
 		ce.DerivedEntries = append(ce.DerivedEntries, dce)
 	}
@@ -137,6 +138,8 @@ func (f *fscache) read_bytes_for_derived(ce *pb.CacheEntry, dce *pb.DerivedCache
 	return res, err
 }
 func (f *fscache) get_filename_for_derived(ce *pb.CacheEntry, dce *pb.DerivedCacheEntry) (string, error) {
+	dce.LastUsed = uint32(time.Now().Unix())
+	f.updateDerived(ce, dce)
 	fname := f.get_cache_dir(ce) + "/" + dce.FileRef
 	return fname, nil
 }

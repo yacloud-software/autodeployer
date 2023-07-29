@@ -85,6 +85,8 @@ func (f *fscache) ReadCache(ctx context.Context, cr *pb.CacheRequest) (*pb.Cache
 	if cache_entry == nil {
 		return nil, errors.NotFound(ctx, "cache entry %s not found", cr.URL)
 	}
+	cache_entry.LastUsed = uint32(time.Now().Unix())
+	f.updateEntry(cache_entry)
 	return cache_entry, nil
 }
 
@@ -99,6 +101,8 @@ func (f *fscache) Cache(ctx context.Context, cr *pb.CacheRequest) (*pb.CacheEntr
 		return nil, err
 	}
 	if cache_entry != nil {
+		cache_entry.LastUsed = uint32(time.Now().Unix())
+		f.updateEntry(cache_entry)
 		f.lock.Unlock()
 		if cache_entry.Downloaded == true {
 			f.debugf("returning cache entry for %v", cr)
@@ -123,6 +127,7 @@ func (f *fscache) Cache(ctx context.Context, cr *pb.CacheRequest) (*pb.CacheEntr
 			Downloading:     true,
 			DownloadStarted: uint32(time.Now().Unix()),
 			CacheDir:        cd,
+			LastUsed:        uint32(time.Now().Unix()),
 		}
 		os.MkdirAll(f.get_cache_dir(cache_entry), 0777)
 		f.addEntry(ctx, cache_entry)
@@ -141,6 +146,7 @@ func (f *fscache) Cache(ctx context.Context, cr *pb.CacheRequest) (*pb.CacheEntr
 	cache_entry.Downloaded = false
 	cache_entry.LastError = fmt.Sprintf("%s", err)
 	cache_entry.Downloading = false
+	cache_entry.LastUsed = uint32(time.Now().Unix())
 	f.updateEntry(cache_entry)
 	return nil, err
 }

@@ -22,6 +22,7 @@ func Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvResponse, error)
 	if err != nil {
 		return nil, err
 	}
+
 	res := &pb.MkenvResponse{}
 	return res, nil
 }
@@ -42,5 +43,6 @@ func (oe *oneenv) CacheRootFS() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
