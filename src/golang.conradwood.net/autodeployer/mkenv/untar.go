@@ -23,9 +23,14 @@ func Untar(tarfile, targetdir string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	err = Derive_Untar(f, targetdir)
+	f.Close()
+	return err
+}
+func Derive_Untar(tarfile io.Reader, targetdir string) error {
+	var err error
 	var chownList []*chownEntry
-	tr := tar.NewReader(f)
+	tr := tar.NewReader(tarfile)
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {

@@ -17,6 +17,7 @@ func Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvResponse, error)
 		ctx:     ctx,
 		envdir:  "/srv/autodeployer/rootfs/" + utils.RandomString(32),
 	}
+	oe.fscache.RegisterDeriveFunctionDir("untar", Derive_Untar)
 	os.MkdirAll(oe.envdir, 0777)
 	err := oe.CacheRootFS()
 	if err != nil {
@@ -35,14 +36,21 @@ func (oe *oneenv) CacheRootFS() error {
 		return err
 	}
 
-	tarname, err := oe.fscache.GetDerivedFile(ce, "rootfs.tar", "unbzip2")
-	if err != nil {
-		return err
-	}
-	err = Untar(tarname, oe.envdir+"/root")
+	_, err = oe.fscache.GetDerivedFile(ce, "rootfs.tar", "unbzip2")
 	if err != nil {
 		return err
 	}
 
+	tardir, err := oe.fscache.GetDerivedFileFromDerived(ce, "rootfs.tar", "rootfs", "untar")
+	if err != nil {
+		return err
+	}
+	/*
+		err = Untar(tarname, oe.envdir+"/root")
+		if err != nil {
+			return err
+		}
+	*/
+	fmt.Printf("root filesystem in \"%s\"\n", tardir)
 	return nil
 }

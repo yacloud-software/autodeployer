@@ -19,10 +19,14 @@ type FSCache interface {
 	ReadCache(ctx context.Context, cr *pb.CacheRequest) (*pb.CacheEntry, error)
 	// currently active downloads for this instance
 	ActiveDownloads() int
-	// user may register functions to derive files from others, e.g. "de-bzip2"
+	// user may register functions to derive files from others, e.g. "unbzip2"
 	RegisterDeriveFunction(function_id string, f func(io.Reader, io.Writer) error)
+	// user may register functions to derive a set of files from others, e.g. "untar"
+	RegisterDeriveFunctionDir(function_id string, ff func(io.Reader, string) error)
 	// derive another file from the (fully downloaded) cache entry and cache it for future (returns fully qualified filename)
 	GetDerivedFile(ce *pb.CacheEntry, file_id string, function_id string) (string, error)
+	// derive another file from a derived cache entry and cache it for future (returns fully qualified filename)
+	GetDerivedFileFromDerived(ce *pb.CacheEntry, from_id, file_id string, function_id string) (string, error)
 }
 
 type fscache struct {

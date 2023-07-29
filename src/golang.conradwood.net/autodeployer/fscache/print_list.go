@@ -27,7 +27,7 @@ func render_cache_entry(prefix string, ce *pb.CacheEntry) string {
 	return s
 }
 func render_derived_entry(prefix string, dce *pb.DerivedCacheEntry) string {
-	s := prefix + "DerivedCacheEntry for " + dce.FileID + "\n"
+	s := prefix + "DerivedCacheEntry \"" + dce.FileID + "\"\n"
 	s = s + prefix + fmt.Sprintf("  FileRef   : %s\n", dce.FileRef)
 	s = s + prefix + fmt.Sprintf("  Function  : %s\n", dce.Function)
 	s = s + prefix + fmt.Sprintf("  Deriving  : %v\n", dce.Deriving)
