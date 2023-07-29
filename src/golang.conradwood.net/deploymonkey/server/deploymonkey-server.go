@@ -78,8 +78,8 @@ func main() {
 	flag.Parse() // parse stuff. see "var" section above
 	dbcon, err = gesql.Open()
 	utils.Bail("failed to open postgres", err)
-	appdef_store = db.DefaultDBApplicationDefinition()
 	db.DefaultDBContainerDef()
+	appdef_store = db.DefaultDBApplicationDefinition()
 	if *testScanner {
 		ScanAutodeployersTest()
 		os.Exit(0)
