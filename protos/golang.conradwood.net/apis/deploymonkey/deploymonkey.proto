@@ -81,7 +81,7 @@ message ApplicationDefinition {
   bool Java = 19;
   uint64 RepositoryID = 20; // the git repository id
   bool AsRoot=21; // if true, run this as root
-  commondeploy.ContainerDef Container=22 [(common.sql_type)="uint64",(common.sql_reference)="container.id"];
+  commondeploy.ContainerDef Container=22 [(common.sql_type)="uint64",(common.sql_reference)="containerdef.id"];
 ; // if set, a container is going to be created to run the app in
 }
 message Limits {
