@@ -10,4 +10,5 @@ type oneenv struct {
 	req     *pb.MkenvRequest
 	ctx     context.Context
 	fscache fscache.FSCache
+	envdir  string
 }

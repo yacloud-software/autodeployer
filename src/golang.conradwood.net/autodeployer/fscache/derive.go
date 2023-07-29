@@ -79,9 +79,12 @@ func (f *fscache) GetDerivedFile(ce *pb.CacheEntry, file_id string, funcname str
 	}
 	w, err := os.Create(f.get_cache_dir(ce) + "/" + dce.FileRef)
 	if err != nil {
+		r.Close()
 		return "", err
 	}
 	err = ff.df(r, w) // do the actual conversion
+	r.Close()
+	w.Close()
 	if err != nil {
 		f.debugf("Derive failed (%s)", err)
 		f.lock.Lock()

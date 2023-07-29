@@ -42,6 +42,8 @@ func NewFSCache(maxsizeMB int, statedir string) FSCache {
 		maxdownloads:     4,
 		derive_functions: make(map[string]*derive_function),
 	}
+	// register default functions
+	register_default_functions(res)
 	res.resetDownloads()
 
 	return res

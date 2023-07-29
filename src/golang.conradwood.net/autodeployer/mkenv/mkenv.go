@@ -5,7 +5,8 @@ import (
 	"fmt"
 	pb "golang.conradwood.net/apis/commondeploy"
 	"golang.conradwood.net/autodeployer/fscache"
-	"io"
+	"golang.conradwood.net/go-easyops/utils"
+	"os"
 )
 
 func Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvResponse, error) {
@@ -13,7 +14,10 @@ func Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvResponse, error)
 	oe := &oneenv{
 		fscache: fscache.NewFSCache(1024*10, "/srv/autodeployer/fscache"),
 		req:     req,
-		ctx:     ctx}
+		ctx:     ctx,
+		envdir:  "/srv/autodeployer/rootfs/" + utils.RandomString(32),
+	}
+	os.MkdirAll(oe.envdir, 0777)
 	err := oe.CacheRootFS()
 	if err != nil {
 		return nil, err
@@ -30,13 +34,11 @@ func (oe *oneenv) CacheRootFS() error {
 		return err
 	}
 
-	unbzip2_function := func(r io.Reader, w io.Writer) error {
-		_, err := io.Copy(w, r)
+	tarname, err := oe.fscache.GetDerivedFile(ce, "rootfs.tar", "unbzip2")
+	if err != nil {
 		return err
 	}
-	oe.fscache.RegisterDeriveFunction("unbzip2", unbzip2_function)
-
-	_, err = oe.fscache.GetDerivedFile(ce, "rootfs.tar", "unbzip2")
+	err = Untar(tarname, oe.envdir+"/root")
 	if err != nil {
 		return err
 	}
