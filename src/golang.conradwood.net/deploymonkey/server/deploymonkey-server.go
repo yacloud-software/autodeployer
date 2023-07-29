@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	apb "golang.conradwood.net/apis/autodeployer"
 	common "golang.conradwood.net/apis/common"
+	"golang.conradwood.net/apis/commondeploy"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	rpb "golang.conradwood.net/apis/registry"
 	dc "golang.conradwood.net/deploymonkey/common"
@@ -78,6 +79,7 @@ func main() {
 	dbcon, err = gesql.Open()
 	utils.Bail("failed to open postgres", err)
 	appdef_store = db.DefaultDBApplicationDefinition()
+	db.DefaultDBContainerDef()
 	if *testScanner {
 		ScanAutodeployersTest()
 		os.Exit(0)
@@ -262,15 +264,19 @@ func saveApp(app *pb.ApplicationDefinition) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if app.Container != nil {
+		_, err = db.DefaultDBContainerDef().Save(TEMPCONTEXT(), app.Container)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		app.Container = &commondeploy.ContainerDef{ID: 0}
+	}
 	id, err := appdef_store.Save(TEMPCONTEXT(), app)
-	/*
-		err = dbcon.QueryRowContext(TEMPCONTEXT(), "newappdef", "INSERT into appdef (sourceurl,downloaduser,downloadpw,executable,repo,buildid,instances,mgroup,deploytype,alwayson,critical,statictargetdir,ispublic,java) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id",
-			app.DownloadURL, app.DownloadUser, app.DownloadPassword,
-			app.Binary, app.Repository, app.BuildID, app.Instances, app.Machines, app.DeployType, app.AlwaysOn, app.Critical, app.StaticTargetDir, app.Public, app.Java).Scan(&id)
-	*/
 	if err != nil {
 		return "", errors.New(fmt.Sprintf("Failed to insert application: %s", err))
 	}
+
 	for _, arg := range app.Args {
 		_, err = dbcon.ExecContext(TEMPCONTEXT(), "insertargs", "INSERT INTO args (argument,app_id) values ($1,$2)", arg, id)
 		if err != nil {
@@ -361,19 +367,15 @@ func loadApp(ctx context.Context, id uint64) (*pb.ApplicationDefinition, error) 
 			return nil, err
 		}
 	}
-	/*
-		res := pb.ApplicationDefinition{}
-		var t []interface{}
-		t = append(t, &res.ID, &res.DownloadURL, &res.DownloadUser, &res.DownloadPassword,
-			&res.Binary, &res.Repository, &res.BuildID, &res.Instances, &res.Machines, &res.DeployType, &res.Critical, &res.AlwaysOn, &res.StaticTargetDir, &res.Public, &res.Java)
-		for _, z := range dest {
-			t = append(t, z)
-		}
-		err := row.Scan(t...)
+	if res.Container == nil || res.Container.ID == 0 {
+		res.Container = nil
+	} else {
+		res.Container, err = db.DefaultDBContainerDef().ByID(ctx, res.Container.ID)
 		if err != nil {
 			return nil, err
 		}
-	*/
+	}
+
 	args, err := loadAppArgs(res.ID)
 	if err != nil {
 		return nil, err
