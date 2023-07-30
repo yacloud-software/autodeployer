@@ -12,6 +12,7 @@ message MkenvRequest {
   string RootFileSystemID=1; // which root file system to use
   string TargetDirectory=2; // where to put the root filesystem. the "Targetdirectory" will be the new root
   bool UseOverlayFS=3; // if true, an overlayfs will be mounted at targetdirectory, using RootFileSystem as the lower dir
+  bool UseSudo=4; // if true, root requirement will be gained through sudo (e.g. for mount)
 }
 message MkenvResponse {
 }
@@ -40,3 +41,10 @@ message DerivedCacheEntry {
   uint32 LastUsed=6; // timestamp of last time this was used 
 }
 
+message OnDiskStateList {
+  repeated OnDiskMountEntry MountEntries=1;
+}
+message OnDiskMountEntry {
+  string Filesystem=1;
+  string Target=2;
+}
