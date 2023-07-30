@@ -13,12 +13,22 @@ import (
 
 type Mkenv struct {
 	workdir string
+	usesudo bool
+	oe      *oneenv
 }
 
-func NewMkenv(workdir string) *Mkenv {
+func NewMkenv(workdir string, usesudo bool) *Mkenv {
 	res := &Mkenv{
 		workdir: workdir,
+		usesudo: usesudo,
+		oe: &oneenv{
+			fscache:     fscache.NewFSCache(1024*10, "/srv/autodeployer/fscache"),
+			workdir:     "/srv/autodeployer/mkenv/" + utils.RandomString(32),
+			ondiskstate: &ondiskstate{file: workdir + "/ondiskstate"},
+		},
 	}
+	res.oe.mkenv = res
+	fmt.Println(res.oe.ondiskstate.ToPrettyString())
 	return res
 }
 
@@ -26,16 +36,10 @@ func (m *Mkenv) Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvRespo
 	if !utils.FileExists(req.TargetDirectory) {
 		return nil, fmt.Errorf("target directory \"%s\" does not exist", req.TargetDirectory)
 	}
+	oe := m.oe
+	oe.req = req
+	oe.ctx = ctx
 	fmt.Println(fscache.ListToString("/srv/autodeployer/fscache/cache_list_file"))
-	oe := &oneenv{
-		mkenv:       m,
-		fscache:     fscache.NewFSCache(1024*10, "/srv/autodeployer/fscache"),
-		req:         req,
-		ctx:         ctx,
-		workdir:     "/srv/autodeployer/mkenv/" + utils.RandomString(32),
-		ondiskstate: &ondiskstate{file: m.workdir + "/ondiskstate"},
-	}
-	fmt.Println(oe.ondiskstate.ToPrettyString())
 	mp, err := oe.ondiskstate.get_mount_by_mountpoint(oe.req.TargetDirectory)
 	if err != nil {
 		return nil, err
@@ -60,6 +64,30 @@ func (m *Mkenv) Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvRespo
 	}
 	res := &pb.MkenvResponse{}
 	return res, nil
+}
+
+// unmonut all the stuff we currently think is mounted
+func (m *Mkenv) UnmountAll() error {
+	ms, err := m.oe.ondiskstate.get_all_mounts()
+	if err != nil {
+		return err
+	}
+	for _, mt := range ms {
+		com := []string{"umount", mt.Target}
+		l := linux.New()
+		_, xerr := l.SafelyExecute(com, nil)
+		if xerr != nil {
+			com = append([]string{"sudo"}, com...)
+			l := linux.New()
+			_, xerr := l.SafelyExecute(com, nil)
+			if xerr != nil {
+				err = xerr
+				continue
+			}
+		}
+		m.oe.ondiskstate.remove_mountpoint(mt.Target)
+	}
+	return err
 }
 
 // ensure that RootFS is cached on a local disk
@@ -102,10 +130,10 @@ func (oe *oneenv) MountOverlayFS() error {
 		"mount",
 		"-t", "overlay",
 		"overlay",
-		"-o", fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir, workdir),
+		"-o", fmt.Sprintf("volatile,lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir, workdir),
 		target,
 	}
-	if oe.req.UseSudo {
+	if oe.mkenv.usesudo {
 		com = append([]string{"sudo"}, com...)
 	}
 	fmt.Printf("Mounting: %s\n", strings.Join(com, " "))
@@ -118,8 +146,10 @@ func (oe *oneenv) MountOverlayFS() error {
 	if err != nil {
 		fmt.Printf("failed to record new mount: %s\n", err)
 	}
-	return fmt.Errorf("cannot do overlayfs yet")
+	fmt.Printf("Writeable rootfs on \"%s\"\n", target)
+	return nil
 }
+
 func (oe *oneenv) CopyRootFS() error {
 	return fmt.Errorf("cannot copy rootfs yet")
 }

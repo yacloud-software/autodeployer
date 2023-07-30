@@ -15,10 +15,13 @@ func Mkenv() error {
 		RootFileSystemID: "http://johnsmith/rootfs.tar.bz2",
 		UseOverlayFS:     true,
 		TargetDirectory:  "/srv/temp/rootfs/exe_dir",
-		UseSudo:          true,
 	}
 	utils.RecreateSafely(mr.TargetDirectory)
-	m := mkenv.NewMkenv("/srv/temp/mkenv")
-	_, err := m.Setup(ctx, mr)
+	m := mkenv.NewMkenv("/srv/temp/mkenv", true)
+	err := m.UnmountAll()
+	if err != nil {
+		fmt.Printf("WARNING: failed to unmount (%s)\n", err)
+	}
+	_, err = m.Setup(ctx, mr)
 	return err
 }

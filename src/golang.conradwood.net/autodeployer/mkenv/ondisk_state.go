@@ -22,7 +22,23 @@ func (o *ondiskstate) record_new_mount(mountpoint string) error {
 	oe := &cd.OnDiskMountEntry{Target: mountpoint}
 	o.cur.MountEntries = append(o.cur.MountEntries, oe)
 	o.write_required = true
-	return o.write_if_necessary()
+	return nil
+}
+func (o *ondiskstate) remove_mountpoint(mountpoint string) error {
+	err := o.read_if_necessary()
+	if err != nil {
+		return err
+	}
+	var nr []*cd.OnDiskMountEntry
+	for _, me := range o.cur.MountEntries {
+		if me.Target == mountpoint {
+			continue
+		}
+		nr = append(nr, me)
+	}
+	o.cur.MountEntries = nr
+	o.write_required = true
+	return nil
 }
 func (o *ondiskstate) get_mount_by_mountpoint(mountpoint string) (*cd.OnDiskMountEntry, error) {
 	err := o.read_if_necessary()
@@ -35,7 +51,13 @@ func (o *ondiskstate) get_mount_by_mountpoint(mountpoint string) (*cd.OnDiskMoun
 		}
 	}
 	return nil, nil
-
+}
+func (o *ondiskstate) get_all_mounts() ([]*cd.OnDiskMountEntry, error) {
+	err := o.read_if_necessary()
+	if err != nil {
+		return nil, err
+	}
+	return o.cur.MountEntries, nil
 }
 func (o *ondiskstate) read_if_necessary() error {
 	if o.cur != nil {
