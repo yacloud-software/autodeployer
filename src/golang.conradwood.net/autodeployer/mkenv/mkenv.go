@@ -117,6 +117,7 @@ func (oe *oneenv) CacheRootFS() (string, error) {
 	return tardir, nil
 }
 
+// mount an overlayfs over rootfs
 func (oe *oneenv) MountOverlayFS() error {
 	lowerdir := oe.extracted_rootfs
 	upperdir := oe.workdir + "/overlayfs/upper"
