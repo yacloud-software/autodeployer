@@ -27,8 +27,9 @@ func PrintSample() {
 				GroupID:   "foogroupid",
 				Applications: []*pb.ApplicationDefinition{
 					&pb.ApplicationDefinition{
-						Args:   []string{"arg1", "arg2"},
-						Limits: &pb.Limits{MaxMemory: 3000},
+						Args:      []string{"arg1", "arg2"},
+						Limits:    &pb.Limits{MaxMemory: 3000},
+						Container: &pb.ContainerDef{URL: "foo"},
 					},
 				},
 			},
