@@ -59,38 +59,41 @@ func (dc *DiskCache) maintain_cache() error {
 	if !isEnabled() {
 		err := dc.delete_quickly()
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to delete %w", err)
 		}
 	}
 
 	err = dc.remove_inram()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to remove inram %w", err)
 	}
 
 	err = dc.maintain_flush()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to flush %w", err)
 	}
 	err = dc.delete_stale()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to delete stale %w", err)
 	}
 
 	err = dc.delete_toobig()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to delete toobig %w", err)
 	}
 
 	err = dc.remove_untracked_files()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to remove untracked %w", err)
 	}
 	return nil
 }
 
 // remove files on disk that are not in the index
 func (dc *DiskCache) remove_untracked_files() error {
+	if !utils.FileExists(CACHEDIR) {
+		os.MkdirAll(CACHEDIR, 0777)
+	}
 	files, err := ioutil.ReadDir(CACHEDIR)
 	if err != nil {
 		return err

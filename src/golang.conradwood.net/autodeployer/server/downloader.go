@@ -8,6 +8,7 @@ import (
 	ad "golang.conradwood.net/apis/autodeployer"
 	"golang.conradwood.net/autodeployer/deployments"
 	"golang.conradwood.net/autodeployer/downloader"
+	"golang.conradwood.net/go-easyops/errors"
 	chttp "golang.conradwood.net/go-easyops/http"
 	"golang.conradwood.net/go-easyops/utils"
 	"io"
@@ -61,6 +62,9 @@ func cleanDownloadLocks() {
 // this is called from deploymonkey to "pre-cache" a url
 func (a *AutoDeployer) CacheURL(ctx context.Context, req *ad.URLRequest) (*ad.URLResponse, error) {
 	fmt.Printf("Caching url %s\n", req.URL)
+	if req.URL == "" {
+		return nil, errors.InvalidArgs(ctx, "missing url", "missing url")
+	}
 	if *cache_v2 {
 		return downloader.CacheURL(ctx, req)
 	}

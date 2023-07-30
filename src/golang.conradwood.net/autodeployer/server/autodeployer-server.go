@@ -81,7 +81,7 @@ var (
 	testfile          = flag.String("cfgfile", "", "config file (for testing)")
 	waitdir           = flag.String("waitdir", "", "Block startup until this `directory` exists")
 	brutal            = flag.Bool("brutal", false, "brutally kill processes (-9 immediately)")
-	start_brutal      = flag.Bool("brutal_start", false, "brutally kill processes (-9 immediately) on STARTUP only")
+	start_brutal      = flag.Bool("brutal_start", true, "brutally kill processes (-9 immediately) on STARTUP only")
 	deplMonkey        dm.DeployMonkeyClient
 	pkgMgr            packages.PackageManager
 )

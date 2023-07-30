@@ -164,11 +164,11 @@ func listDeployments() {
 }
 
 func deploy() {
-	ctx := authremote.Context()
 	d := *deployid
 	if d == "" {
 		d = "TEST_DEPLOY_ID"
 	}
+	// send cache request first
 	rl := dm.Limits{
 		MaxMemory: uint32(*maxmb),
 	}
@@ -192,7 +192,7 @@ func deploy() {
 	for i, para := range req.Args {
 		fmt.Printf("Arg #%d %s\n", i, para)
 	}
-	resp, err := cl.Deploy(ctx, &req)
+	resp, err := cache_and_deploy(&req)
 	if err != nil {
 		fmt.Printf("Failed to deploy %d-%d from %s: %s\n", req.RepositoryID, req.BuildID, req.DownloadURL, err)
 		return
@@ -201,7 +201,6 @@ func deploy() {
 }
 
 func deployFile() {
-	ctx := authremote.Context()
 	d := *deployid
 	if d == "" {
 		d = "fake-deploymentid"
@@ -232,7 +231,7 @@ func deployFile() {
 				AppReference:     ar,
 			}
 
-			resp, err := cl.Deploy(ctx, &req)
+			resp, err := cache_and_deploy(&req)
 			utils.Bail("Failed to deploy", err)
 			fmt.Printf("Response to deploy: %v\n", resp)
 		}
@@ -310,4 +309,17 @@ func machineinfo() error {
 	fmt.Printf("%s\n", v.InstanceID)
 	fmt.Printf("%d\n", v.SecondsRunning)
 	return nil
+}
+
+func cache_and_deploy(req *pb.DeployRequest) (*pb.DeployResponse, error) {
+	ctx := authremote.Context()
+	aurl := &pb.URLRequest{
+		URL: req.DownloadURL,
+	}
+	_, err := cl.CacheURL(ctx, aurl)
+	utils.Bail("failed to cache", err)
+
+	ctx = authremote.Context()
+	res, err := cl.Deploy(ctx, req)
+	return res, err
 }

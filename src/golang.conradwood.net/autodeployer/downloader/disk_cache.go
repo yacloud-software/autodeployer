@@ -56,7 +56,7 @@ func (dc *DiskCache) readonce() error {
 	fmt.Printf("Reading index file: %s\n", INDEXFILE)
 	b, err := utils.ReadFile(INDEXFILE)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed reading index %w", err)
 	}
 	res := make([]*diskCacheEntry, 0)
 	for _, s := range strings.Split(string(b), "\n") {
@@ -194,9 +194,11 @@ func (dc *DiskCache) findNextFreeFilename() string {
 	}
 }
 
-/***********************************************************
+/*
+**********************************************************
 diskcache entry
-***********************************************************/
+**********************************************************
+*/
 func (ce *diskCacheEntry) DownloadFailure() {
 	ce.tobedeleted = true
 	ce.completely_downloaded = false

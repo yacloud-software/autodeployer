@@ -83,6 +83,7 @@ func Download(url string, req *ad.StartedRequest, srv ad.AutoDeployer_DownloadSe
 	fmt.Printf("Request to download url %s\n", url)
 	dc, found, err := cache.FindURL(url)
 	if err != nil {
+		fmt.Printf("Failed to download: %s\n", err)
 		return err
 	}
 	if !found {
