@@ -69,10 +69,19 @@ func Execute(mid string, autodeployer_port int) {
 		fmt.Printf("Error: Application Definition is nil (%s)", srp.URL)
 		os.Exit(10)
 	}
-	if srp.AppReference.AppDef == nil {
+	appdef := srp.AppReference.AppDef
+	if appdef == nil {
 		fmt.Printf("Error: Application Definition is nil (%s)", srp.URL)
 		os.Exit(10)
 	}
+	if appdef.Container != nil {
+		err := intoContainer(srp)
+		if err != nil {
+			fmt.Printf("failed to containerise myself: %s\n", err)
+			os.Exit(10)
+		}
+	}
+
 	startupResponse = srp
 	// set memory limits to something sane
 	memlimit = 3000 // a default if nobody tells us otherwise
@@ -249,7 +258,7 @@ func DownloadBinary(srp *ad.StartupResponse, ctr int) error {
 	if archive {
 		err := untar(outfile)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to untar %w", err)
 		}
 	}
 	return nil

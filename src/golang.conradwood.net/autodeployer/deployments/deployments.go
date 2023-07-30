@@ -26,27 +26,28 @@ var (
 // information about a currently deployed application
 type Deployed struct {
 	// if true, then there is no application currently deployed for this user
-	LastUsed       time.Time
-	Idle           bool
-	StartupMsg     string
-	Status         pb.DeploymentStatus
-	Ports          []int
-	User           *user.User
-	Cmd            *exec.Cmd
-	ExitCode       error
-	Args           []string
-	WorkingDir     string
-	Stdout         io.Reader
-	Started        time.Time
-	Finished       time.Time
-	LastLine       string
-	Deploymentpath string
-	Logger         *logger.AsyncLogQueue
-	Pid            uint64 // the pid of starter.go
-	Cgroup         int
-	DeployRequest  *pb.DeployRequest
-	ResolvedArgs   []string
-	undeploy_req   *pb.UndeployRequest
+	LastUsed             time.Time
+	Idle                 bool
+	StartupMsg           string
+	Status               pb.DeploymentStatus
+	Ports                []int
+	User                 *user.User
+	Cmd                  *exec.Cmd
+	ExitCode             error
+	Args                 []string
+	WorkingDir           string
+	Stdout               io.Reader
+	Started              time.Time
+	Finished             time.Time
+	LastLine             string
+	Deploymentpath       string
+	Logger               *logger.AsyncLogQueue
+	Pid                  uint64 // the pid of starter.go
+	Cgroup               int
+	DeployRequest        *pb.DeployRequest
+	ResolvedArgs         []string
+	undeploy_req         *pb.UndeployRequest
+	StartedWithContainer bool // true if this run through deployer/
 }
 
 func (d *Deployed) DeployedApp() *pb.DeployedApp {

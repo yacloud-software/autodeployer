@@ -35,6 +35,9 @@ func StartupCodeFinished(du *deployments.Deployed, exitCode error) {
 		regClient = client.GetRegistryClient()
 	}
 	fmt.Printf("child %s terminated\n", du.StartupMsg)
+	if du.StartedWithContainer {
+		panic("Cannot properly terminate a deployer thing")
+	}
 	cgroups.RemoveCgroup(du)
 	ctx := authremote.Context()
 	ds := &rpb.DeregisterServiceRequest{ProcessID: du.StartupMsg}
@@ -66,6 +69,7 @@ func StartupCodeFinished(du *deployments.Deployed, exitCode error) {
 		du.Logger.Close(du.GetExitCode())
 	}
 	setDeploymentsGauge()
+
 }
 
 func StopProcess(du *deployments.Deployed, brutal bool) {

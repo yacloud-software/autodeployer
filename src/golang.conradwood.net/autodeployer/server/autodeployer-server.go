@@ -21,6 +21,7 @@ import (
 	"golang.conradwood.net/apis/secureargs"
 	"golang.conradwood.net/autodeployer/cgroups"
 	"golang.conradwood.net/autodeployer/config"
+	"golang.conradwood.net/autodeployer/deployer"
 	"golang.conradwood.net/autodeployer/deployments"
 	"golang.conradwood.net/autodeployer/downloader"
 	"golang.conradwood.net/autodeployer/packages"
@@ -30,6 +31,7 @@ import (
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/cmdline"
+	"golang.conradwood.net/go-easyops/linux"
 	//"golang.conradwood.net/go-easyops/linux" // add busy gauge
 	"golang.conradwood.net/autodeployer/mkenv"
 	"golang.conradwood.net/go-easyops/logger"
@@ -329,7 +331,11 @@ func (s *AutoDeployer) Deploy(ctx context.Context, cr *pb.DeployRequest) (*pb.De
 
 	_, wd := filepath.Split(du.User.HomeDir)
 	wd = fmt.Sprintf("/srv/autodeployer/deployments/%s", wd)
-
+	ar := du.AppReference()
+	ct := ar.AppDef.Container
+	if ct != nil {
+		return deployer.Deploy(ctx, du, cr)
+	}
 	du.Log("Deploying \"%d\" as user \"%s\" in %s", cr.RepositoryID, du.User.Username, wd)
 	uid, _ := strconv.Atoi(du.User.Uid)
 	gid, _ := strconv.Atoi(du.User.Gid)
@@ -348,27 +354,32 @@ func (s *AutoDeployer) Deploy(ctx context.Context, cr *pb.DeployRequest) (*pb.De
 		return nil, errors.New("Failed to re-exec self. check startup path of daemon")
 	}
 	as_root := false
-	ar := du.AppReference()
 
-	ct := ar.AppDef.Container
 	if ct != nil {
 		// create environment
 		mr := &cd.MkenvRequest{
 			UseOverlayFS:     true,
 			RootFileSystemID: "http://johnsmith/rootfs.tar.bz2",
 			TargetDirectory:  wd,
+			MountDev:         true,
+			MountSys:         true,
+			MountProc:        true,
 		}
 		_, err := mk_env.Setup(ctx, mr)
 		if err != nil {
 			return nil, err
 		}
+		//wd = wd + fmt.Sprintf("/srv/%d", uid)
 	}
 	binary := sucom()
 	var args []string
 	if ar != nil && ar.AppDef != nil {
 		as_root = ar.AppDef.AsRoot
 	}
-
+	err = set_cap_toself(binname)
+	if err != nil {
+		return nil, err
+	}
 	if as_root {
 		binary = binname
 		args = []string{
@@ -1032,4 +1043,18 @@ func sucom() string {
 		}
 	}
 	panic("'su' not found")
+}
+func set_cap_toself(binary string) error {
+	l := linux.New()
+	com := []string{
+		"setcap",
+		"cap_sys_chroot+ep",
+		binary,
+	}
+	_, err := l.SafelyExecute(com, nil)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Added capabilities to %s\n", binary)
+	return nil
 }

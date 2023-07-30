@@ -2,6 +2,7 @@ package fscache
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	pb "golang.conradwood.net/apis/commondeploy"
 	"golang.conradwood.net/go-easyops/errors"
@@ -10,6 +11,10 @@ import (
 	"os"
 	"sync"
 	"time"
+)
+
+var (
+	debug = flag.Bool("debug_fscache", false, "debug mode for fscache")
 )
 
 type FSCache interface {
@@ -213,6 +218,9 @@ func (f *fscache) handleIncompleteCacheEntry(ctx context.Context, ce *pb.CacheEn
 }
 
 func (f *fscache) debugf(format string, args ...interface{}) {
+	if !*debug {
+		return
+	}
 	s := fmt.Sprintf(format, args...)
 	fmt.Println("[fscache] " + s)
 }

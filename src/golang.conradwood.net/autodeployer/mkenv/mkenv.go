@@ -7,7 +7,7 @@ import (
 	"golang.conradwood.net/autodeployer/fscache"
 	"golang.conradwood.net/go-easyops/linux"
 	"golang.conradwood.net/go-easyops/utils"
-	//	"os"
+	"os"
 	"strings"
 )
 
@@ -63,8 +63,44 @@ func (m *Mkenv) Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvRespo
 	if err != nil {
 		return nil, err
 	}
+
+	tdir := oe.req.TargetDirectory
+	if oe.req.MountProc {
+		os.MkdirAll(tdir+"/proc", 0777)
+		err := exe("mount", "-t", "proc", "/proc", tdir+"/proc/")
+		if err != nil {
+			return nil, err
+		}
+	}
+	if oe.req.MountDev {
+		os.MkdirAll(tdir+"/dev", 0777)
+		err := exe("mount", "--rbind", "/dev", tdir+"/dev/")
+		if err != nil {
+			return nil, err
+		}
+	}
+	if oe.req.MountSys {
+		os.MkdirAll(tdir+"/sys", 0777)
+		err := exe("mount", "--rbind", "/sys", tdir+"/sys/")
+		if err != nil {
+			return nil, err
+		}
+	}
 	res := &pb.MkenvResponse{}
 	return res, nil
+}
+func exe(com ...string) error {
+	var mcom []string
+	for _, c := range com {
+		mcom = append(mcom, c)
+	}
+	l := linux.New()
+	b, err := l.SafelyExecute(mcom, nil)
+	if err != nil {
+		fmt.Println(b)
+		return err
+	}
+	return nil
 }
 
 // unmonut all the stuff we currently think is mounted
@@ -147,7 +183,7 @@ func (oe *oneenv) CacheRootFS() (string, error) {
 	return tardir, nil
 }
 
-// mount an overlayfs over rootfs
+// mount an overlayfs over rootfs to oe.req.TargetDirectory
 func (oe *oneenv) MountOverlayFS() error {
 	lowerdir := oe.extracted_rootfs
 	upperdir := oe.workdir + "/overlayfs/upper"
