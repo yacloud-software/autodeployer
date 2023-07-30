@@ -139,7 +139,7 @@ func (f *fscache) GetDerivedFileFromDerived(ce *pb.CacheEntry, from_id, file_id 
 			}
 		}
 	}
-	if tce.Deriving {
+	if tce != nil && tce.Deriving {
 		f.lock.Unlock()
 		return f.wait_for_derive(ce, tce)
 	}

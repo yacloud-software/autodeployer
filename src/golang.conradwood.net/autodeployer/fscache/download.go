@@ -10,8 +10,13 @@ import (
 	"hash"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+)
+
+const (
+	BUFSIZE = 32768
 )
 
 func (f *fscache) download(ce *pb.CacheEntry) error {
@@ -33,14 +38,28 @@ func (f *fscache) download_http(ce *pb.CacheEntry, filename string) error {
 	h := http.NewDirectClient()
 	hr := h.Get(ce.CachedURL + ".md5")
 	md5sum := ""
-	if hr.Error() == nil && hr.HTTPCode() >= 200 && hr.HTTPCode() < 300 {
+	err := hr.Error()
+	if err == nil && hr.HTTPCode() >= 200 && hr.HTTPCode() < 300 {
 		md5sum = cleanDownloadedMD5Sum(string(hr.Body()))
 	}
 	f.debugf("md5sum for %s: \"%s\"", ce.CachedURL, md5sum)
 
 	h = http.NewDirectClient()
+	hr = h.Head(ce.CachedURL)
+	err = hr.Error()
+	filesize := uint64(0)
+
+	if err == nil && hr.HTTPCode() >= 200 && hr.HTTPCode() < 300 {
+		hd := hr.Header("content-length")
+		if hd != "" {
+			f.debugf("Filesize: \"%s\"", hd)
+			filesize, _ = strconv.ParseUint(hd, 10, 64)
+		}
+	}
+
+	h = http.NewDirectClient()
 	hr = h.GetStream(ce.CachedURL)
-	err := hr.Error()
+	err = hr.Error()
 	if err != nil {
 		return err
 	}
@@ -48,7 +67,7 @@ func (f *fscache) download_http(ce *pb.CacheEntry, filename string) error {
 		return fmt.Errorf("failed to download (code %d)", hr.HTTPCode())
 	}
 	started := time.Now()
-	size, chk, err := f.streamBodyToFile(ce, hr.BodyReader(), filename)
+	size, chk, err := f.streamBodyToFile(ce, filesize, hr.BodyReader(), filename)
 	if err != nil {
 		return err
 	}
@@ -77,20 +96,23 @@ func (f *fscache) decActiveDownload() {
 	f.active_downloads--
 }
 
-func (f *fscache) streamBodyToFile(ce *pb.CacheEntry, r io.Reader, filename string) (int, *checksum, error) {
+func (f *fscache) streamBodyToFile(ce *pb.CacheEntry, filesize uint64, r io.Reader, filename string) (int, *checksum, error) {
 	fw, err := os.Create(filename)
 	if err != nil {
 		return 0, nil, err
 	}
-	size, c, err := f.streamBodyToWriter(ce, r, fw)
+	size, c, err := f.streamBodyToWriter(ce, filesize, r, fw)
 	fw.Close()
 	return size, c, err
 
 }
 
-func (f *fscache) streamBodyToWriter(ce *pb.CacheEntry, r io.Reader, w io.Writer) (int, *checksum, error) {
+func (f *fscache) streamBodyToWriter(ce *pb.CacheEntry, filesize uint64, r io.Reader, w io.Writer) (int, *checksum, error) {
 	p := &utils.ProgressReporter{}
-	buf := make([]byte, 8192)
+	if filesize != 0 {
+		p.SetTotal(filesize)
+	}
+	buf := make([]byte, BUFSIZE)
 	size := 0
 	m := md5.New()
 	for {

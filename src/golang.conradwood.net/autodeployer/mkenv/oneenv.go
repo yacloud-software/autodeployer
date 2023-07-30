@@ -7,8 +7,10 @@ import (
 )
 
 type oneenv struct {
-	req     *pb.MkenvRequest
-	ctx     context.Context
-	fscache fscache.FSCache
-	envdir  string
+	req              *pb.MkenvRequest
+	ctx              context.Context
+	fscache          fscache.FSCache
+	extracted_rootfs string // our original, cached, immutable rootfs
+	workdir          string // create only files under here
+	//	envdir  string
 }

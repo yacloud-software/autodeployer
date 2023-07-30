@@ -3,6 +3,7 @@ package mkenv
 import (
 	"archive/tar"
 	"fmt"
+	"golang.conradwood.net/go-easyops/utils"
 	"io"
 	"io/fs"
 	"os"
@@ -28,6 +29,8 @@ func Untar(tarfile, targetdir string) error {
 	return err
 }
 func Derive_Untar(tarfile io.Reader, targetdir string) error {
+	// os.RemoveAll?
+	utils.RecreateSafely(targetdir)
 	var err error
 	var chownList []*chownEntry
 	tr := tar.NewReader(tarfile)

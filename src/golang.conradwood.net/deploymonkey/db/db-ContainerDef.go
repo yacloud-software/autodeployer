@@ -16,15 +16,16 @@ package db
 
 Main Table:
 
- CREATE TABLE containerdef (id integer primary key default nextval('containerdef_seq'),url text not null  );
+ CREATE TABLE containerdef (id integer primary key default nextval('containerdef_seq'),url text not null  ,useoverlayfs boolean not null  );
 
 Alter statements:
 ALTER TABLE containerdef ADD COLUMN IF NOT EXISTS url text not null default '';
+ALTER TABLE containerdef ADD COLUMN IF NOT EXISTS useoverlayfs boolean not null default false;
 
 
 Archive Table: (structs can be moved from main to archive using Archive() function)
 
- CREATE TABLE containerdef_archive (id integer unique not null,url text not null);
+ CREATE TABLE containerdef_archive (id integer unique not null,url text not null,useoverlayfs boolean not null);
 */
 
 import (
@@ -82,7 +83,7 @@ func (a *DBContainerDef) Archive(ctx context.Context, id uint64) error {
 	}
 
 	// now save it to archive:
-	_, e := a.DB.ExecContext(ctx, "archive_DBContainerDef", "insert into "+a.SQLArchivetablename+" (id,url) values ($1,$2) ", p.ID, p.URL)
+	_, e := a.DB.ExecContext(ctx, "archive_DBContainerDef", "insert into "+a.SQLArchivetablename+" (id,url, useoverlayfs) values ($1,$2, $3) ", p.ID, p.URL, p.UseOverlayFS)
 	if e != nil {
 		return e
 	}
@@ -95,7 +96,7 @@ func (a *DBContainerDef) Archive(ctx context.Context, id uint64) error {
 // Save (and use database default ID generation)
 func (a *DBContainerDef) Save(ctx context.Context, p *savepb.ContainerDef) (uint64, error) {
 	qn := "DBContainerDef_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (url) values ($1) returning id", p.URL)
+	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (url, useoverlayfs) values ($1, $2) returning id", p.URL, p.UseOverlayFS)
 	if e != nil {
 		return 0, a.Error(ctx, qn, e)
 	}
@@ -115,13 +116,13 @@ func (a *DBContainerDef) Save(ctx context.Context, p *savepb.ContainerDef) (uint
 // Save using the ID specified
 func (a *DBContainerDef) SaveWithID(ctx context.Context, p *savepb.ContainerDef) error {
 	qn := "insert_DBContainerDef"
-	_, e := a.DB.ExecContext(ctx, qn, "insert into "+a.SQLTablename+" (id,url) values ($1,$2) ", p.ID, p.URL)
+	_, e := a.DB.ExecContext(ctx, qn, "insert into "+a.SQLTablename+" (id,url, useoverlayfs) values ($1,$2, $3) ", p.ID, p.URL, p.UseOverlayFS)
 	return a.Error(ctx, qn, e)
 }
 
 func (a *DBContainerDef) Update(ctx context.Context, p *savepb.ContainerDef) error {
 	qn := "DBContainerDef_Update"
-	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set url=$1 where id = $2", p.URL, p.ID)
+	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set url=$1, useoverlayfs=$2 where id = $3", p.URL, p.UseOverlayFS, p.ID)
 
 	return a.Error(ctx, qn, e)
 }
@@ -136,7 +137,7 @@ func (a *DBContainerDef) DeleteByID(ctx context.Context, p uint64) error {
 // get it by primary id
 func (a *DBContainerDef) ByID(ctx context.Context, p uint64) (*savepb.ContainerDef, error) {
 	qn := "DBContainerDef_ByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,url from "+a.SQLTablename+" where id = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,url, useoverlayfs from "+a.SQLTablename+" where id = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error querying (%s)", e))
 	}
@@ -157,7 +158,7 @@ func (a *DBContainerDef) ByID(ctx context.Context, p uint64) (*savepb.ContainerD
 // get it by primary id (nil if no such ID row, but no error either)
 func (a *DBContainerDef) TryByID(ctx context.Context, p uint64) (*savepb.ContainerDef, error) {
 	qn := "DBContainerDef_TryByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,url from "+a.SQLTablename+" where id = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,url, useoverlayfs from "+a.SQLTablename+" where id = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error querying (%s)", e))
 	}
@@ -178,7 +179,7 @@ func (a *DBContainerDef) TryByID(ctx context.Context, p uint64) (*savepb.Contain
 // get all rows
 func (a *DBContainerDef) All(ctx context.Context) ([]*savepb.ContainerDef, error) {
 	qn := "DBContainerDef_all"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,url from "+a.SQLTablename+" order by id")
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,url, useoverlayfs from "+a.SQLTablename+" order by id")
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("All: error querying (%s)", e))
 	}
@@ -197,7 +198,7 @@ func (a *DBContainerDef) All(ctx context.Context) ([]*savepb.ContainerDef, error
 // get all "DBContainerDef" rows with matching URL
 func (a *DBContainerDef) ByURL(ctx context.Context, p string) ([]*savepb.ContainerDef, error) {
 	qn := "DBContainerDef_ByURL"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,url from "+a.SQLTablename+" where url = $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,url, useoverlayfs from "+a.SQLTablename+" where url = $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByURL: error querying (%s)", e))
 	}
@@ -212,7 +213,7 @@ func (a *DBContainerDef) ByURL(ctx context.Context, p string) ([]*savepb.Contain
 // the 'like' lookup
 func (a *DBContainerDef) ByLikeURL(ctx context.Context, p string) ([]*savepb.ContainerDef, error) {
 	qn := "DBContainerDef_ByLikeURL"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,url from "+a.SQLTablename+" where url ilike $1", p)
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,url, useoverlayfs from "+a.SQLTablename+" where url ilike $1", p)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByURL: error querying (%s)", e))
 	}
@@ -220,6 +221,36 @@ func (a *DBContainerDef) ByLikeURL(ctx context.Context, p string) ([]*savepb.Con
 	l, e := a.FromRows(ctx, rows)
 	if e != nil {
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByURL: error scanning (%s)", e))
+	}
+	return l, nil
+}
+
+// get all "DBContainerDef" rows with matching UseOverlayFS
+func (a *DBContainerDef) ByUseOverlayFS(ctx context.Context, p bool) ([]*savepb.ContainerDef, error) {
+	qn := "DBContainerDef_ByUseOverlayFS"
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,url, useoverlayfs from "+a.SQLTablename+" where useoverlayfs = $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("ByUseOverlayFS: error querying (%s)", e))
+	}
+	defer rows.Close()
+	l, e := a.FromRows(ctx, rows)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("ByUseOverlayFS: error scanning (%s)", e))
+	}
+	return l, nil
+}
+
+// the 'like' lookup
+func (a *DBContainerDef) ByLikeUseOverlayFS(ctx context.Context, p bool) ([]*savepb.ContainerDef, error) {
+	qn := "DBContainerDef_ByLikeUseOverlayFS"
+	rows, e := a.DB.QueryContext(ctx, qn, "select id,url, useoverlayfs from "+a.SQLTablename+" where useoverlayfs ilike $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("ByUseOverlayFS: error querying (%s)", e))
+	}
+	defer rows.Close()
+	l, e := a.FromRows(ctx, rows)
+	if e != nil {
+		return nil, a.Error(ctx, qn, fmt.Errorf("ByUseOverlayFS: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -245,17 +276,17 @@ func (a *DBContainerDef) Tablename() string {
 }
 
 func (a *DBContainerDef) SelectCols() string {
-	return "id,url"
+	return "id,url, useoverlayfs"
 }
 func (a *DBContainerDef) SelectColsQualified() string {
-	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".url"
+	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".url, " + a.SQLTablename + ".useoverlayfs"
 }
 
 func (a *DBContainerDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ContainerDef, error) {
 	var res []*savepb.ContainerDef
 	for rows.Next() {
 		foo := savepb.ContainerDef{}
-		err := rows.Scan(&foo.ID, &foo.URL)
+		err := rows.Scan(&foo.ID, &foo.URL, &foo.UseOverlayFS)
 		if err != nil {
 			return nil, a.Error(ctx, "fromrow-scan", err)
 		}
@@ -270,9 +301,10 @@ func (a *DBContainerDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*sav
 func (a *DBContainerDef) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null  ,useoverlayfs boolean not null  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null  ,useoverlayfs boolean not null  );`,
 		`ALTER TABLE containerdef ADD COLUMN IF NOT EXISTS url text not null default '';`,
+		`ALTER TABLE containerdef ADD COLUMN IF NOT EXISTS useoverlayfs boolean not null default false;`,
 	}
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
