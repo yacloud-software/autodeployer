@@ -12,7 +12,6 @@ message MkenvRequest {
   string RootFileSystemID=1; // which root file system to use
   string TargetDirectory=2; // where to put the root filesystem. the "Targetdirectory" will be the new root
   bool UseOverlayFS=3; // if true, an overlayfs will be mounted at targetdirectory, using RootFileSystem as the lower dir
-  bool UseSudo=4; // if true, root requirement will be gained through sudo (e.g. for mount)
 }
 message MkenvResponse {
 }
