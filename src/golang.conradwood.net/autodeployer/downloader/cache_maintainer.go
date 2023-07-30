@@ -307,12 +307,12 @@ func (dc *DiskCache) flush() error {
 func flush_thread() {
 	for {
 		dc := <-flush_chan
-		fmt.Printf("Cache flush...\n")
+		//		fmt.Printf("Cache flush...\n")
 		var buf []string
 		for _, ce := range dc.entries {
 			buf = append(buf, ce.SerialiseToString())
 		}
-		fmt.Printf("Flushing %d entries\n", len(dc.entries))
+		//fmt.Printf("Flushing %d entries\n", len(dc.entries))
 		bs := strings.Join(buf, "\n") + "\n"
 		bs = `#LastMod    filename                          URL                                               lastread  tobedeleted complDownloaded
 ` + bs

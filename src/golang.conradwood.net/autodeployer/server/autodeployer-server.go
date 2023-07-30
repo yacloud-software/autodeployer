@@ -15,6 +15,7 @@ import (
 	"fmt"
 	pb "golang.conradwood.net/apis/autodeployer"
 	"golang.conradwood.net/apis/common"
+	cd "golang.conradwood.net/apis/commondeploy"
 	dm "golang.conradwood.net/apis/deploymonkey"
 	rpb "golang.conradwood.net/apis/registry"
 	"golang.conradwood.net/apis/secureargs"
@@ -30,6 +31,7 @@ import (
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/cmdline"
 	//"golang.conradwood.net/go-easyops/linux" // add busy gauge
+	"golang.conradwood.net/autodeployer/mkenv"
 	"golang.conradwood.net/go-easyops/logger"
 	"golang.conradwood.net/go-easyops/prometheus"
 	"golang.conradwood.net/go-easyops/server"
@@ -51,6 +53,7 @@ import (
 
 // static variables for flag parser
 var (
+	mk_env                    *mkenv.Mkenv
 	autodeployer_started      = time.Now()
 	random_lifetime_stable_id string
 	shutting_down             = false
@@ -113,6 +116,7 @@ func main() {
 	fmt.Printf("Starting autodeployer...\n")
 	random_lifetime_stable_id = utils.RandomString(64)
 	fmt.Printf("This autodeployer instance id: \"%s\"\n", random_lifetime_stable_id)
+
 	// if file does not exist, this will do NOTHING,
 	// thus save to leave it in here w/o switch
 	err = config.Start()
@@ -136,6 +140,12 @@ func main() {
 		/********************************** branch to client startup code **************/
 		starter.Execute(*msgid, *port)
 		os.Exit(10) // should never happen
+	}
+
+	mk_env = mkenv.NewMkenv("/srv/temp/mkenv", false)
+	err = mk_env.UnmountAll()
+	if err != nil {
+		fmt.Printf("WARNING: failed to unmount (%s)\n", err)
 	}
 
 	downloader.Start(func() bool {
@@ -339,6 +349,20 @@ func (s *AutoDeployer) Deploy(ctx context.Context, cr *pb.DeployRequest) (*pb.De
 	}
 	as_root := false
 	ar := du.AppReference()
+
+	ct := ar.AppDef.Container
+	if ct != nil {
+		// create environment
+		mr := &cd.MkenvRequest{
+			UseOverlayFS:     true,
+			RootFileSystemID: "http://johnsmith/rootfs.tar.bz2",
+			TargetDirectory:  wd,
+		}
+		_, err := mk_env.Setup(ctx, mr)
+		if err != nil {
+			return nil, err
+		}
+	}
 	binary := sucom()
 	var args []string
 	if ar != nil && ar.AppDef != nil {
