@@ -96,6 +96,7 @@ func (o *ondiskstate) write_if_necessary() error {
 		os.MkdirAll(dir, 0777)
 		err = utils.WriteFile(o.file, b)
 	}
+	o.write_required = false
 	return err
 }
 

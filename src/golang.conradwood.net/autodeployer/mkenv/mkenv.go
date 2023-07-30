@@ -36,6 +36,7 @@ func (m *Mkenv) Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvRespo
 	if !utils.FileExists(req.TargetDirectory) {
 		return nil, fmt.Errorf("target directory \"%s\" does not exist", req.TargetDirectory)
 	}
+	defer m.oe.ondiskstate.write_if_necessary()
 	oe := m.oe
 	oe.req = req
 	oe.ctx = ctx
@@ -68,6 +69,7 @@ func (m *Mkenv) Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvRespo
 
 // unmonut all the stuff we currently think is mounted
 func (m *Mkenv) UnmountAll() error {
+	defer m.oe.ondiskstate.write_if_necessary()
 	ms, err := m.oe.ondiskstate.get_all_mounts()
 	if err != nil {
 		return err
@@ -90,8 +92,36 @@ func (m *Mkenv) UnmountAll() error {
 	return err
 }
 
+// unmonut all the stuff we currently think is mounted
+func (m *Mkenv) Unmount(mountpoint string) error {
+	defer m.oe.ondiskstate.write_if_necessary()
+	mt, err := m.oe.ondiskstate.get_mount_by_mountpoint(mountpoint)
+	if err != nil {
+		return err
+	}
+	if mt == nil {
+		// nothing mounted.
+		return nil
+	}
+	com := []string{"umount", mountpoint}
+	l := linux.New()
+	_, xerr := l.SafelyExecute(com, nil)
+	if xerr != nil {
+		com = append([]string{"sudo"}, com...)
+		l := linux.New()
+		_, xerr := l.SafelyExecute(com, nil)
+		if xerr != nil {
+			return xerr
+		}
+	}
+	m.oe.ondiskstate.remove_mountpoint(mt.Target)
+
+	return nil
+}
+
 // ensure that RootFS is cached on a local disk
 func (oe *oneenv) CacheRootFS() (string, error) {
+	defer oe.ondiskstate.write_if_necessary()
 	cr := &pb.CacheRequest{URL: oe.req.RootFileSystemID}
 	ce, err := oe.fscache.Cache(oe.ctx, cr)
 	if err != nil {
