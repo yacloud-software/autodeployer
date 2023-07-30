@@ -6,6 +6,8 @@ replace golang.conradwood.net/deploymonkey => ../deploymonkey
 
 replace golang.conradwood.net/apis/autodeployer => ../apis/autodeployer
 
+replace golang.conradwood.net/apis/deploymonkey => ../apis/deploymonkey
+
 replace golang.conradwood.net/apis/commondeploy => ../apis/commondeploy
 
 require (

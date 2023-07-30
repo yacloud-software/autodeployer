@@ -28,8 +28,6 @@ golang.conradwood.net/apis/auth v1.1.2309 h1:q4HYkwp3CVB6NgrAZf9U6h9lIeSI/FuSC0d
 golang.conradwood.net/apis/auth v1.1.2309/go.mod h1:BwI1BZ2OHt4K3oql7cb6YTBhApDIgb5YF9S/SqYWRUc=
 golang.conradwood.net/apis/common v1.1.2309 h1:7LzX2czT55leOFAY9ekL5WkkAQ3dogDWcy8E42HAs8U=
 golang.conradwood.net/apis/common v1.1.2309/go.mod h1:xchQyqgdvU3Pyk03UNBiO/WcK5dvPlRp64NDE/1a60M=
-golang.conradwood.net/apis/deploymonkey v1.1.2309 h1:CyckPGLMxH1Jv5DC5QOQSKLA3O824S58giDnQ4og51Y=
-golang.conradwood.net/apis/deploymonkey v1.1.2309/go.mod h1:MxspmPsSC2YsK4s+EG82jMx8MnNgmO5yJW5UAikYzQ8=
 golang.conradwood.net/apis/echoservice v1.1.2309 h1:v5vADnDPfqg0Nfvz+pkEVb8SujraglUmkM7wXQ1oTCY=
 golang.conradwood.net/apis/echoservice v1.1.2309/go.mod h1:YdRLWn2aXrJ75R0LVufZy7irBJEKWot1AmJZF66lsdg=
 golang.conradwood.net/apis/errorlogger v1.1.2309 h1:ym/wq249J7NjJRKQJDB0DFywB18wt5DO8YVmQJmXorY=
