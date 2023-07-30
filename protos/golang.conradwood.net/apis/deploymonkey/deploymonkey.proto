@@ -86,7 +86,8 @@ message ApplicationDefinition {
 
 message ContainerDef {
   uint64 ID=1;
-  string URL=2;
+  string URL=2; // where to get rootfs from
+  bool UseOverlayFS=3; // if true mount an overlayfs over rootfs and execute in it
 }
 message Limits {
   // max memory available to this process in Megabyte (default = 3000Mb )
