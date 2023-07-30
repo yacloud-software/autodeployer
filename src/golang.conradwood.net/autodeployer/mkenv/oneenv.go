@@ -12,5 +12,7 @@ type oneenv struct {
 	fscache          fscache.FSCache
 	extracted_rootfs string // our original, cached, immutable rootfs
 	workdir          string // create only files under here
+	ondiskstate      *ondiskstate
+	mkenv            *Mkenv
 	//	envdir  string
 }

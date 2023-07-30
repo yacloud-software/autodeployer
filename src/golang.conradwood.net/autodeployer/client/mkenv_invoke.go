@@ -15,8 +15,10 @@ func Mkenv() error {
 		RootFileSystemID: "http://johnsmith/rootfs.tar.bz2",
 		UseOverlayFS:     true,
 		TargetDirectory:  "/srv/temp/rootfs/exe_dir",
+		UseSudo:          true,
 	}
 	utils.RecreateSafely(mr.TargetDirectory)
-	_, err := mkenv.Setup(ctx, mr)
+	m := mkenv.NewMkenv("/srv/temp/mkenv")
+	_, err := m.Setup(ctx, mr)
 	return err
 }

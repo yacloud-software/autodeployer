@@ -11,16 +11,37 @@ import (
 	"strings"
 )
 
-func Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvResponse, error) {
+type Mkenv struct {
+	workdir string
+}
+
+func NewMkenv(workdir string) *Mkenv {
+	res := &Mkenv{
+		workdir: workdir,
+	}
+	return res
+}
+
+func (m *Mkenv) Setup(ctx context.Context, req *pb.MkenvRequest) (*pb.MkenvResponse, error) {
 	if !utils.FileExists(req.TargetDirectory) {
 		return nil, fmt.Errorf("target directory \"%s\" does not exist", req.TargetDirectory)
 	}
 	fmt.Println(fscache.ListToString("/srv/autodeployer/fscache/cache_list_file"))
 	oe := &oneenv{
-		fscache: fscache.NewFSCache(1024*10, "/srv/autodeployer/fscache"),
-		req:     req,
-		ctx:     ctx,
-		workdir: "/srv/autodeployer/mkenv/" + utils.RandomString(32),
+		mkenv:       m,
+		fscache:     fscache.NewFSCache(1024*10, "/srv/autodeployer/fscache"),
+		req:         req,
+		ctx:         ctx,
+		workdir:     "/srv/autodeployer/mkenv/" + utils.RandomString(32),
+		ondiskstate: &ondiskstate{file: m.workdir + "/ondiskstate"},
+	}
+	fmt.Println(oe.ondiskstate.ToPrettyString())
+	mp, err := oe.ondiskstate.get_mount_by_mountpoint(oe.req.TargetDirectory)
+	if err != nil {
+		return nil, err
+	}
+	if mp != nil {
+		return nil, fmt.Errorf("targetdir %s already mounted", oe.req.TargetDirectory)
 	}
 	utils.RecreateSafely(oe.workdir)
 	oe.fscache.RegisterDeriveFunctionDir("untar", Derive_Untar)
@@ -84,11 +105,18 @@ func (oe *oneenv) MountOverlayFS() error {
 		"-o", fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir, workdir),
 		target,
 	}
+	if oe.req.UseSudo {
+		com = append([]string{"sudo"}, com...)
+	}
 	fmt.Printf("Mounting: %s\n", strings.Join(com, " "))
 	b, err := l.SafelyExecute(com, nil)
 	if err != nil {
 		fmt.Printf("Failed to mount:%s\n%s\n", err, b)
 		return err
+	}
+	err = oe.ondiskstate.record_new_mount(target)
+	if err != nil {
+		fmt.Printf("failed to record new mount: %s\n", err)
 	}
 	return fmt.Errorf("cannot do overlayfs yet")
 }
