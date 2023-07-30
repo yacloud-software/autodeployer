@@ -80,6 +80,7 @@ func (oe *oneenv) MountOverlayFS() error {
 	com := []string{
 		"mount",
 		"-t", "overlay",
+		"overlay",
 		"-o", fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir, workdir),
 		target,
 	}
