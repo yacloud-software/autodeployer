@@ -27,6 +27,8 @@ message DeployRequest {
   deploymonkey.Limits Limits = 15;
   deploymonkey.AppReference AppReference = 16;
   uint64 RepositoryID = 17; // the git repository id
+  string Deployer=18; // e.g. "deploymonkey"
+  bytes DeployerInfo=19; // opaque bytes which are only meaningful to the Deployer
 }
 
 // this entire message is deprecated and obsolete. see deployedapp instead. However this is used in many places in the registry, so it cannot be removed (yet) and still has to be handled correctly */
@@ -135,6 +137,7 @@ message ResourceResponse {
   repeated int32 Ports = 1;
 }
 message InfoRequest {
+  string Deployer=1; // if empty lists all, otherwise only lists those from this deployer
 }
 
 message DeployedApp {
