@@ -239,7 +239,7 @@ func (m *DeployRequest) GetRepositoryID() uint64 {
 	return 0
 }
 
-// this entire message is deprecated and obsolete. see deployedapp instead */
+// this entire message is deprecated and obsolete. see deployedapp instead. However this is used in many places in the registry, so it cannot be removed (yet) and still has to be handled correctly */
 type DeployInfo struct {
 	DownloadURL      string   `protobuf:"bytes,1,opt,name=DownloadURL" json:"DownloadURL,omitempty"`
 	DownloadUser     string   `protobuf:"bytes,2,opt,name=DownloadUser" json:"DownloadUser,omitempty"`
