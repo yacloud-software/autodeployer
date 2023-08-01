@@ -29,7 +29,7 @@ message DeployRequest {
   uint64 RepositoryID = 17; // the git repository id
 }
 
-// this entire message is deprecated and obsolete. see deployedapp instead */
+// this entire message is deprecated and obsolete. see deployedapp instead. However this is used in many places in the registry, so it cannot be removed (yet) and still has to be handled correctly */
 message DeployInfo {
   string DownloadURL = 1;
   string DownloadUser = 2;
@@ -86,7 +86,7 @@ message DeployResponse {
   // the local ports chosen for the application
   repeated uint32 Ports = 4;
   // the user this application runs as
-  string UserID = 5;
+  string userid = 5;
   // an ID unique to this instance
   string ID = 6;
 }
