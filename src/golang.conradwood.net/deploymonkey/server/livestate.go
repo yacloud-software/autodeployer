@@ -299,7 +299,7 @@ func getDeployments(adc ad.AutoDeployerClient, sa *rpb.ServiceAddress, deplid st
 	//	var res []*pb.ApplicationDefinition
 	var res []*ad.DeployedApp
 	ctx := authremote.Context()
-	info, err := adc.GetDeployments(ctx, &ad.InfoRequest{})
+	info, err := adc.GetDeployments(ctx, dc.CreateInfoRequest())
 	if err != nil {
 		fmt.Printf("Failed to query service %v: %s\n", sa, err)
 		return nil, err

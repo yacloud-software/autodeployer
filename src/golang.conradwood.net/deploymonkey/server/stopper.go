@@ -7,6 +7,7 @@ import (
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
 	rg "golang.conradwood.net/apis/registry"
+	dc "golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/go-easyops/authremote"
 	"sync"
 	"time"
@@ -361,7 +362,7 @@ func GetDeployments(host string) (*ad.InfoResponse, error) {
 	defer conn.Close()
 	adc := ad.NewAutoDeployerClient(conn)
 	ctx := authremote.Context()
-	info, err := adc.GetDeployments(ctx, &ad.InfoRequest{})
+	info, err := adc.GetDeployments(ctx, dc.CreateInfoRequest())
 	return info, err
 }
 

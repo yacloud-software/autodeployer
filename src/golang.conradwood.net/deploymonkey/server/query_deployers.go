@@ -6,6 +6,7 @@ import (
 	ad "golang.conradwood.net/apis/autodeployer"
 	dm "golang.conradwood.net/apis/deploymonkey"
 	rpb "golang.conradwood.net/apis/registry"
+	dc "golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/deploymonkey/config"
 	"golang.conradwood.net/deploymonkey/scheduler"
 	"golang.conradwood.net/deploymonkey/suggest"
@@ -240,7 +241,7 @@ func ScanAutodeployer(sa *rpb.ServiceAddress) error {
 		conn.Close()
 		return fmt.Errorf("%s", s)
 	}
-	da, err := adc.GetDeployments(ctx, &ad.InfoRequest{})
+	da, err := adc.GetDeployments(ctx, dc.CreateInfoRequest())
 	if err != nil {
 		incFailure(sa.Host, sa.Port)
 		conn.Close()

@@ -10,6 +10,11 @@ const (
 	DEPLOYER_NAME = "deploymonkey"
 )
 
+func CreateInfoRequest() *ad.InfoRequest {
+	res := &ad.InfoRequest{Deployer: DEPLOYER_NAME}
+	return res
+}
+
 func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDefinition) *ad.DeployRequest {
 	url := app.DownloadURL
 	url = strings.ReplaceAll(url, "${BUILDID}", "latest")
