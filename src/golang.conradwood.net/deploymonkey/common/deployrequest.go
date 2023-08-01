@@ -6,10 +6,15 @@ import (
 	"strings"
 )
 
+const (
+	DEPLOYER_NAME = "deploymonkey"
+)
+
 func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDefinition) *ad.DeployRequest {
 	url := app.DownloadURL
 	url = strings.ReplaceAll(url, "${BUILDID}", "latest")
 	res := &ad.DeployRequest{
+		Deployer:         DEPLOYER_NAME,
 		DownloadURL:      url,
 		DownloadUser:     app.DownloadUser,
 		DownloadPassword: app.DownloadPassword,

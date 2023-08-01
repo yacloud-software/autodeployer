@@ -199,23 +199,12 @@ func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinit
 		deplid = fmt.Sprintf("%s-%d-%d-%d", DEPLOY_PREFIX, group.id, app.BuildID, app.ID)
 	}
 	adc := ad.NewAutoDeployerClient(conn)
-	dr := &ad.DeployRequest{
-		DownloadURL:      replaceVars(app.DownloadURL, vars),
-		DownloadUser:     app.DownloadUser,
-		DownloadPassword: app.DownloadPassword,
-		Binary:           app.Binary,
-		Args:             app.Args,
-		RepositoryID:     app.RepositoryID,
-		BuildID:          app.BuildID,
-		DeploymentID:     deplid,
-		Namespace:        group.groupDef.Namespace,
-		Groupname:        group.groupDef.GroupID,
-		AutoRegistration: app.AutoRegs,
-		DeployType:       app.DeployType,
-		StaticTargetDir:  app.StaticTargetDir,
-		Public:           app.Public,
-		AppReference:     &pb.AppReference{ID: 34534534, AppDef: app},
-	}
+	dr := dc.CreateDeployRequest(group.groupDef, app)
+
+	dr.DownloadURL = replaceVars(app.DownloadURL, vars)
+	dr.DeploymentID = deplid
+	dr.AppReference = &pb.AppReference{ID: 34534534, AppDef: app}
+
 	if *set_limits {
 		if app.Limits == nil {
 			// given that all config files & db go through an automatic common.AppLimit() to fix up empty AppLimits, this should never happen.
@@ -249,7 +238,8 @@ func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinit
 }
 
 /*
- check if a deploy is in cache, if not start download for it
+	check if a deploy is in cache, if not start download for it
+
 timeout if no progress was reported for a while
 allow for some queries to autodeployer to fail, but not permanently
 */

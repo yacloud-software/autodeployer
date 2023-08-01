@@ -739,6 +739,12 @@ func (s *AutoDeployer) GetDeployments(ctx context.Context, cr *pb.InfoRequest) (
 			continue
 		}
 		da := d.DeployedApp()
+		if da == nil {
+			continue
+		}
+		if da.DeployRequest != nil && cr.Deployer != "" && cr.Deployer != da.DeployRequest.Deployer {
+			continue
+		}
 		secArgs(ctx, da)
 		res.Apps = append(res.Apps, da)
 	}
