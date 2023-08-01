@@ -86,7 +86,7 @@ message DeployResponse {
   // the local ports chosen for the application
   repeated uint32 Ports = 4;
   // the user this application runs as
-  string userid = 5;
+  string UserID = 5;
   // an ID unique to this instance
   string ID = 6;
 }
