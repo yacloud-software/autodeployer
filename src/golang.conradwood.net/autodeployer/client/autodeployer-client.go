@@ -20,6 +20,7 @@ import (
 
 // static variables for flag parser
 var (
+	deployer        = flag.String("deployer", "", "the deployer to send and query")
 	do_mkenv        = flag.Bool("mkenv", false, "if true call mkenv (only)")
 	pversion        = flag.Bool("print_version", false, "print autodeployer-server version")
 	pmachineinfo    = flag.Bool("print_machineinfo", false, "print autodeployer-server machineinfo")
@@ -120,7 +121,7 @@ func Clear() {
 
 func listDeployments() {
 	ctx := authremote.Context()
-	ir, err := cl.GetDeployments(ctx, &pb.InfoRequest{})
+	ir, err := cl.GetDeployments(ctx, &pb.InfoRequest{Deployer: *deployer})
 	utils.Bail("Failed to get deployments", err)
 	fmt.Printf("%d deployments\n", len(ir.Apps))
 	t := utils.Table{}
@@ -172,7 +173,8 @@ func deploy() {
 	rl := dm.Limits{
 		MaxMemory: uint32(*maxmb),
 	}
-	req := pb.DeployRequest{DownloadURL: *downloadurl,
+	req := pb.DeployRequest{
+		DownloadURL:      *downloadurl,
 		Binary:           *binary,
 		BuildID:          uint64(*buildid),
 		DownloadUser:     *downloaduser,
@@ -312,6 +314,7 @@ func machineinfo() error {
 }
 
 func cache_and_deploy(req *pb.DeployRequest) (*pb.DeployResponse, error) {
+	req.Deployer = *deployer
 	ctx := authremote.Context()
 	aurl := &pb.URLRequest{
 		URL: req.DownloadURL,
@@ -321,13 +324,5 @@ func cache_and_deploy(req *pb.DeployRequest) (*pb.DeployResponse, error) {
 
 	ctx = authremote.Context()
 	res, err := cl.Deploy(ctx, req)
-	if err != nil {
-		fmt.Printf("DEPLOYMENT FAILED WITH ERROR: %s\n", err)
-		return nil, err
-	}
-	if !res.Success {
-		fmt.Printf("DEPLOYMENT FAILED WITH MESSAGE: %s\n", res.Message)
-		return nil, err
-	}
 	return res, err
 }
