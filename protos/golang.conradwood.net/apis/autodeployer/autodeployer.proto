@@ -76,6 +76,8 @@ enum DeploymentStatus {
   TERMINATED = 5;
   // not downloading, starting from cache
   CACHEDSTART = 6;
+  // this is being shutdown (but not quite yet TERMINATED). the only transition from STOPPING is to TERMINATED.
+  STOPPING=7;
 }
 
 message DeployResponse {
