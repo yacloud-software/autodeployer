@@ -32,7 +32,8 @@ message CacheEntry {
   uint32 Failures=7; // incremented each time it fails to download
   string CacheDir=8; // the directory with files for this cacheentry
   repeated DerivedCacheEntry DerivedEntries=9; // files that are cached and derived from cachedurl
-  uint32 LastUsed=10; // timestamp of last time this was used 
+  uint32 LastUsed=10; // timestamp of last time this was used
+  uint64 Size=11; // size on disk in bytes
 }
 message DerivedCacheEntry {
   string FileID=1; // user fileid, e.g. rootfs.tar (derived from rootfs.tar.bz2)
@@ -41,6 +42,7 @@ message DerivedCacheEntry {
   bool Deriving=4; // true whilst deriving
   bool Completed=5; // usable
   uint32 LastUsed=6; // timestamp of last time this was used 
+  uint64 Size=11; // size on disk in bytes
 }
 
 message OnDiskStateList {
