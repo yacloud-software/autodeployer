@@ -321,5 +321,13 @@ func cache_and_deploy(req *pb.DeployRequest) (*pb.DeployResponse, error) {
 
 	ctx = authremote.Context()
 	res, err := cl.Deploy(ctx, req)
+	if err != nil {
+		fmt.Printf("DEPLOYMENT FAILED WITH ERROR: %s\n", err)
+		return nil, err
+	}
+	if !res.Success {
+		fmt.Printf("DEPLOYMENT FAILED WITH MESSAGE: %s\n", res.Message)
+		return nil, err
+	}
 	return res, err
 }
