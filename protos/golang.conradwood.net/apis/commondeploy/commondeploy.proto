@@ -34,6 +34,7 @@ message CacheEntry {
   repeated DerivedCacheEntry DerivedEntries=9; // files that are cached and derived from cachedurl
   uint32 LastUsed=10; // timestamp of last time this was used
   uint64 Size=11; // size on disk in bytes
+  bool Deleting=12; // true if this one is marked for garbage collection
 }
 message DerivedCacheEntry {
   string FileID=1; // user fileid, e.g. rootfs.tar (derived from rootfs.tar.bz2)
@@ -43,6 +44,7 @@ message DerivedCacheEntry {
   bool Completed=5; // usable
   uint32 LastUsed=6; // timestamp of last time this was used 
   uint64 Size=11; // size on disk in bytes
+  bool Deleting=12; // true if this one is marked for garbage collection
 }
 
 message OnDiskStateList {
