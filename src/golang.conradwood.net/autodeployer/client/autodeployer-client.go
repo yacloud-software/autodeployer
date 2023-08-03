@@ -307,9 +307,23 @@ func machineinfo() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%d\n", v.AutoDeployerVersion)
-	fmt.Printf("%s\n", v.InstanceID)
-	fmt.Printf("%d\n", v.SecondsRunning)
+	fmt.Printf("Autodeployer Version:  %d\n", v.AutoDeployerVersion)
+	fmt.Printf("Autodeployer Instance: %s\n", v.InstanceID)
+	fmt.Printf("Seconds Running      : %d\n", v.SecondsRunning)
+	fmt.Printf("Machine Groups       : %s\n", strings.Join(v.MachineGroup, ", "))
+	fmt.Printf("Binary               : %s\n", v.AutodeployerBinary)
+	fmt.Printf("%d ports in use:\n", len(v.PortsInUse))
+	for _, p := range v.PortsInUse {
+		fmt.Printf("   Port #%d\n", p)
+	}
+	fmt.Printf("%d cgroups in use:\n", len(v.CGroupsInUse))
+	for _, c := range v.CGroupsInUse {
+		fmt.Printf("   Cgroup: %s\n", c)
+	}
+	fmt.Printf("%d port mappings:\n", len(v.PortMappings))
+	for s, t := range v.PortMappings {
+		fmt.Printf("   %d -> %d\n", s, t)
+	}
 	return nil
 }
 
