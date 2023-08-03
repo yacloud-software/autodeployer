@@ -173,7 +173,9 @@ message MachineInfoResponse {
   bool Stopping=3;
   string AutodeployerBinary=4;
   uint32 SecondsRunning=5; // seconds since started
-  string InstanceID=6; // a random string generated at startup 
+  string InstanceID=6; // a random string generated at startup
+  repeated uint32 PortsInUse=7;
+  repeated string CGroupsInUse=8;
 }
 
 message URLRequest {
