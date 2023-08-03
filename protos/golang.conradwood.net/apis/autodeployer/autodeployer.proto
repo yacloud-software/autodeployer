@@ -177,6 +177,7 @@ message MachineInfoResponse {
   repeated uint32 PortsInUse=7;
   repeated string CGroupsInUse=8;
   map<uint32,uint32> PortMappings=9; // sourceport -> targetport
+  map<string,uint32) UsersInUse=10; // username->uid
 }
 
 message URLRequest {
