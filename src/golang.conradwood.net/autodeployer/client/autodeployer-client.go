@@ -286,7 +286,10 @@ func QueryOrInstallPackage() error {
 }
 func Stop() error {
 	ctx := authremote.Context()
-	_, err := cl.StopAutodeployer(ctx, &pb.StopRequest{})
+	sr := &pb.StopRequest{
+		RedeployOnNextStart: true,
+	}
+	_, err := cl.StopAutodeployer(ctx, sr)
 	return err
 }
 func version() error {
