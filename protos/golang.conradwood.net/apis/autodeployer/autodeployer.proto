@@ -200,10 +200,17 @@ message PackageInstallResponse {
 }
 message StopRequest {
   uint64 IfNotVersion=1; // only stop if autodeployer version is not this one
+  bool RedeployOnNextStart=2;  // if true, when autodeployer restarts, it will redeploy current applications
 }
 message StopResponse {
   uint64 Version=1;
   bool Stopping=2;
+}
+message RedeployInfo {
+  DeployRequest DeployRequest=1;
+}
+message RedeployInfoList {
+  repeated RedeployInfo Infos=1;
 }
 /*
 The Autodeployer automatically deploys binaries on linux machines
