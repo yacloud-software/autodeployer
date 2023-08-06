@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package deployminator;
+option go_package = "golang.conradwood.net/apis/deployminator";
 option java_package = "net.conradwood.apis.deployminator";
 import "golang.conradwood.net/apis/common/common.proto";
 import "golang.conradwood.net/apis/deploymonkey/deploymonkey.proto";
