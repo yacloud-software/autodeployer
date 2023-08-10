@@ -3,7 +3,6 @@ syntax = "proto3";
 // CNW_OPTION: create_create=false
 
 package autodeployer;
-option go_package = "golang.conradwood.net/apis/autodeployer";
 option java_package = "net.conradwood.golang.apis.autodeployer";
 import "golang.conradwood.net/apis/common/common.proto";
 import "golang.conradwood.net/apis/deploymonkey/deploymonkey.proto";
@@ -209,6 +208,7 @@ message StopResponse {
 }
 message RedeployInfo {
   DeployRequest DeployRequest=1;
+  bytes Resources=2; // resources serialises into a stream of bytes
 }
 message RedeployInfoList {
   repeated RedeployInfo Infos=1;
