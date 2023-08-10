@@ -15,6 +15,7 @@ import (
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/config"
+	"path/filepath"
 	"sort"
 )
 
@@ -147,7 +148,31 @@ func Analyse(conf *config.Config, dl *pb.DeploymentList) (*Suggestion, error) {
 	if *debugSuggest {
 		fmt.Println(res.String())
 	}
+	sort_suggestions(res)
 	return res, nil
+}
+
+// prioritise some that are known important, like secureargs, logservice...
+func sort_suggestions(sug *Suggestion) {
+	sort.Slice(sug.Starts, func(i, j int) bool {
+		f1 := filepath.Base(sug.Starts[i].App.Binary)
+		f2 := filepath.Base(sug.Starts[i].App.Binary)
+		return get_prio(f1) < get_prio(f2)
+	})
+}
+
+func get_prio(binary_name string) int {
+	PRIO := []string{
+		"logservice-server",
+		"errorlogger-server",
+		"secureargs-server",
+	}
+	for i, p := range PRIO {
+		if p == binary_name {
+			return i
+		}
+	}
+	return len(PRIO) + 1
 }
 
 func (ac *StopApp) String() string {
