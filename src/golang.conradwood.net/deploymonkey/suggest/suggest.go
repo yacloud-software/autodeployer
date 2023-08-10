@@ -156,8 +156,13 @@ func Analyse(conf *config.Config, dl *pb.DeploymentList) (*Suggestion, error) {
 func sort_suggestions(sug *Suggestion) {
 	sort.Slice(sug.Starts, func(i, j int) bool {
 		f1 := filepath.Base(sug.Starts[i].App.Binary)
-		f2 := filepath.Base(sug.Starts[i].App.Binary)
-		return get_prio(f1) < get_prio(f2)
+		f2 := filepath.Base(sug.Starts[j].App.Binary)
+		p1 := get_prio(f1)
+		p2 := get_prio(f2)
+		if p1 != p2 {
+			return p1 < p2
+		}
+		return f1 < f2
 	})
 }
 
