@@ -327,6 +327,19 @@ func machineinfo() error {
 	for s, t := range v.PortMappings {
 		fmt.Printf("   %d -> %d\n", s, t)
 	}
+	fmt.Printf("%d users in use:\n", len(v.UsersInUse))
+	var x []string
+	for s, _ := range v.UsersInUse {
+		x = append(x, s)
+	}
+	sort.Slice(x, func(i, j int) bool {
+		return x[i] < x[j]
+	})
+	for _, x := range x {
+		t := v.UsersInUse[x]
+		fmt.Printf("   User #%d (%s)\n", t, x)
+	}
+
 	return nil
 }
 
