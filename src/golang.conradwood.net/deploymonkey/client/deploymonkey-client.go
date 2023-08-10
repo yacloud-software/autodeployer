@@ -22,27 +22,28 @@ import (
 
 // static variables for flag parser
 var (
-	del_version    = flag.Uint64("delete_version", 0, "if not 0, undeploy and delete this version")
-	depllocal      = flag.Bool("deploy_local", false, "deploy the files in current git repository on local machine (using deploy.yaml in current directory)")
-	depllist       = flag.Bool("deployments", false, "list current deployments")
-	list_deployers = flag.Bool("deployers", false, "list known autodeployers")
-	dosuggest      = flag.Bool("suggest", false, "suggest fixes")
-	applysuggest   = flag.Bool("apply_suggest", false, "suggest & applyfixes")
-	short          = flag.Bool("short", false, "short listing")
-	filename       = flag.String("configfile", "", "the yaml config file to submit to server")
-	namespace      = flag.String("namespace", "", "namespace of the group to update")
-	groupname      = flag.String("groupname", "", "groupname of the group to update")
-	repository     = flag.Uint64("repository", 0, "repository of the app in the group to update")
-	buildid        = flag.Int("buildid", 0, "the new buildid of the app in the group to update")
-	binary         = flag.String("binary", "", "the binary of the app in the group to update")
-	apply_version  = flag.Int("apply_version", 0, "(re-)apply a given version (expects `versionid`)")
-	applyall       = flag.Bool("apply_all", false, "reapply ALL groups")
-	applypending   = flag.Bool("apply_pending", false, "reapply any pending group versions")
-	list           = flag.String("list", "", "list this `repository` previous versions")
-	deployers      = flag.Bool("list_deployers", false, "if true list all known autodeployers")
-	undeploy_app   = flag.Int("undeploy_version", 0, "undeploy applications of a given version (expects `versionid`)")
-	print_sample   = flag.Bool("print_sample", false, "print a sample deploy.yaml")
-	depl           pb.DeployMonkeyClient
+	continue_on_error = flag.Bool("continue_on_error", false, "if true ignore deploy errors and continue to next deployment")
+	del_version       = flag.Uint64("delete_version", 0, "if not 0, undeploy and delete this version")
+	depllocal         = flag.Bool("deploy_local", false, "deploy the files in current git repository on local machine (using deploy.yaml in current directory)")
+	depllist          = flag.Bool("deployments", false, "list current deployments")
+	list_deployers    = flag.Bool("deployers", false, "list known autodeployers")
+	dosuggest         = flag.Bool("suggest", false, "suggest fixes")
+	applysuggest      = flag.Bool("apply_suggest", false, "suggest & applyfixes")
+	short             = flag.Bool("short", false, "short listing")
+	filename          = flag.String("configfile", "", "the yaml config file to submit to server")
+	namespace         = flag.String("namespace", "", "namespace of the group to update")
+	groupname         = flag.String("groupname", "", "groupname of the group to update")
+	repository        = flag.Uint64("repository", 0, "repository of the app in the group to update")
+	buildid           = flag.Int("buildid", 0, "the new buildid of the app in the group to update")
+	binary            = flag.String("binary", "", "the binary of the app in the group to update")
+	apply_version     = flag.Int("apply_version", 0, "(re-)apply a given version (expects `versionid`)")
+	applyall          = flag.Bool("apply_all", false, "reapply ALL groups")
+	applypending      = flag.Bool("apply_pending", false, "reapply any pending group versions")
+	list              = flag.String("list", "", "list this `repository` previous versions")
+	deployers         = flag.Bool("list_deployers", false, "if true list all known autodeployers")
+	undeploy_app      = flag.Int("undeploy_version", 0, "undeploy applications of a given version (expects `versionid`)")
+	print_sample      = flag.Bool("print_sample", false, "print a sample deploy.yaml")
+	depl              pb.DeployMonkeyClient
 )
 
 func main() {
@@ -341,16 +342,17 @@ func applySuggestions() {
 	s, err := suggest.Analyse(cfg, depls)
 	utils.Bail("Suggestion failed", err)
 	fmt.Printf("Executing %d start requests...\n", len(s.Starts))
+	max_tries := 5
 	for _, start := range s.Starts {
-		for i := 0; i < 5; i++ {
+		for i := 0; i < max_tries; i++ {
 			ctx := authremote.Context()
 			fmt.Printf("Deploying %s...\n", start.String())
 			d := start.DeployRequest()
 			_, err = depl.DeployAppOnTarget(ctx, d)
-			if err == nil {
+			if err == nil || *continue_on_error {
 				break
 			}
-			fmt.Printf("Failed to deploy %v: %s\n", start, err)
+			fmt.Printf("Attempt %d of %d - Failed to deploy %v: %s\n", (i + 1), max_tries, start, err)
 			time.Sleep(time.Duration(5) * time.Second)
 		}
 	}
