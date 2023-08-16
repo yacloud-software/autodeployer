@@ -20,6 +20,12 @@ import (
 )
 
 var (
+	PRIO_SERVICES = []string{
+		"logservice-server",
+		"errorlogger-server",
+		"secureargs-server",
+		"objectstore-server",
+	}
 	debugSuggest = flag.Bool("debug_suggest", false, "enable debug of suggest code")
 )
 
@@ -167,17 +173,12 @@ func sort_suggestions(sug *Suggestion) {
 }
 
 func get_prio(binary_name string) int {
-	PRIO := []string{
-		"logservice-server",
-		"errorlogger-server",
-		"secureargs-server",
-	}
-	for i, p := range PRIO {
+	for i, p := range PRIO_SERVICES {
 		if p == binary_name {
 			return i
 		}
 	}
-	return len(PRIO) + 1
+	return len(PRIO_SERVICES) + 1
 }
 
 func (ac *StopApp) String() string {
