@@ -24,6 +24,7 @@ var (
 		"logservice-server",
 		"errorlogger-server",
 		"secureargs-server",
+		"objectauth-server",
 		"objectstore-server",
 	}
 	debugSuggest = flag.Bool("debug_suggest", false, "enable debug of suggest code")
