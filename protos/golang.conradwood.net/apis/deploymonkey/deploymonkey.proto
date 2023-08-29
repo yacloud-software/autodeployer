@@ -305,6 +305,7 @@ message DelVersionRequest {
   uint64 Version=1;
 }
 
+//used to create new builds
 message NewBuildAvailableRequest {
   bytes DeployYaml=1;
   uint64 ArtefactID=2;
