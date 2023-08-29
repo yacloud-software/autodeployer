@@ -9,9 +9,9 @@ import (
 )
 
 func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuildAvailableRequest) (*common.Void, error) {
-	fd, err := dc.ParseFile(string(req.DeployYaml), 0)
+	fd, err := dc.ParseConfig(req.DeployYaml, 0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parser failed: %w", err)
 	}
 
 	for _, group := range fd.Groups {
@@ -26,7 +26,7 @@ func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuil
 		resp, err := depl.DefineGroup(ctx, group)
 		if err != nil {
 			fmt.Printf("Failed to define group: %s\n", err)
-			return nil, err
+			return nil, fmt.Errorf("failed to define group: %w", err)
 		}
 		if resp.Result != dm.GroupResponseStatus_CHANGEACCEPTED {
 			fmt.Printf("Response to deploy: %s - skipping\n", resp.Result)
