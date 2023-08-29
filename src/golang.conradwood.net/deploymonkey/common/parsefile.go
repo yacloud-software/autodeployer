@@ -60,6 +60,14 @@ func ParseFile(fname string, repoid uint64) (*FileDef, error) {
 	for _, x := range res.Groups {
 		PrintGroup(x)
 	}
+	for _, g := range res.Groups {
+		for _, app := range g.Applications {
+			err = CheckAppComplete(app)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	return res, nil
 }
 func ParseConfig(config []byte, repoid uint64) (*FileDef, error) {
@@ -89,10 +97,6 @@ func ParseConfig(config []byte, repoid uint64) (*FileDef, error) {
 				app.RepositoryID = uint64(*parse_repo)
 			}
 			AppLimits(app)
-			err = CheckAppComplete(app)
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
 	return &gd, nil

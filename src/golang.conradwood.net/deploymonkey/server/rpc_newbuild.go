@@ -13,7 +13,6 @@ func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuil
 	if err != nil {
 		return nil, fmt.Errorf("parser failed: %w", err)
 	}
-
 	for _, group := range fd.Groups {
 		// add stuff to group (which isn't in deploy.yaml, but in metadata instead
 		for _, app := range group.Applications {
@@ -21,7 +20,16 @@ func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuil
 			if req.RepositoryID != 0 && app.RepositoryID == 0 {
 				app.RepositoryID = req.RepositoryID
 			}
+			app.BuildID = req.BuildID
 		}
+	}
+	// check each app is complete
+	err = CheckCompleteConfigFile(fd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Creating new group for build %d\n", req.BuildID)
+	for _, group := range fd.Groups {
 		// save new submitted stuff
 		resp, err := depl.DefineGroup(ctx, group)
 		if err != nil {
@@ -41,4 +49,15 @@ func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuil
 		fmt.Printf("Deploy response: %v\n", dresp)
 	}
 	return &common.Void{}, nil
+}
+func CheckCompleteConfigFile(fd *dc.FileDef) error {
+	for _, group := range fd.Groups {
+		for _, app := range group.Applications {
+			err := dc.CheckAppComplete(app)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
