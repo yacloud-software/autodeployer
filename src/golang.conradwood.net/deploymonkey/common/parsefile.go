@@ -108,10 +108,11 @@ func AppLimits(app *pb.ApplicationDefinition) *pb.Limits {
 	return app.Limits
 }
 func CheckAppComplete(app *pb.ApplicationDefinition) error {
-	if app.RepositoryID == 0 {
-		return fmt.Errorf("Missing RepositoryID")
+	if app.ArtefactID == 0 {
+		if app.RepositoryID == 0 {
+			return fmt.Errorf("Missing RepositoryID and ArtefactID")
+		}
 	}
-
 	if (app.Critical) && (!app.AlwaysOn) {
 		return fmt.Errorf("Invalid combination of flags: Cannot have critical app which is not always on")
 	}
