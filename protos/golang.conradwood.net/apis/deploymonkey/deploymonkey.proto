@@ -305,17 +305,28 @@ message DelVersionRequest {
   uint64 Version=1;
 }
 
+message NewBuildAvailableRequest {
+  bytes DeployYaml=1;
+  uint64 ArtefactID=2;
+  string BuildRepoID=3; // e.g. "yacloud.eu" or "singingcat.net"
+  uint64 BuildID=4;
+  string CommitID=5;
+  string Branch=6;
+  uint64 RepositoryID=7; // backwards compatibility only. will be removed in future!
+}
 /*
 the deploymonkeyservice orchestrates deployments
  */
 service DeployMonkey {
-  // called by build repository if new deploy.yamls are submitted
+  // called by build repository
+  rpc NewBuildAvailable(NewBuildAvailableRequest) returns (common.Void);
+  // obsolete called by build repository if new deploy.yamls are submitted
   rpc DefineGroup(GroupDefinitionRequest) returns (GroupDefResponse);
   // called by build repository after new deploy.yamls was submitted in DefineGroup() and accepted
   rpc DeployVersion(DeployRequest) returns (DeployResponse);
-  //  deploymonkey-client: update all apps in a repo in a group to a new buildid
+  //  obsolete deploymonkey-client: update all apps in a repo in a group to a new buildid
   rpc UpdateRepo(UpdateRepoRequest) returns (GroupDefResponse);
-  //  deploymonkey-client: update a single app to a new buildid
+  //  obsolete deploymonkey-client: update a single app to a new buildid
   rpc UpdateApp(UpdateAppRequest) returns (GroupDefResponse);
   // rpc GetNameSpaces(GetNameSpaceRequest) returns (GetNameSpaceResponse);
   // rpc GetGroups(GetGroupsRequest) returns (GetGroupsResponse);

@@ -47,7 +47,7 @@ message Argument {
 
 message NewBuildRequest {
   bytes DeployFile = 1; // the contents of the deploy.yaml file
-  uint64 RepositoryID =2; // id of repository
+  uint64 ArtefactID =2; // id of artefact
   string Branch=3; // the branch, usually 'master'
   uint64 BuildNumber=4; // the unique buildnumber
   string CommitID=5; // the git commitid
