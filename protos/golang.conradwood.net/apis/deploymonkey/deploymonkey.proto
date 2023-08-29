@@ -80,10 +80,11 @@ message ApplicationDefinition {
     implies that "binary" is set to a main class
   */
   bool Java = 19;
-  uint64 RepositoryID = 20; // the git repository id
+  uint64 RepositoryID = 20; // obsolete the git repository id (use artefactid instead)
   bool AsRoot=21; // if true, run this as root
   ContainerDef Container=22 [(common.sql_type)="uint64",(common.sql_reference)="containerdef.id"]; // if set, a container is going to be created to run the app in
   bool DiscardLog=23; // if true discard logfiles. this is really only useful for the logservice
+  uint64 ArtefactID = 24;
 }
 
 message ContainerDef {
