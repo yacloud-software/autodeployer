@@ -1,6 +1,6 @@
 // client create: DeployminatorClient
 /*
-  Created by /srv/home/cnw/devel/go/go-tools/src/golang.conradwood.net/gotools/protoc-gen-cnw/protoc-gen-cnw.go
+  Created by /home/cnw/devel/go/yatools/src/golang.yacloud.eu/yatools/protoc-gen-cnw/protoc-gen-cnw.go
 */
 
 /* geninfo:
@@ -13,7 +13,7 @@
    varname   : client_DeployminatorClient_0
    clientname: DeployminatorClient
    servername: DeployminatorServer
-   gscvname  : deployminator.Deployminator
+   gsvcname  : deployminator.Deployminator
    lockname  : lock_DeployminatorClient_0
    activename: active_DeployminatorClient_0
 */
@@ -46,3 +46,7 @@ func GetDeployminatorClient() DeployminatorClient {
 }
 
 func DeployminatorLookupID() string { return "deployminator.Deployminator" } // returns the ID suitable for lookup in the registry. treat as opaque, subject to change.
+
+func init() {
+   client.RegisterDependency("deployminator.Deployminator")
+}

@@ -1362,6 +1362,7 @@ func (m *DelVersionRequest) GetVersion() uint64 {
 	return 0
 }
 
+// used to create new builds
 type NewBuildAvailableRequest struct {
 	DeployYaml   []byte `protobuf:"bytes,1,opt,name=DeployYaml,proto3" json:"DeployYaml,omitempty"`
 	ArtefactID   uint64 `protobuf:"varint,2,opt,name=ArtefactID" json:"ArtefactID,omitempty"`

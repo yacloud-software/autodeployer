@@ -16,10 +16,12 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 )
 
 // static variables for flag parser
 var (
+	wait_for_ready  = flag.Bool("wait_for_ready", false, "if true wait for autodeployer to become ready to deploy stuff")
 	deployer        = flag.String("deployer", "", "the deployer to send and query")
 	do_mkenv        = flag.Bool("mkenv", false, "if true call mkenv (only)")
 	pversion        = flag.Bool("print_version", false, "print autodeployer-server version")
@@ -69,6 +71,10 @@ func main() {
 	cl = pb.NewAutoDeployerClient(conn)
 	if *stop {
 		utils.Bail(fmt.Sprintf("failed to stop: %s\n", *server), Stop())
+		os.Exit(0)
+	}
+	if *wait_for_ready {
+		utils.Bail(fmt.Sprintf("failed to wait_for_ready: %s\n", *server), WaitForReady())
 		os.Exit(0)
 	}
 	if *do_mkenv {
@@ -301,6 +307,21 @@ func version() error {
 	fmt.Printf("%d\n", v.AutoDeployerVersion)
 	return nil
 }
+func WaitForReady() error {
+	for {
+		ctx := authremote.Context()
+		v, err := cl.GetMachineInfo(ctx, &pb.MachineInfoRequest{})
+		if err != nil {
+			return err
+		}
+		if v.Ready {
+			fmt.Printf("Autodeployer \"%s\" is ready.\n", *server)
+			return nil
+		}
+		fmt.Printf("Autodeployer \"%s\" is not yet ready.\n", *server)
+		time.Sleep(time.Duration(1) * time.Second)
+	}
+}
 
 // suitable for reading in bash like so:
 // read -r version id secs <<<$(autodeployer-client -pmachine_info) ; echo "$version|$id|$secs"
@@ -313,6 +334,7 @@ func machineinfo() error {
 	fmt.Printf("Autodeployer Version:  %d\n", v.AutoDeployerVersion)
 	fmt.Printf("Autodeployer Instance: %s\n", v.InstanceID)
 	fmt.Printf("Seconds Running      : %d\n", v.SecondsRunning)
+	fmt.Printf("Ready                : %v\n", v.Ready)
 	fmt.Printf("Machine Groups       : %s\n", strings.Join(v.MachineGroup, ", "))
 	fmt.Printf("Binary               : %s\n", v.AutodeployerBinary)
 	fmt.Printf("%d ports in use:\n", len(v.PortsInUse))
