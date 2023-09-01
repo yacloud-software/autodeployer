@@ -34,6 +34,7 @@ func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDe
 		AutoRegistration: app.AutoRegs,
 		Limits:           app.Limits,
 		AppReference:     &dm.AppReference{AppDef: app},
+		ArtefactID:       app.ArtefactID,
 	}
 	if res.Limits == nil {
 		res.Limits = &dm.Limits{}
