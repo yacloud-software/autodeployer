@@ -53,6 +53,7 @@ message NewBuildRequest {
   string CommitID=5; // the git commitid
   string ArtefactName=6; // the artefactname on this buildserver
   string BuildserverID=7; // the buildserver, e.g. its ip or domain or sth to look for (to find the artefact)
+  uint64 ArtefactID=8;
 }
 
 message DeployRequest {
