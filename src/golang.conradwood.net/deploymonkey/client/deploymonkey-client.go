@@ -334,47 +334,57 @@ func listSuggestions() {
 	}
 }
 func applySuggestions() {
-	ctx := authremote.Context()
-	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
-	utils.Bail("Failed to get deployments from cache", err)
-	cfg, err := config.GetConfig(depl)
-	utils.Bail("Could not get config", err)
-	s, err := suggest.Analyse(cfg, depls)
-	utils.Bail("Suggestion failed", err)
-	fmt.Printf("Executing %d start requests...\n", len(s.Starts))
 	max_tries := 5
-	for _, start := range s.Starts {
-		for i := 0; i < max_tries; i++ {
-			ctx := authremote.Context()
-			fmt.Printf("Deploying %s...\n", start.String())
-			d := start.DeployRequest()
-			_, err = depl.DeployAppOnTarget(ctx, d)
-			if err == nil || *continue_on_error {
-				break
-			}
-			fmt.Printf("Attempt %d of %d - Failed to deploy %v: %s\n", (i + 1), max_tries, start, err)
+	var last_suggest *suggest.Suggestion
+	for i := 0; i < max_tries; i++ {
+		ctx := authremote.Context()
+		depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
+		utils.Bail("Failed to get deployments from cache", err)
+		cfg, err := config.GetConfig(depl)
+		utils.Bail("Could not get config", err)
+		s, err := suggest.Analyse(cfg, depls)
+		utils.Bail("Suggestion failed", err)
+		last_suggest = s
+		err = try_suggestions(last_suggest)
+		if err == nil {
+			break
+		}
+		if err != nil {
+			fmt.Printf("Attempt %d of %d - Failed to deploy: %s\n", (i + 1), max_tries, err)
 			time.Sleep(time.Duration(5) * time.Second)
 		}
 	}
-	fmt.Printf("Executing %d stop requests...\n", len(s.Stops))
-	for _, stop := range s.Stops {
-		for i := 0; i < 5; i++ {
-			d := stop.UndeployRequest()
-			ctx := authremote.Context()
-			fmt.Printf("Undeploying %s...\n", stop.String())
-			_, err = depl.UndeployAppOnTarget(ctx, d)
-			if err == nil {
-				break
-			}
-			fmt.Printf("Failed to apply %v: %s\n", stop, err)
-			time.Sleep(time.Duration(5) * time.Second)
-		}
-	}
-	fmt.Println(s.String())
-	if len(s.Starts) != 0 || len(s.Stops) != 0 {
+	fmt.Println(last_suggest.String())
+
+	if len(last_suggest.Starts) != 0 || len(last_suggest.Stops) != 0 {
 		os.Exit(1)
 	}
 
+}
+func try_suggestions(s *suggest.Suggestion) error {
+	var err error
+	fmt.Printf("Executing %d start requests...\n", len(s.Starts))
+	for _, start := range s.Starts {
+		ctx := authremote.Context()
+		fmt.Printf("Deploying %s...\n", start.String())
+		d := start.DeployRequest()
+		_, err = depl.DeployAppOnTarget(ctx, d)
+		if err != nil {
+			return err
+		}
+
+	}
+	fmt.Printf("Executing %d stop requests...\n", len(s.Stops))
+	for _, stop := range s.Stops {
+		d := stop.UndeployRequest()
+		ctx := authremote.Context()
+		fmt.Printf("Undeploying %s...\n", stop.String())
+		_, err = depl.UndeployAppOnTarget(ctx, d)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func listDeployments() {
