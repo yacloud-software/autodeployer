@@ -13,7 +13,7 @@ require (
 	golang.conradwood.net/apis/deploymonkey v1.1.2503
 	golang.conradwood.net/apis/registry v1.1.2525
 	golang.conradwood.net/apis/slackgateway v1.1.2525
-	golang.conradwood.net/go-easyops v0.1.19481
+	golang.conradwood.net/go-easyops v0.1.19709
 	google.golang.org/grpc v1.57.0
 	gopkg.in/yaml.v2 v2.4.0
 )
