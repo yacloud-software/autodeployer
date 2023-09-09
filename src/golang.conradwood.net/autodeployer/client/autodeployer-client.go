@@ -136,6 +136,7 @@ func listDeployments() {
 		return ir.Apps[i].Deployment.RepositoryID < ir.Apps[j].Deployment.RepositoryID
 	})
 	for i, app := range ir.Apps {
+		dr := app.DeployRequest
 		di := app.Deployment
 		rs := fmt.Sprintf("%d seconds", di.RuntimeSeconds)
 		t.AddInt(i)
@@ -154,6 +155,7 @@ func listDeployments() {
 			s = s + fmt.Sprintf("%d ", p)
 		}
 		t.AddString(s)
+		t.AddString(dr.Deployer)
 		if *details {
 			s := ""
 			as := di.Args
