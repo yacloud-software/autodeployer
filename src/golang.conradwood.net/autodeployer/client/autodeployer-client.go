@@ -136,7 +136,6 @@ func listDeployments() {
 		return ir.Apps[i].Deployment.RepositoryID < ir.Apps[j].Deployment.RepositoryID
 	})
 	for i, app := range ir.Apps {
-		dr := app.DeployRequest
 		di := app.Deployment
 		rs := fmt.Sprintf("%d seconds", di.RuntimeSeconds)
 		t.AddInt(i)
@@ -155,7 +154,6 @@ func listDeployments() {
 			s = s + fmt.Sprintf("%d ", p)
 		}
 		t.AddString(s)
-		t.AddString(dr.Deployer)
 		if *details {
 			s := ""
 			as := di.Args
@@ -310,12 +308,19 @@ func version() error {
 	return nil
 }
 func WaitForReady() error {
+	lastWorked := time.Now()
 	for {
 		ctx := authremote.Context()
 		v, err := cl.GetMachineInfo(ctx, &pb.MachineInfoRequest{})
 		if err != nil {
-			return err
+			fmt.Printf("failed to get machineinfo: %s\n", err)
+			if time.Since(lastWorked) > time.Duration(1)*time.Minute {
+				return err
+			}
+			time.Sleep(time.Duration(1) * time.Second)
+			continue
 		}
+		lastWorked = time.Now()
 		if v.Ready {
 			fmt.Printf("Autodeployer \"%s\" is ready.\n", *server)
 			return nil

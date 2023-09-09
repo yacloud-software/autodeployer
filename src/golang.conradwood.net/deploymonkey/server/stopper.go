@@ -15,9 +15,8 @@ import (
 
 var (
 	debug_cond_stopper = flag.Bool("debug_cond_stopper", false, "debug the conditional stopper code")
-	stopDelay          = flag.Duration("stop_delay", time.Duration(0), "delay before shutting down services (after starting new ones)")
-	waitExeDelay       = flag.Duration("wait_exe_delay", time.Duration(10)*time.Minute, "delay before giving up on service to become ready")
-	filterDelay        = flag.Duration("filter_delay", time.Duration(0), "delay before instructing the registry to filter instances marked for shutdown")
+	stopDelay          = flag.Int("stop_delay", 0, "delay before shutting down services (after starting new ones)")
+	filterDelay        = flag.Int("filter_delay", 0, "delay before instructing the registry to filter instances marked for shutdown")
 	stopRequests       []*stopRequest
 	stoptransactionctr int
 	translock          sync.Mutex
@@ -39,22 +38,21 @@ type StopperCondition interface {
 }
 
 type stopRequest struct {
-	transaction    int
-	prefix         string
-	submitted      time.Time
-	waitUntilReady time.Time // not yet used
-	executeAt      time.Time
-	filterAt       time.Time
-	id             string
-	autodeployer   *rg.ServiceAddress
-	ports          []uint32 // ports the instance is listening on
-	done           bool
-	cancelled      bool
-	failurectr     int
-	filtered       bool
-	deployInfo     *ad.DeployInfo
-	conditions     []StopperCondition
-	lastEval       int // last result from conditions
+	transaction  int
+	prefix       string
+	submitted    time.Time
+	executeAt    time.Time
+	filterAt     time.Time
+	id           string
+	autodeployer *rg.ServiceAddress
+	ports        []uint32 // ports the instance is listening on
+	done         bool
+	cancelled    bool
+	failurectr   int
+	filtered     bool
+	deployInfo   *ad.DeployInfo
+	conditions   []StopperCondition
+	lastEval     int // last result from conditions
 }
 
 func (s *stopRequest) AddCondition(sc StopperCondition) {
@@ -249,24 +247,23 @@ func stop(stopPrefix string) (int, error) {
 		/*******************************************************
 		// set the timers on what happens next
 		*****************************************************/
-		exeTime := time.Now().Add(*stopDelay)
-		waitReadyTime := time.Now().Add(*waitExeDelay)
-		filterTime := time.Now().Add(*filterDelay)
+		exeTime := time.Now().Add(time.Duration(*stopDelay) * time.Second)
+		filterTime := time.Now().Add(time.Duration(*filterDelay) * time.Second)
 		if (*stopDelay != 0) && ((*filterDelay == 0) || (*filterDelay >= *stopDelay)) {
 			// filterdelay is 0 or >= stopDelay
-			nf := time.Duration(0)
+			nf := 0
 			// if no filter delay specified,
 			// default is 45 seconds before stopDelay
-			if *filterDelay == time.Duration(0) {
-				nf = *stopDelay - (time.Duration(45) * time.Second)
+			if *filterDelay == 0 {
+				nf = *stopDelay - 45
 			}
 			if nf < 0 {
-				nf = time.Duration(5) * time.Second
+				nf = 5
 			}
 			if nf >= *stopDelay {
-				nf = time.Duration(1) * time.Second
+				nf = 1
 			}
-			filterTime = time.Now().Add(nf)
+			filterTime = time.Now().Add(time.Duration(nf) * time.Second)
 		}
 
 		/********************************************
@@ -277,17 +274,16 @@ func stop(stopPrefix string) (int, error) {
 			fmt.Printf("Need to stop: %s (status=%s)\n", deployInfo.Binary, deployInfo.Status)
 
 			sr := &stopRequest{
-				transaction:    trans,
-				prefix:         stopPrefix,
-				submitted:      time.Now(),
-				executeAt:      exeTime,
-				waitUntilReady: waitReadyTime,
-				filterAt:       filterTime,
-				autodeployer:   sa,
-				id:             deplApp.ID,
-				ports:          deployInfo.Ports,
-				deployInfo:     deployInfo,
-				done:           false,
+				transaction:  trans,
+				prefix:       stopPrefix,
+				submitted:    time.Now(),
+				executeAt:    exeTime,
+				filterAt:     filterTime,
+				autodeployer: sa,
+				id:           deplApp.ID,
+				ports:        deployInfo.Ports,
+				deployInfo:   deployInfo,
+				done:         false,
 			}
 			if *stopDelay != 0 {
 				addStop(sr)
