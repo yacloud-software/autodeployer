@@ -340,9 +340,11 @@ func machineinfo() error {
 	if err != nil {
 		return err
 	}
+	timediff := time.Now().Sub(time.Unix(int64(v.CurrentTime), 0))
 	fmt.Printf("Autodeployer Version:  %d\n", v.AutoDeployerVersion)
 	fmt.Printf("Autodeployer Instance: %s\n", v.InstanceID)
 	fmt.Printf("Seconds Running      : %d\n", v.SecondsRunning)
+	fmt.Printf("Time offset          : %0.2fs\n", timediff.Seconds())
 	fmt.Printf("Ready                : %v\n", v.Ready)
 	fmt.Printf("Machine Groups       : %s\n", strings.Join(v.MachineGroup, ", "))
 	fmt.Printf("Binary               : %s\n", v.AutodeployerBinary)

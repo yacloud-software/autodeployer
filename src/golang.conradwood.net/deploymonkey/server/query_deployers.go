@@ -48,6 +48,13 @@ var (
 		},
 		[]string{"machinegroup"},
 	)
+	timediff_deployers = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "deploymonkey_deployer_timediff",
+			Help: "V=1 UNIT=seconds DESC=time difference between deploymonkey and autodeployer",
+		},
+		[]string{"adinstance"},
+	)
 )
 
 type AutoDeployer struct {
@@ -76,7 +83,7 @@ func StartScanner() {
 		meConn := client.Connect("deploymonkey.DeployMonkey") // connect to service instead of deploymentpath
 		meClient = dm.NewDeployMonkeyClient(meConn)
 	}()
-	prometheus.MustRegister(suggestioncount, suggestion_missing_deployers, machinegroup_deployers)
+	prometheus.MustRegister(timediff_deployers, suggestioncount, suggestion_missing_deployers, machinegroup_deployers)
 	ticker := time.NewTicker(time.Duration(*scan_interval) * time.Second)
 	go func() {
 		ScanAutodeployers()
@@ -234,6 +241,7 @@ func ScanAutodeployer(sa *rpb.ServiceAddress) error {
 	req := &ad.MachineInfoRequest{}
 	ctx := authremote.Context()
 	mir, err := adc.GetMachineInfo(ctx, req)
+	now := time.Now()
 	if err != nil {
 		s := fmt.Sprintf("Failed to get machineinfo on %s: %s", sa.Host, err)
 		fmt.Println(s)
@@ -241,6 +249,9 @@ func ScanAutodeployer(sa *rpb.ServiceAddress) error {
 		conn.Close()
 		return fmt.Errorf("%s", s)
 	}
+	ad_time := time.Unix(int64(mir.CurrentTime), 0)
+	diff := now.Sub(ad_time)
+	timediff_deployers.With(prometheus.Labels{"adinstance": sa.Host}).Set(diff.Seconds())
 	da, err := adc.GetDeployments(ctx, dc.CreateInfoRequest())
 	if err != nil {
 		incFailure(sa.Host, sa.Port)
