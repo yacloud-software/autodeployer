@@ -131,7 +131,7 @@ func listDeployments() {
 	utils.Bail("Failed to get deployments", err)
 	fmt.Printf("%d deployments\n", len(ir.Apps))
 	t := utils.Table{}
-	t.AddHeaders("#", "AppID", "User", "Group", "DeploymentID", "BuildID", "Binary", "RepositoryID", "Status", "Since", "Pids", "CPids")
+	t.AddHeaders("#", "AppID", "User", "Group", "DeploymentID", "BuildID", "Binary", "RepositoryID", "Status", "Since", "Pids", "CPids", "Deployer")
 	sort.Slice(ir.Apps, func(i, j int) bool {
 		return ir.Apps[i].Deployment.RepositoryID < ir.Apps[j].Deployment.RepositoryID
 	})

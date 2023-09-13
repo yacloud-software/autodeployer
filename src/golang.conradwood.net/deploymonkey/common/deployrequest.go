@@ -1,17 +1,18 @@
 package common
 
 import (
+	"flag"
 	ad "golang.conradwood.net/apis/autodeployer"
 	dm "golang.conradwood.net/apis/deploymonkey"
 	"strings"
 )
 
-const (
-	DEPLOYER_NAME = "deploymonkey"
+var (
+	deployer_name = flag.String("deployer_name", "deploymonkey", "name of a deploymonkey, can be used to partition autodeployers between deploymonkeys")
 )
 
 func CreateInfoRequest() *ad.InfoRequest {
-	res := &ad.InfoRequest{Deployer: DEPLOYER_NAME}
+	res := &ad.InfoRequest{Deployer: *deployer_name}
 	return res
 }
 
@@ -19,7 +20,7 @@ func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDe
 	url := app.DownloadURL
 	url = strings.ReplaceAll(url, "${BUILDID}", "latest")
 	res := &ad.DeployRequest{
-		Deployer:         DEPLOYER_NAME,
+		Deployer:         *deployer_name,
 		DownloadURL:      url,
 		DownloadUser:     app.DownloadUser,
 		DownloadPassword: app.DownloadPassword,
