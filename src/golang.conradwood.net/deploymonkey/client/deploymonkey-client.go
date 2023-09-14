@@ -152,13 +152,22 @@ func callListVersions(repo string) {
 		return
 	}
 	fmt.Printf("%d apps\n", len(resp.Apps))
+	t := utils.Table{}
+	t.AddHeaders("Version", "Created", "Build", "Binary", "RepoID", "ArtefactID")
 	for i, a := range resp.Apps {
 		if i > 10 {
 			break
 		}
-		created := time.Unix(a.Created, 0)
-		fmt.Printf("Version #%d: created %v, Build %d, binary %s\n", a.VersionID, created, a.Application.BuildID, a.Application.Binary)
+		t.AddUint64(uint64(a.VersionID))
+		t.AddTimestamp(uint32(a.Created))
+		t.AddUint64(a.Application.BuildID)
+		t.AddString(a.Application.Binary)
+		t.AddUint64(a.Application.RepositoryID)
+		t.AddUint64(a.Application.ArtefactID)
+		t.NewRow()
+		//		fmt.Printf("Version #%d: created %v, Build %d,  binary %s\n", a.VersionID, created, a.Application.BuildID, a.Application.Binary)
 	}
+	fmt.Println(t.ToPrettyString())
 }
 
 func applyVersion() {
