@@ -111,6 +111,7 @@ func MakeItSoAsync(m miso) error {
 	var res_err error
 	workeridx := 0
 	startupids := make(map[string]*rpb.ServiceAddress) // startupid -> autodeployer
+	var user_messages []string
 	for _, app := range ads {
 		mgroup := app.Machines
 		fsas, err := getDeployersInGroup(mgroup, sas)
@@ -120,7 +121,8 @@ func MakeItSoAsync(m miso) error {
 		if (fsas == nil) || (len(fsas) == 0) {
 			s := fmt.Sprintf("No deployers to deploy on for group \"%s\" (app=%v)", mgroup, ads)
 			fmt.Println(s)
-			cancelStop(trans, s)
+			user_messages = append(user_messages, s)
+			cancelStop(trans, user_messages, s)
 			return errors.New(s)
 		}
 		workers := len(fsas)
@@ -133,6 +135,7 @@ func MakeItSoAsync(m miso) error {
 			if retries == 0 {
 				s := fmt.Sprintf("Wanted to deploy %d instances of %s, but only deployed %d on %s", app.Instances, AppToString(app), instances, app.Machines)
 				fmt.Println(s)
+				user_messages = append(user_messages, s)
 				res_err = errors.New(s)
 				break
 			}
@@ -141,13 +144,15 @@ func MakeItSoAsync(m miso) error {
 				workeridx = 0
 			}
 			autodeployer := fsas[workeridx]
-			startupid, terr := deployOn(autodeployer, group, app)
+			startupid, msg, terr := deployOn(autodeployer, group, app)
 			if terr == nil {
 				startupids[startupid] = autodeployer
 				instances++
 				retries = 5
 				continue
 			}
+			s := msg + "\n" + fmt.Sprintf("ERROR: %s", terr)
+			user_messages = append(user_messages, s)
 			time.Sleep(1)
 			// deadline expired? reset context
 			retries--
@@ -155,7 +160,7 @@ func MakeItSoAsync(m miso) error {
 		}
 	}
 	if res_err != nil {
-		cancelStop(trans, fmt.Sprintf("%s", res_err))
+		cancelStop(trans, user_messages, fmt.Sprintf("%s", res_err))
 	} else {
 		if *debug { // NOT A DEBUG IF CLAUSE
 			fmt.Printf("Deployed %d instances:\n", len(startupids))
@@ -179,15 +184,15 @@ func replaceVars(text string, vars map[string]string) string {
 }
 
 // deploys an instance
-// returns deploymentid or error
-func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinition) (string, error) {
+// returns deploymentid,usermessage,error
+func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinition) (string, string, error) {
 	ctx := authremote.Context()
 	fmt.Printf("Deploying app on host %s:\n", sa.Host)
 	dc.PrintApp(app)
 	conn, err := DialService(sa)
 	if err != nil {
 		fmt.Printf("Failed to connect to service %v\n", sa)
-		return "", err
+		return "", "failed to connect to server", err
 	}
 	defer conn.Close()
 
@@ -225,16 +230,18 @@ func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinit
 
 	dres, err := adc.Deploy(ctx, dr)
 	if err != nil {
-		fmt.Printf("failed to deploy #%d(%d) on %v: %s\n", app.BuildID, app.RepositoryID, adc, err)
-		return "", err
+		s := fmt.Sprintf("failed to deploy #%d(%d) on %v: %s\n", app.BuildID, app.RepositoryID, adc, err)
+		fmt.Print(s)
+		return "", s, err
 	}
 	if !dres.Success {
-		s := fmt.Sprintf("failed to startup app %v\n", app)
+		s := fmt.Sprintf("failed to startup app %v (%s)\n", app, dres.Message)
 		fmt.Println(s)
-		return "", errors.New(s)
+		return "", s, errors.New(s)
 	}
-	fmt.Printf("Successfully deployed %v on %s as %s [%s]\n", AppToString(app), sa.Host, deplid, dres.ID)
-	return dres.ID, nil
+	s := fmt.Sprintf("Successfully deployed %v on %s as %s [%s]\n", AppToString(app), sa.Host, deplid, dres.ID)
+	fmt.Print(s)
+	return dres.ID, s, nil
 }
 
 /*

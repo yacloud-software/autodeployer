@@ -837,8 +837,9 @@ func (depl *DeployMonkey) DeployAppOnTarget(ctx context.Context, dr *pb.DeployAp
 	}
 	sa := &rpb.ServiceAddress{Host: dr.Host, Port: 4000}
 	fmt.Printf("Deploying App %v on %s\n", app, dr.Host)
-	_, err = deployOn(sa, dbg, app)
+	_, msg, err := deployOn(sa, dbg, app)
 	if err != nil {
+		fmt.Println(msg)
 		return nil, err
 	}
 	go ScanAutodeployer(sa) // rescan to keep information somewhat uptodate

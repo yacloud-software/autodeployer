@@ -87,15 +87,17 @@ func stopperThread() {
 		/************************** conditions *************************/
 
 		condRun := stopRequests
-
+		var user_messages []string
 		for _, f := range condRun {
 			res, err := conditionExecute(f)
 			if err != nil {
 				fmt.Printf("failed to eval condition %s: %s\n", f.prefix, err)
 			} else {
+				s := fmt.Sprintf("Result of condition \"%s\": %d\n", f.String(), res)
+				user_messages = append(user_messages, s)
 				f.lastEval = res
 				if f.lastEval == 2 {
-					cancelStop(f.transaction, "Deployment did not succeed fully. Current Version NOT undeployed.")
+					cancelStop(f.transaction, user_messages, "Deployment did not succeed fully. Current Version NOT undeployed.")
 				}
 			}
 		}
@@ -314,7 +316,7 @@ func stopTransaction() int {
 // current versions.
 // e.g. we might have had trouble deploying the
 // new instances
-func cancelStop(transaction int, errmsg string) {
+func cancelStop(transaction int, logmessages []string, errmsg string) {
 	reqlock.Lock()
 	var sreq *stopRequest
 	for _, sr := range stopRequests {
@@ -327,7 +329,7 @@ func cancelStop(transaction int, errmsg string) {
 	}
 	reqlock.Unlock()
 	if sreq != nil {
-		NotifyPeopleAboutCancel(sreq, errmsg)
+		NotifyPeopleAboutCancel(sreq, logmessages, errmsg)
 	}
 }
 

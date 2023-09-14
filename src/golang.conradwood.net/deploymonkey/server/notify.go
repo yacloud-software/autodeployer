@@ -6,6 +6,7 @@ import (
 	sb "golang.conradwood.net/apis/slackgateway"
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
+	"strings"
 )
 
 const (
@@ -41,7 +42,7 @@ func NotifyPeopleAboutDeploy(dbgroup *DBGroup, apps []*pb.ApplicationDefinition,
 
 }
 
-func NotifyPeopleAboutCancel(sr *stopRequest, emsg string) {
+func NotifyPeopleAboutCancel(sr *stopRequest, usermessages []string, emsg string) {
 	var err error
 	if slack == nil {
 		slack = sb.NewSlackGatewayClient(client.Connect("slackgateway.SlackGateway"))
@@ -57,6 +58,10 @@ func NotifyPeopleAboutCancel(sr *stopRequest, emsg string) {
 	}
 	ctx := authremote.Context()
 	msg := fmt.Sprintf("Datacenter update of \"%s\" cancelled: %s\n", name, emsg)
+	for _, umsg := range usermessages {
+		umsg = strings.TrimSuffix(umsg, "\n")
+		msg = msg + umsg + "\n"
+	}
 	fmt.Printf("slack: Posting message: %s\n", msg)
 	pm := &sb.PublishMessageRequest{OriginService: "originservicenotfilledinyet",
 		Channel: "deployments",
