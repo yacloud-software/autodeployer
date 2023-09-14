@@ -191,6 +191,8 @@ func applyVersion() {
 func listConfig() {
 	config, err := config.GetConfig(depl)
 	utils.Bail("failed to get config", err)
+	t := utils.Table{}
+	t.AddHeaders("namespace", "pending#", "deployed#", "AppID", "RepoID", "ArtefactID", "Binary")
 	for _, n := range config.Namespaces() {
 		if !matchesArgs(n) {
 			continue
@@ -201,6 +203,7 @@ func listConfig() {
 			continue
 		}
 		fmt.Printf("  %s (%d groups) pending_version=%d\n", n, len(gns), gns[0].PendingVersion)
+
 		for _, gs := range gns {
 			gapps := config.Apps(gs.NameSpace, gs.GroupID)
 			marker := ""
@@ -208,7 +211,17 @@ func listConfig() {
 				marker = " ** <-- **"
 			}
 			fmt.Printf("      %s (%d applications)%s\n", gs, len(gapps), marker)
+			t.AddString(n)
+			t.NewRow()
 			for _, app := range gapps {
+				t.AddString("")
+				t.AddUint64(uint64(gs.PendingVersion))
+				t.AddUint64(uint64(gs.DeployedVersion))
+				t.AddUint64(app.ID)
+				t.AddUint64(app.RepositoryID)
+				t.AddUint64(app.ArtefactID)
+				t.AddString(app.Binary)
+				t.NewRow()
 				ao := "__"
 				if app.AlwaysOn {
 					ao = "AO"
@@ -221,6 +234,7 @@ func listConfig() {
 			}
 		}
 	}
+	fmt.Println(t.ToPrettyString())
 }
 func matchesArgs(namespace string) bool {
 	args := flag.Args()
