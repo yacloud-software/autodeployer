@@ -192,7 +192,7 @@ func listConfig() {
 	config, err := config.GetConfig(depl)
 	utils.Bail("failed to get config", err)
 	t := utils.Table{}
-	t.AddHeaders("namespace", "pending#", "deployed#", "AppID", "RepoID", "ArtefactID", "Binary")
+	t.AddHeaders("namespace", "pending#", "deployed#", "AppID", "Build", "RepoID", "ArtefactID", "Binary")
 	for _, n := range config.Namespaces() {
 		if !matchesArgs(n) {
 			continue
@@ -218,6 +218,7 @@ func listConfig() {
 				t.AddUint64(uint64(gs.PendingVersion))
 				t.AddUint64(uint64(gs.DeployedVersion))
 				t.AddUint64(app.ID)
+				t.AddUint64(app.BuildID)
 				t.AddUint64(app.RepositoryID)
 				t.AddUint64(app.ArtefactID)
 				t.AddString(app.Binary)
