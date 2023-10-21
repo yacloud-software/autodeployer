@@ -36,7 +36,7 @@ golang.conradwood.net/apis/errorlogger v1.1.2546 h1:L+4vR4DBNs634JyvB930sw9uvUYj
 golang.conradwood.net/apis/errorlogger v1.1.2546/go.mod h1:0xWjP53aa7T5X+PvvZUo72rgM5SfhIrwMrpHSpOCbOU=
 golang.conradwood.net/apis/framework v1.1.2546 h1:2KKl5LYZSwsp8fYMiajE2+DcPeDVpCeUC6x84UE7Fn4=
 golang.conradwood.net/apis/framework v1.1.2546/go.mod h1:fMpffYQXn7aWSmXrmgZi5Xb/+hoxkO8a822xba1SRqM=
-golang.conradwood.net/apis/goeasyops v1.1.2546 h1:DZNfaYVx//OWcg79NtdREo6eksXT+gdhEOOdp+gW+Ig=
+golang.conradwood.net/apis/goeasyops v1.1.2546 h1:ysi5KmSipkPI4fiaRUPw7oCZfXyXGiMM6Gvd0Qy9kjY=
 golang.conradwood.net/apis/goeasyops v1.1.2546/go.mod h1:lCpuJdjHLh3UYbIttEbv1ogzhWaevZ6dzeBW8g8eMjA=
 golang.conradwood.net/apis/objectstore v1.1.2546 h1:OrwSftc7SGfy7vtPMIEbUXdcu81tL0kXtNsxIVRGFRY=
 golang.conradwood.net/apis/objectstore v1.1.2546/go.mod h1:+xriAjJI5Y0hw7dt39L3AX+z2WlFw0z+XUps2GB8IdI=

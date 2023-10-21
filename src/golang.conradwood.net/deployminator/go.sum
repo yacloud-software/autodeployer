@@ -40,7 +40,7 @@ golang.conradwood.net/apis/errorlogger v1.1.2525 h1:rUQZ7w2LuJl365Q3EdHUzO5SMzxR
 golang.conradwood.net/apis/errorlogger v1.1.2525/go.mod h1:8uGJDtOeVYVSd5Tht9rx2lygLknLzCfuCoE/3WWaTrA=
 golang.conradwood.net/apis/framework v1.1.2525 h1:uMyzPV/sVc3yQdGEx+HSXLcw3wJnTcTLoXSXcWK8rXQ=
 golang.conradwood.net/apis/framework v1.1.2525/go.mod h1:5LgnfGKWFzEwdMBywJxVvQ8VGAvODz7DVsL5TFaq08U=
-golang.conradwood.net/apis/goeasyops v1.1.2525 h1:LZo5xnaeH6VPBKJdS9LkfY2Vqx+OAWScx4FAeGv2b8Q=
+golang.conradwood.net/apis/goeasyops v1.1.2525 h1:nZGSLjZyzH7QvVQ7EysWYladN1oyr3FRgHILsqeT1ok=
 golang.conradwood.net/apis/goeasyops v1.1.2525/go.mod h1:vaMM6EEjTtw8+R0b3NVTA+COfAqDnIuoJhYRj9PwH1g=
 golang.conradwood.net/apis/objectstore v1.1.2525 h1:0AL32PvJcvfEdr8v6YbVFIZyemL2OJZxOoJMrH7Qgcc=
 golang.conradwood.net/apis/objectstore v1.1.2525/go.mod h1:flinwH9mg9KCdNI5hPzjwUDUbGHqPvB0sei3afpPaqU=
