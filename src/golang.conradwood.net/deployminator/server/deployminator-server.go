@@ -40,7 +40,7 @@ func main() {
 	db.Open()
 
 	sd := server.NewServerDef()
-	sd.Port = *port
+	sd.SetPort(*port)
 	sd.Register = server.Register(
 		func(server *grpc.Server) error {
 			pb.RegisterDeployminatorServer(server, &Deployminator{})

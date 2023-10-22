@@ -108,7 +108,7 @@ func main() {
 	}
 	go startVersionGauge()
 	sd := server.NewServerDef()
-	sd.Port = *port
+	sd.SetPort(*port)
 	sd.Register = st
 	err = server.ServerStartup(sd)
 	if err != nil {

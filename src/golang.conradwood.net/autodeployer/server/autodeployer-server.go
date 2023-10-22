@@ -173,7 +173,7 @@ func main() {
 	go version_metric()
 
 	sd := server.NewServerDef()
-	sd.Port = *port
+	sd.SetPort(*port)
 	sd.Register = st
 	err = server.ServerStartup(sd)
 	if err != nil {
@@ -967,12 +967,12 @@ func StartupCodeExec(du *deployments.Deployed) {
 			fmt.Printf("Autoregistering %s on port %d, type=%v\n", ar.ServiceName, port, at)
 			if at == rpb.Apitype_tcp {
 				sd := server.NewTCPServerDef(ar.ServiceName)
-				sd.Port = port
+				sd.SetPort(port)
 				sd.DeployPath = du.Deploymentpath
 				server.AddRegistry(sd)
 			} else if at == rpb.Apitype_html {
 				sd := server.NewHTMLServerDef(ar.ServiceName)
-				sd.Port = port
+				sd.SetPort(port)
 				sd.DeployPath = du.Deploymentpath
 				server.AddRegistry(sd)
 			} else {
