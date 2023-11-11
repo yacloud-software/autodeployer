@@ -108,6 +108,7 @@ func AppLimits(app *pb.ApplicationDefinition) *pb.Limits {
 	// the default applied to all apps w/o limits configured
 	app.Limits = &pb.Limits{
 		MaxMemory: 3000,
+		Priority:  DEFAULT_PRIORITY,
 	}
 	return app.Limits
 }
