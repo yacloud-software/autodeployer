@@ -21,6 +21,7 @@ func CreateInfoRequest() *ad.InfoRequest {
 }
 
 func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDefinition) *ad.DeployRequest {
+	AppLimits(app)
 	url := app.DownloadURL
 	url = strings.ReplaceAll(url, "${BUILDID}", "latest")
 	res := &ad.DeployRequest{
@@ -42,11 +43,9 @@ func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDe
 		ArtefactID:       app.ArtefactID,
 	}
 	if res.Limits == nil {
-		res.Limits = &dm.Limits{Priority: DEFAULT_PRIORITY} // default niceness
+		panic("No limits assigned, despite running Applimits() earlier on\n")
 	}
-	if res.Limits.MaxMemory == 0 {
-		res.Limits.MaxMemory = 3000
-	}
+
 	if group != nil {
 		res.Groupname = group.GroupID
 		res.Namespace = group.Namespace
