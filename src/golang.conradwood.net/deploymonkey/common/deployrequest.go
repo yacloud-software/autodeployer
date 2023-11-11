@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+const (
+	DEFAULT_PRIORITY = 5
+)
+
 var (
 	deployer_name = flag.String("deployer_name", "deploymonkey", "name of a deploymonkey, can be used to partition autodeployers between deploymonkeys")
 )
@@ -38,7 +42,7 @@ func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDe
 		ArtefactID:       app.ArtefactID,
 	}
 	if res.Limits == nil {
-		res.Limits = &dm.Limits{}
+		res.Limits = &dm.Limits{Priority: DEFAULT_PRIORITY} // default niceness
 	}
 	if res.Limits.MaxMemory == 0 {
 		res.Limits.MaxMemory = 3000
