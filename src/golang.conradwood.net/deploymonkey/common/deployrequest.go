@@ -21,7 +21,7 @@ func CreateInfoRequest() *ad.InfoRequest {
 }
 
 func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDefinition) *ad.DeployRequest {
-	AppLimits(app)
+	app.Limits = AppLimits(app) // if non assigned in deploy.yaml, create a default applimits, otherwise use deploy.yaml values
 	url := app.DownloadURL
 	url = strings.ReplaceAll(url, "${BUILDID}", "latest")
 	res := &ad.DeployRequest{
