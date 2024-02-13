@@ -41,12 +41,12 @@ func main() {
 
 	sd := server.NewServerDef()
 	sd.SetPort(*port)
-	sd.Register = server.Register(
+	sd.SetRegister(server.Register(
 		func(server *grpc.Server) error {
 			pb.RegisterDeployminatorServer(server, &Deployminator{})
 			return nil
 		},
-	)
+	))
 	err = server.ServerStartup(sd)
 	utils.Bail("Unable to start server", err)
 	os.Exit(0)

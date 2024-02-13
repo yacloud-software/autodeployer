@@ -344,7 +344,7 @@ func (a *DBDeploymentDescriptor) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".application, " + a.SQLTablename + ".buildnumber, " + a.SQLTablename + ".branch, " + a.SQLTablename + ".deployme"
 }
 
-func (a *DBDeploymentDescriptor) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.DeploymentDescriptor, error) {
+func (a *DBDeploymentDescriptor) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.DeploymentDescriptor, error) {
 	var res []*savepb.DeploymentDescriptor
 	for rows.Next() {
 		foo := savepb.DeploymentDescriptor{Application: &savepb.Application{}}
@@ -356,6 +356,29 @@ func (a *DBDeploymentDescriptor) FromRows(ctx context.Context, rows *gosql.Rows)
 	}
 	return res, nil
 }
+func (a *DBDeploymentDescriptor) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.DeploymentDescriptor, error) {
+	var res []*savepb.DeploymentDescriptor
+	for rows.Next() {
+		// SCANNER:
+		foo := &savepb.DeploymentDescriptor{}
+		// create the non-nullable pointers
+		foo.Application = &savepb.Application{} // non-nullable
+		// create variables for scan results
+		scanTarget_0 := &foo.ID
+		scanTarget_1 := &foo.Application.ID
+		scanTarget_2 := &foo.BuildNumber
+		scanTarget_3 := &foo.Branch
+		scanTarget_4 := &foo.DeployMe
+		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2, scanTarget_3, scanTarget_4)
+		// END SCANNER
+
+		if err != nil {
+			return nil, a.Error(ctx, "fromrow-scan", err)
+		}
+		res = append(res, foo)
+	}
+	return res, nil
+}
 
 /**********************************************************************
 * Helper to create table and columns
@@ -363,18 +386,35 @@ func (a *DBDeploymentDescriptor) FromRows(ctx context.Context, rows *gosql.Rows)
 func (a *DBDeploymentDescriptor) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),application bigint not null  references deployminator_application (id) on delete cascade  ,buildnumber bigint not null  ,branch text not null  ,deployme boolean not null  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),application bigint not null  references deployminator_application (id) on delete cascade  ,buildnumber bigint not null  ,branch text not null  ,deployme boolean not null  );`,
-		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS application bigint not null references deployminator_application (id) on delete cascade  default 0;`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),application bigint not null ,buildnumber bigint not null ,branch text not null ,deployme boolean not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),application bigint not null ,buildnumber bigint not null ,branch text not null ,deployme boolean not null );`,
+		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS application bigint not null default 0;`,
 		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS buildnumber bigint not null default 0;`,
 		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS branch text not null default '';`,
 		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS deployme boolean not null default false;`,
+
+		`ALTER TABLE deployminator_deploymentdescriptor_archive ADD COLUMN IF NOT EXISTS application bigint not null  default 0;`,
+		`ALTER TABLE deployminator_deploymentdescriptor_archive ADD COLUMN IF NOT EXISTS buildnumber bigint not null  default 0;`,
+		`ALTER TABLE deployminator_deploymentdescriptor_archive ADD COLUMN IF NOT EXISTS branch text not null  default '';`,
+		`ALTER TABLE deployminator_deploymentdescriptor_archive ADD COLUMN IF NOT EXISTS deployme boolean not null  default false;`,
 	}
+
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
+	}
+
+	// these are optional, expected to fail
+	csql = []string{
+		// Indices:
+
+		// Foreign keys:
+		`ALTER TABLE deployminator_deploymentdescriptor add constraint mkdb_fk_685b0f62ccdfde526cfd0f2d8bfb49a4 FOREIGN KEY (application) references deployminator_application (id) on delete cascade ;`,
+	}
+	for i, c := range csql {
+		a.DB.ExecContextQuiet(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 	}
 	return nil
 }
@@ -388,3 +428,4 @@ func (a *DBDeploymentDescriptor) Error(ctx context.Context, q string, e error) e
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
+

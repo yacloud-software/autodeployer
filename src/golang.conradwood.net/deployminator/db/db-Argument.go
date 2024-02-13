@@ -282,7 +282,7 @@ func (a *DBArgument) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".instancedef, " + a.SQLTablename + ".argument"
 }
 
-func (a *DBArgument) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.Argument, error) {
+func (a *DBArgument) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.Argument, error) {
 	var res []*savepb.Argument
 	for rows.Next() {
 		foo := savepb.Argument{InstanceDef: &savepb.InstanceDef{}}
@@ -294,6 +294,27 @@ func (a *DBArgument) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.
 	}
 	return res, nil
 }
+func (a *DBArgument) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.Argument, error) {
+	var res []*savepb.Argument
+	for rows.Next() {
+		// SCANNER:
+		foo := &savepb.Argument{}
+		// create the non-nullable pointers
+		foo.InstanceDef = &savepb.InstanceDef{} // non-nullable
+		// create variables for scan results
+		scanTarget_0 := &foo.ID
+		scanTarget_1 := &foo.InstanceDef.ID
+		scanTarget_2 := &foo.Argument
+		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2)
+		// END SCANNER
+
+		if err != nil {
+			return nil, a.Error(ctx, "fromrow-scan", err)
+		}
+		res = append(res, foo)
+	}
+	return res, nil
+}
 
 /**********************************************************************
 * Helper to create table and columns
@@ -301,16 +322,31 @@ func (a *DBArgument) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.
 func (a *DBArgument) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),instancedef bigint not null  references deployminator_instancedef (id) on delete cascade  ,argument text not null  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),instancedef bigint not null  references deployminator_instancedef (id) on delete cascade  ,argument text not null  );`,
-		`ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS instancedef bigint not null references deployminator_instancedef (id) on delete cascade  default 0;`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),instancedef bigint not null ,argument text not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),instancedef bigint not null ,argument text not null );`,
+		`ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS instancedef bigint not null default 0;`,
 		`ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS argument text not null default '';`,
+
+		`ALTER TABLE deployminator_argument_archive ADD COLUMN IF NOT EXISTS instancedef bigint not null  default 0;`,
+		`ALTER TABLE deployminator_argument_archive ADD COLUMN IF NOT EXISTS argument text not null  default '';`,
 	}
+
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
+	}
+
+	// these are optional, expected to fail
+	csql = []string{
+		// Indices:
+
+		// Foreign keys:
+		`ALTER TABLE deployminator_argument add constraint mkdb_fk_deployminator_argument_instancedef_deployminator_instancedefid FOREIGN KEY (instancedef) references deployminator_instancedef (id) on delete cascade ;`,
+	}
+	for i, c := range csql {
+		a.DB.ExecContextQuiet(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 	}
 	return nil
 }
@@ -324,3 +360,4 @@ func (a *DBArgument) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
+

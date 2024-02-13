@@ -313,7 +313,7 @@ func (a *DBApplication) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".r_binary, " + a.SQLTablename + ".repositoryid, " + a.SQLTablename + ".downloadurl"
 }
 
-func (a *DBApplication) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.Application, error) {
+func (a *DBApplication) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.Application, error) {
 	var res []*savepb.Application
 	for rows.Next() {
 		foo := savepb.Application{}
@@ -325,6 +325,27 @@ func (a *DBApplication) FromRows(ctx context.Context, rows *gosql.Rows) ([]*save
 	}
 	return res, nil
 }
+func (a *DBApplication) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.Application, error) {
+	var res []*savepb.Application
+	for rows.Next() {
+		// SCANNER:
+		foo := &savepb.Application{}
+		// create the non-nullable pointers
+		// create variables for scan results
+		scanTarget_0 := &foo.ID
+		scanTarget_1 := &foo.Binary
+		scanTarget_2 := &foo.RepositoryID
+		scanTarget_3 := &foo.DownloadURL
+		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2, scanTarget_3)
+		// END SCANNER
+
+		if err != nil {
+			return nil, a.Error(ctx, "fromrow-scan", err)
+		}
+		res = append(res, foo)
+	}
+	return res, nil
+}
 
 /**********************************************************************
 * Helper to create table and columns
@@ -332,17 +353,33 @@ func (a *DBApplication) FromRows(ctx context.Context, rows *gosql.Rows) ([]*save
 func (a *DBApplication) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),r_binary text not null  ,repositoryid bigint not null  ,downloadurl text not null  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),r_binary text not null  ,repositoryid bigint not null  ,downloadurl text not null  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),r_binary text not null ,repositoryid bigint not null ,downloadurl text not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),r_binary text not null ,repositoryid bigint not null ,downloadurl text not null );`,
 		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS r_binary text not null default '';`,
 		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;`,
 		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS downloadurl text not null default '';`,
+
+		`ALTER TABLE deployminator_application_archive ADD COLUMN IF NOT EXISTS r_binary text not null  default '';`,
+		`ALTER TABLE deployminator_application_archive ADD COLUMN IF NOT EXISTS repositoryid bigint not null  default 0;`,
+		`ALTER TABLE deployminator_application_archive ADD COLUMN IF NOT EXISTS downloadurl text not null  default '';`,
 	}
+
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
+	}
+
+	// these are optional, expected to fail
+	csql = []string{
+		// Indices:
+
+		// Foreign keys:
+
+	}
+	for i, c := range csql {
+		a.DB.ExecContextQuiet(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 	}
 	return nil
 }
@@ -356,3 +393,4 @@ func (a *DBApplication) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
+

@@ -282,7 +282,7 @@ func (a *DBContainerDef) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".url, " + a.SQLTablename + ".useoverlayfs"
 }
 
-func (a *DBContainerDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ContainerDef, error) {
+func (a *DBContainerDef) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.ContainerDef, error) {
 	var res []*savepb.ContainerDef
 	for rows.Next() {
 		foo := savepb.ContainerDef{}
@@ -294,6 +294,26 @@ func (a *DBContainerDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*sav
 	}
 	return res, nil
 }
+func (a *DBContainerDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ContainerDef, error) {
+	var res []*savepb.ContainerDef
+	for rows.Next() {
+		// SCANNER:
+		foo := &savepb.ContainerDef{}
+		// create the non-nullable pointers
+		// create variables for scan results
+		scanTarget_0 := &foo.ID
+		scanTarget_1 := &foo.URL
+		scanTarget_2 := &foo.UseOverlayFS
+		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2)
+		// END SCANNER
+
+		if err != nil {
+			return nil, a.Error(ctx, "fromrow-scan", err)
+		}
+		res = append(res, foo)
+	}
+	return res, nil
+}
 
 /**********************************************************************
 * Helper to create table and columns
@@ -301,16 +321,31 @@ func (a *DBContainerDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*sav
 func (a *DBContainerDef) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null  ,useoverlayfs boolean not null  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null  ,useoverlayfs boolean not null  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null ,useoverlayfs boolean not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null ,useoverlayfs boolean not null );`,
 		`ALTER TABLE containerdef ADD COLUMN IF NOT EXISTS url text not null default '';`,
 		`ALTER TABLE containerdef ADD COLUMN IF NOT EXISTS useoverlayfs boolean not null default false;`,
+
+		`ALTER TABLE containerdef_archive ADD COLUMN IF NOT EXISTS url text not null  default '';`,
+		`ALTER TABLE containerdef_archive ADD COLUMN IF NOT EXISTS useoverlayfs boolean not null  default false;`,
 	}
+
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
+	}
+
+	// these are optional, expected to fail
+	csql = []string{
+		// Indices:
+
+		// Foreign keys:
+
+	}
+	for i, c := range csql {
+		a.DB.ExecContextQuiet(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 	}
 	return nil
 }
@@ -324,3 +359,4 @@ func (a *DBContainerDef) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
+

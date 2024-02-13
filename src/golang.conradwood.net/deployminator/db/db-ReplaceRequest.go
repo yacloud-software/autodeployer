@@ -282,7 +282,7 @@ func (a *DBReplaceRequest) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".olddeployment, " + a.SQLTablename + ".newdeployment"
 }
 
-func (a *DBReplaceRequest) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ReplaceRequest, error) {
+func (a *DBReplaceRequest) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.ReplaceRequest, error) {
 	var res []*savepb.ReplaceRequest
 	for rows.Next() {
 		foo := savepb.ReplaceRequest{OldDeployment: &savepb.DeploymentDescriptor{}, NewDeployment: &savepb.DeploymentDescriptor{}}
@@ -294,6 +294,28 @@ func (a *DBReplaceRequest) FromRows(ctx context.Context, rows *gosql.Rows) ([]*s
 	}
 	return res, nil
 }
+func (a *DBReplaceRequest) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ReplaceRequest, error) {
+	var res []*savepb.ReplaceRequest
+	for rows.Next() {
+		// SCANNER:
+		foo := &savepb.ReplaceRequest{}
+		// create the non-nullable pointers
+		foo.OldDeployment = &savepb.DeploymentDescriptor{} // non-nullable
+		foo.NewDeployment = &savepb.DeploymentDescriptor{} // non-nullable
+		// create variables for scan results
+		scanTarget_0 := &foo.ID
+		scanTarget_1 := &foo.OldDeployment.ID
+		scanTarget_2 := &foo.NewDeployment.ID
+		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2)
+		// END SCANNER
+
+		if err != nil {
+			return nil, a.Error(ctx, "fromrow-scan", err)
+		}
+		res = append(res, foo)
+	}
+	return res, nil
+}
 
 /**********************************************************************
 * Helper to create table and columns
@@ -301,16 +323,32 @@ func (a *DBReplaceRequest) FromRows(ctx context.Context, rows *gosql.Rows) ([]*s
 func (a *DBReplaceRequest) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),olddeployment bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  ,newdeployment bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),olddeployment bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  ,newdeployment bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  );`,
-		`ALTER TABLE deployminator_replacerequest ADD COLUMN IF NOT EXISTS olddeployment bigint not null references deployminator_deploymentdescriptor (id) on delete cascade  default 0;`,
-		`ALTER TABLE deployminator_replacerequest ADD COLUMN IF NOT EXISTS newdeployment bigint not null references deployminator_deploymentdescriptor (id) on delete cascade  default 0;`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),olddeployment bigint not null ,newdeployment bigint not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),olddeployment bigint not null ,newdeployment bigint not null );`,
+		`ALTER TABLE deployminator_replacerequest ADD COLUMN IF NOT EXISTS olddeployment bigint not null default 0;`,
+		`ALTER TABLE deployminator_replacerequest ADD COLUMN IF NOT EXISTS newdeployment bigint not null default 0;`,
+
+		`ALTER TABLE deployminator_replacerequest_archive ADD COLUMN IF NOT EXISTS olddeployment bigint not null  default 0;`,
+		`ALTER TABLE deployminator_replacerequest_archive ADD COLUMN IF NOT EXISTS newdeployment bigint not null  default 0;`,
 	}
+
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
+	}
+
+	// these are optional, expected to fail
+	csql = []string{
+		// Indices:
+
+		// Foreign keys:
+		`ALTER TABLE deployminator_replacerequest add constraint mkdb_fk_b21d8edf3f655055b33626ac239a00a0 FOREIGN KEY (olddeployment) references deployminator_deploymentdescriptor (id) on delete cascade ;`,
+		`ALTER TABLE deployminator_replacerequest add constraint mkdb_fk_837807628d48c513d507ace26f16e1d6 FOREIGN KEY (newdeployment) references deployminator_deploymentdescriptor (id) on delete cascade ;`,
+	}
+	for i, c := range csql {
+		a.DB.ExecContextQuiet(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 	}
 	return nil
 }
@@ -324,3 +362,4 @@ func (a *DBReplaceRequest) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
+

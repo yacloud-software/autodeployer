@@ -49,4 +49,5 @@ func DeployminatorLookupID() string { return "deployminator.Deployminator" } // 
 
 func init() {
    client.RegisterDependency("deployminator.Deployminator")
+   AddService("deployminator.Deployminator")
 }

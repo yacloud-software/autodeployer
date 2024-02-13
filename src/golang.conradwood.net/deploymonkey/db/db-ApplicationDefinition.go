@@ -809,7 +809,7 @@ func (a *DBApplicationDefinition) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".downloadurl, " + a.SQLTablename + ".downloaduser, " + a.SQLTablename + ".downloadpassword, " + a.SQLTablename + ".r_binary, " + a.SQLTablename + ".buildid, " + a.SQLTablename + ".instances, " + a.SQLTablename + ".deploymentid, " + a.SQLTablename + ".machines, " + a.SQLTablename + ".deploytype, " + a.SQLTablename + ".critical, " + a.SQLTablename + ".alwayson, " + a.SQLTablename + ".statictargetdir, " + a.SQLTablename + ".r_public, " + a.SQLTablename + ".java, " + a.SQLTablename + ".repositoryid, " + a.SQLTablename + ".asroot, " + a.SQLTablename + ".container, " + a.SQLTablename + ".discardlog, " + a.SQLTablename + ".artefactid"
 }
 
-func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ApplicationDefinition, error) {
+func (a *DBApplicationDefinition) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.ApplicationDefinition, error) {
 	var res []*savepb.ApplicationDefinition
 	for rows.Next() {
 		foo := savepb.ApplicationDefinition{Limits: &savepb.Limits{}, Container: &savepb.ContainerDef{}}
@@ -821,6 +821,44 @@ func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows
 	}
 	return res, nil
 }
+func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ApplicationDefinition, error) {
+	var res []*savepb.ApplicationDefinition
+	for rows.Next() {
+		// SCANNER:
+		foo := &savepb.ApplicationDefinition{}
+		// create the non-nullable pointers
+		foo.Container = &savepb.ContainerDef{} // non-nullable
+		// create variables for scan results
+		scanTarget_0 := &foo.DownloadURL
+		scanTarget_1 := &foo.DownloadUser
+		scanTarget_2 := &foo.DownloadPassword
+		scanTarget_3 := &foo.Binary
+		scanTarget_4 := &foo.BuildID
+		scanTarget_5 := &foo.Instances
+		scanTarget_6 := &foo.DeploymentID
+		scanTarget_7 := &foo.Machines
+		scanTarget_8 := &foo.DeployType
+		scanTarget_9 := &foo.ID
+		scanTarget_10 := &foo.Critical
+		scanTarget_11 := &foo.AlwaysOn
+		scanTarget_12 := &foo.StaticTargetDir
+		scanTarget_13 := &foo.Public
+		scanTarget_14 := &foo.Java
+		scanTarget_15 := &foo.RepositoryID
+		scanTarget_16 := &foo.AsRoot
+		scanTarget_17 := &foo.Container.ID
+		scanTarget_18 := &foo.DiscardLog
+		scanTarget_19 := &foo.ArtefactID
+		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2, scanTarget_3, scanTarget_4, scanTarget_5, scanTarget_6, scanTarget_7, scanTarget_8, scanTarget_9, scanTarget_10, scanTarget_11, scanTarget_12, scanTarget_13, scanTarget_14, scanTarget_15, scanTarget_16, scanTarget_17, scanTarget_18, scanTarget_19)
+		// END SCANNER
+
+		if err != nil {
+			return nil, a.Error(ctx, "fromrow-scan", err)
+		}
+		res = append(res, foo)
+	}
+	return res, nil
+}
 
 /**********************************************************************
 * Helper to create table and columns
@@ -828,8 +866,8 @@ func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows
 func (a *DBApplicationDefinition) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references containerdef (id) on delete cascade  ,discardlog boolean not null  ,artefactid bigint not null  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references containerdef (id) on delete cascade  ,discardlog boolean not null  ,artefactid bigint not null  );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null ,downloaduser text not null ,downloadpassword text not null ,r_binary text not null ,buildid bigint not null ,instances integer not null ,deploymentid text not null ,machines text not null ,deploytype text not null ,critical boolean not null ,alwayson boolean not null ,statictargetdir text not null ,r_public boolean not null ,java boolean not null ,repositoryid bigint not null ,asroot boolean not null ,container bigint not null ,discardlog boolean not null ,artefactid bigint not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null ,downloaduser text not null ,downloadpassword text not null ,r_binary text not null ,buildid bigint not null ,instances integer not null ,deploymentid text not null ,machines text not null ,deploytype text not null ,critical boolean not null ,alwayson boolean not null ,statictargetdir text not null ,r_public boolean not null ,java boolean not null ,repositoryid bigint not null ,asroot boolean not null ,container bigint not null ,discardlog boolean not null ,artefactid bigint not null );`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS downloadurl text not null default '';`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS downloaduser text not null default '';`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS downloadpassword text not null default '';`,
@@ -846,15 +884,47 @@ func (a *DBApplicationDefinition) CreateTable(ctx context.Context) error {
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS java boolean not null default false;`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS asroot boolean not null default false;`,
-		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS container bigint not null references containerdef (id) on delete cascade  default 0;`,
+		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS container bigint not null default 0;`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS discardlog boolean not null default false;`,
 		`ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS artefactid bigint not null default 0;`,
+
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS downloadurl text not null  default '';`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS downloaduser text not null  default '';`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS downloadpassword text not null  default '';`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS r_binary text not null  default '';`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS buildid bigint not null  default 0;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS instances integer not null  default 0;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS deploymentid text not null  default '';`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS machines text not null  default '';`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS deploytype text not null  default '';`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS critical boolean not null  default false;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS alwayson boolean not null  default false;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS statictargetdir text not null  default '';`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS r_public boolean not null  default false;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS java boolean not null  default false;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS repositoryid bigint not null  default 0;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS asroot boolean not null  default false;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS container bigint not null  default 0;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS discardlog boolean not null  default false;`,
+		`ALTER TABLE applicationdefinition_archive ADD COLUMN IF NOT EXISTS artefactid bigint not null  default 0;`,
 	}
+
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
+	}
+
+	// these are optional, expected to fail
+	csql = []string{
+		// Indices:
+
+		// Foreign keys:
+		`ALTER TABLE applicationdefinition add constraint mkdb_fk_applicationdefinition_container_containerdefid FOREIGN KEY (container) references containerdef (id) on delete cascade ;`,
+	}
+	for i, c := range csql {
+		a.DB.ExecContextQuiet(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 	}
 	return nil
 }
@@ -868,3 +938,4 @@ func (a *DBApplicationDefinition) Error(ctx context.Context, q string, e error) 
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
+

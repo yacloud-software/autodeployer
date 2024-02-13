@@ -31,6 +31,7 @@ import (
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/cmdline"
+	gerr "golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/linux"
 	//"golang.conradwood.net/go-easyops/linux" // add busy gauge
 	"golang.conradwood.net/autodeployer/mkenv"
@@ -174,7 +175,7 @@ func main() {
 
 	sd := server.NewServerDef()
 	sd.SetPort(*port)
-	sd.Register = st
+	sd.SetRegister(st)
 	err = server.ServerStartup(sd)
 	if err != nil {
 		fmt.Printf("failed to start server: %s\n", err)
@@ -727,6 +728,18 @@ func isPortInUse(port int) bool {
 	}
 	return false
 }
+func (s *AutoDeployer) RunCommand(ctx context.Context, req *pb.CommandRequest) (*pb.CommandResponse, error) {
+	return nil, gerr.NotImplemented(ctx, "runcommand")
+}
+func (s *AutoDeployer) GetCacheEntries(ctx context.Context, req *common.Void) (*pb.CacheInfo, error) {
+	return nil, gerr.NotImplemented(ctx, "getcacheentries")
+}
+func (s *AutoDeployer) EvictFromCache(ctx context.Context, req *pb.CacheKey) (*common.Void, error) {
+	return nil, gerr.NotImplemented(ctx, "evictfromcache")
+}
+func (s *AutoDeployer) CacheGarbageCollector(ctx context.Context, req *common.Void) (*common.Void, error) {
+	return nil, gerr.NotImplemented(ctx, "cachegarbagecollector")
+}
 func (s *AutoDeployer) ClearActions(ctx context.Context, req *common.Void) (*common.Void, error) {
 	config.ClearApplied()
 	return &common.Void{}, nil
@@ -968,12 +981,10 @@ func StartupCodeExec(du *deployments.Deployed) {
 			if at == rpb.Apitype_tcp {
 				sd := server.NewTCPServerDef(ar.ServiceName)
 				sd.SetPort(port)
-				sd.DeployPath = du.Deploymentpath
 				server.AddRegistry(sd)
 			} else if at == rpb.Apitype_html {
 				sd := server.NewHTMLServerDef(ar.ServiceName)
 				sd.SetPort(port)
-				sd.DeployPath = du.Deploymentpath
 				server.AddRegistry(sd)
 			} else {
 				fmt.Printf("Cannot (yet) auto-register apitype: %s\n", at)

@@ -344,7 +344,7 @@ func (a *DBInstanceDef) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".deploymentid, " + a.SQLTablename + ".machinegroup, " + a.SQLTablename + ".instances, " + a.SQLTablename + ".instancecountispermachine"
 }
 
-func (a *DBInstanceDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.InstanceDef, error) {
+func (a *DBInstanceDef) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.InstanceDef, error) {
 	var res []*savepb.InstanceDef
 	for rows.Next() {
 		foo := savepb.InstanceDef{DeploymentID: &savepb.DeploymentDescriptor{}}
@@ -356,6 +356,29 @@ func (a *DBInstanceDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*save
 	}
 	return res, nil
 }
+func (a *DBInstanceDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.InstanceDef, error) {
+	var res []*savepb.InstanceDef
+	for rows.Next() {
+		// SCANNER:
+		foo := &savepb.InstanceDef{}
+		// create the non-nullable pointers
+		foo.DeploymentID = &savepb.DeploymentDescriptor{} // non-nullable
+		// create variables for scan results
+		scanTarget_0 := &foo.ID
+		scanTarget_1 := &foo.DeploymentID.ID
+		scanTarget_2 := &foo.MachineGroup
+		scanTarget_3 := &foo.Instances
+		scanTarget_4 := &foo.InstanceCountIsPerMachine
+		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2, scanTarget_3, scanTarget_4)
+		// END SCANNER
+
+		if err != nil {
+			return nil, a.Error(ctx, "fromrow-scan", err)
+		}
+		res = append(res, foo)
+	}
+	return res, nil
+}
 
 /**********************************************************************
 * Helper to create table and columns
@@ -363,18 +386,35 @@ func (a *DBInstanceDef) FromRows(ctx context.Context, rows *gosql.Rows) ([]*save
 func (a *DBInstanceDef) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),deploymentid bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  ,machinegroup text not null  ,instances integer not null  ,instancecountispermachine boolean not null  );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),deploymentid bigint not null  references deployminator_deploymentdescriptor (id) on delete cascade  ,machinegroup text not null  ,instances integer not null  ,instancecountispermachine boolean not null  );`,
-		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS deploymentid bigint not null references deployminator_deploymentdescriptor (id) on delete cascade  default 0;`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),deploymentid bigint not null ,machinegroup text not null ,instances integer not null ,instancecountispermachine boolean not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),deploymentid bigint not null ,machinegroup text not null ,instances integer not null ,instancecountispermachine boolean not null );`,
+		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS deploymentid bigint not null default 0;`,
 		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS machinegroup text not null default '';`,
 		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS instances integer not null default 0;`,
 		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS instancecountispermachine boolean not null default false;`,
+
+		`ALTER TABLE deployminator_instancedef_archive ADD COLUMN IF NOT EXISTS deploymentid bigint not null  default 0;`,
+		`ALTER TABLE deployminator_instancedef_archive ADD COLUMN IF NOT EXISTS machinegroup text not null  default '';`,
+		`ALTER TABLE deployminator_instancedef_archive ADD COLUMN IF NOT EXISTS instances integer not null  default 0;`,
+		`ALTER TABLE deployminator_instancedef_archive ADD COLUMN IF NOT EXISTS instancecountispermachine boolean not null  default false;`,
 	}
+
 	for i, c := range csql {
 		_, e := a.DB.ExecContext(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 		if e != nil {
 			return e
 		}
+	}
+
+	// these are optional, expected to fail
+	csql = []string{
+		// Indices:
+
+		// Foreign keys:
+		`ALTER TABLE deployminator_instancedef add constraint mkdb_fk_4c2654b196d701919fb865962ded99a6 FOREIGN KEY (deploymentid) references deployminator_deploymentdescriptor (id) on delete cascade ;`,
+	}
+	for i, c := range csql {
+		a.DB.ExecContextQuiet(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)
 	}
 	return nil
 }
@@ -388,3 +428,4 @@ func (a *DBInstanceDef) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
+
