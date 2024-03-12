@@ -14,8 +14,10 @@ func (e *DeployMonkey) QueryTimeseries(req *grafanadata.QueryRequest, srv pb.Dep
 	ctx := srv.Context()
 	if req.Query == "deployment_count" {
 		dps, err = query_deployment_count(ctx, req)
-	} else if req.Query == "deployment_history" {
+	} else if req.Query == "version_history" {
 		dps, err = query_deployment_history(ctx, req)
+	} else {
+		return fmt.Errorf("deploymonkey does not implement query \"%s\"", req.Query)
 	}
 	if err != nil {
 		return err
@@ -42,5 +44,21 @@ func query_deployment_count(ctx context.Context, req *grafanadata.QueryRequest) 
 	return []*grafanadata.DataPoint{dp}, nil
 }
 func query_deployment_history(ctx context.Context, req *grafanadata.QueryRequest) ([]*grafanadata.DataPoint, error) {
-	return nil, nil
+	apps, err := appdef_store.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var res []*grafanadata.DataPoint
+	for _, app := range apps {
+		if app.Created < req.Start || app.Created > req.End {
+			continue
+		}
+		dp := &grafanadata.DataPoint{
+			Timestamp: app.Created,
+			Value:     float64(app.ID),
+			Labels:    map[string]string{"binary": app.Binary},
+		}
+		res = append(res, dp)
+	}
+	return res, nil
 }
