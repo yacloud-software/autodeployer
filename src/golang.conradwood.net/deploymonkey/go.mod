@@ -9,9 +9,9 @@ replace golang.conradwood.net/apis/commondeploy => ../apis/commondeploy
 require (
 	github.com/lib/pq v1.10.9
 	golang.conradwood.net/apis/autodeployer v1.1.2861
-	golang.conradwood.net/apis/common v1.1.2862
+	golang.conradwood.net/apis/common v1.1.2864
 	golang.conradwood.net/apis/deploymonkey v1.1.2503
-	golang.conradwood.net/apis/grafanadata v1.1.2862
+	golang.conradwood.net/apis/grafanadata v1.1.2864
 	golang.conradwood.net/apis/registry v1.1.2861
 	golang.conradwood.net/apis/slackgateway v1.1.2793
 	golang.conradwood.net/go-easyops v0.1.25569
