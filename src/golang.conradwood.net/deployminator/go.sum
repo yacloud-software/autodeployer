@@ -10,6 +10,12 @@ github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
+github.com/grafana/pyroscope-go v1.1.1 h1:PQoUU9oWtO3ve/fgIiklYuGilvsm8qaGhlY4Vw6MAcQ=
+github.com/grafana/pyroscope-go v1.1.1/go.mod h1:Mw26jU7jsL/KStNSGGuuVYdUq7Qghem5P8aXYXSXG88=
+github.com/grafana/pyroscope-go/godeltaprof v0.1.6 h1:nEdZ8louGAplSvIJi1HVp7kWvFvdiiYg3COLlTwJiFo=
+github.com/grafana/pyroscope-go/godeltaprof v0.1.6/go.mod h1:Tk376Nbldo4Cha9RgiU7ik8WKFkNpfds98aUzS8omLE=
+github.com/klauspost/compress v1.17.3 h1:qkRjuerhUU1EmXLYGkSH6EZL+vPSxIrYjLNAK4slzwA=
+github.com/klauspost/compress v1.17.3/go.mod h1:/dCuZOvVtNoHsyb+cuJD3itjs3NbnF6KH9zAO4BDxPM=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
@@ -43,8 +49,8 @@ golang.conradwood.net/apis/objectstore v1.1.2793 h1:zjRxv8QBVDq7inKwjdWuIgeXl98Q
 golang.conradwood.net/apis/objectstore v1.1.2793/go.mod h1:SROBtrLXVskAiDt26OWY4bMckf2+EbSjcrlk0WU922Q=
 golang.conradwood.net/apis/registry v1.1.2793 h1:orThLOSiXuHDIBip9v40JzBX/HxPAsskvkxwKrfHIbc=
 golang.conradwood.net/apis/registry v1.1.2793/go.mod h1:HrFla3xmphrPdDvdYA9ODyeB9ykTJNmmhfWHQHTya6Q=
-golang.conradwood.net/go-easyops v0.1.25069 h1:DWjezdemMhpgh4j+g+HqRNSOcVVm50GqOhGV/nhVRPc=
-golang.conradwood.net/go-easyops v0.1.25069/go.mod h1:jOiUioioTA9xzTgGHB/B5SeASEo8HhKKKWttAmvhPmU=
+golang.conradwood.net/go-easyops v0.1.25569 h1:Df9SGoJAjpGg3wgjX4+s/DSa3e0NKnQC48tugevrTcE=
+golang.conradwood.net/go-easyops v0.1.25569/go.mod h1:DR0Yd9eyusrfO/qOXirQH5oiHQ0gpo97iTMN06qXQ1E=
 golang.org/x/net v0.21.0 h1:AQyQV4dYCvJ7vGmJyKki9+PBdyvhkSd8EIx/qb0AYv4=
 golang.org/x/net v0.21.0/go.mod h1:bIjVDfnllIU7BJ2DNgfnXvpSvtn8VRwhlsaeUTyUS44=
 golang.org/x/sys v0.17.0 h1:25cE3gD+tdBA7lp7QfhuV+rJiE9YXTcS3VG1SqssI/Y=
