@@ -30,8 +30,17 @@ func (e *DeployMonkey) QueryTimeseries(req *grafanadata.QueryRequest, srv pb.Dep
 }
 
 func query_deployment_count(ctx context.Context, req *grafanadata.QueryRequest) ([]*grafanadata.DataPoint, error) {
-	return nil, fmt.Errorf("not implemented")
+	sc := GetLastQueryResult()
+	ct := 0
+	for _, d := range sc.deployments {
+		ct = ct + len(d.Apps)
+	}
+	dp := &grafanadata.DataPoint{
+		Timestamp: req.End,
+		Value:     float64(ct),
+	}
+	return []*grafanadata.DataPoint{dp}, nil
 }
 func query_deployment_history(ctx context.Context, req *grafanadata.QueryRequest) ([]*grafanadata.DataPoint, error) {
-	return nil, fmt.Errorf("not implemented")
+	return nil, nil
 }

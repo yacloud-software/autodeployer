@@ -55,6 +55,7 @@ var (
 		},
 		[]string{"adinstance"},
 	)
+	lastscan = &scanner{}
 )
 
 type AutoDeployer struct {
@@ -68,6 +69,11 @@ type AutoDeployer struct {
 	Broken        bool
 	Available     bool
 	tmpFound      bool // we use this to mark it temporarily as "found" in the registry, all those with false will become unavailbable - see ScanAutodeployers()
+}
+type scanner struct {
+	sync.Mutex
+	counter     int
+	deployments []*ad.InfoResponse
 }
 
 /*
@@ -182,16 +188,23 @@ func ScanAutodeployers() error {
 	}
 
 	// iterate over list of deployer as registry has reported
-	for _, sa := range sas {
-		err = ScanAutodeployer(sa)
-		if err != nil {
-			fmt.Printf("Error scanning %s: %s\n", sa.Host, err)
-			continue
-		}
+	wg := &sync.WaitGroup{}
+	sc := &scanner{}
+	for _, xsa := range sas {
+		wg.Add(1)
+		go func(sa *rpb.ServiceAddress) {
+			defer wg.Done()
+			err = sc.ScanAutodeployer(sa)
+			if err != nil {
+				fmt.Printf("Error scanning %s: %s\n", sa.Host, err)
+			}
+		}(xsa)
 	}
+	wg.Wait()
 	for _, sa := range sas {
 		setBrokennessOnDeployers(sa)
 	}
+	lastscan = sc
 	return nil
 }
 
@@ -217,7 +230,7 @@ func setBrokennessOnDeployers(sa *rpb.ServiceAddress) {
 	nt.Broken = (nt.queryFailures > MAX_QUERY_FAILURES)
 }
 
-func ScanAutodeployer(sa *rpb.ServiceAddress) error {
+func (sc *scanner) ScanAutodeployer(sa *rpb.ServiceAddress) error {
 	if *debug {
 		fmt.Printf("Scanning Host %s\n", sa.Host)
 	}
@@ -266,10 +279,18 @@ func ScanAutodeployer(sa *rpb.ServiceAddress) error {
 	if *debug {
 		fmt.Printf("Found %d apps on %s:%d\n", len(nt.Apps), sa.Host, sa.Port)
 	}
+	sc.AddDeployments(da)
 	updateAutoDeployer(nt)
 	return nil
 }
-
+func (sc *scanner) AddDeployments(da *ad.InfoResponse) {
+	sc.Lock()
+	sc.deployments = append(sc.deployments, da)
+	sc.Unlock()
+}
+func GetLastQueryResult() *scanner {
+	return lastscan
+}
 func PrintAutodeployers() {
 	for _, ad := range autodeployers {
 		fmt.Printf("%s:%d %s (broken=%v,available=%v)\n", ad.IP, ad.Port, ad.Group, ad.Broken, ad.Available)

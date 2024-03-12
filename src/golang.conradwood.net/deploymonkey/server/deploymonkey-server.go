@@ -844,7 +844,8 @@ func (depl *DeployMonkey) DeployAppOnTarget(ctx context.Context, dr *pb.DeployAp
 		fmt.Println(msg)
 		return nil, err
 	}
-	go ScanAutodeployer(sa) // rescan to keep information somewhat uptodate
+	sc := &scanner{}
+	go sc.ScanAutodeployer(sa) // rescan to keep information somewhat uptodate
 	return &common.Void{}, err
 }
 func (depl *DeployMonkey) UndeployAppOnTarget(ctx context.Context, dr *pb.UndeployAppRequest) (*common.Void, error) {
