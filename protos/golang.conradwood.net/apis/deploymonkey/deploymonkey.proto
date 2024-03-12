@@ -9,6 +9,7 @@ option java_package = "net.conradwood.golang.apis.deploymonkey";
 // import "golang.conradwood.net/apis/autodeployer/autodeployer.proto";
 //import "golang.conradwood.net/apis/commondeploy/commondeploy.proto";
 import "golang.conradwood.net/apis/common/common.proto";
+import "golang.conradwood.net/apis/grafanadata/grafanadata.proto";
 
 /*
  this is stored with the applicaton and thus may be retrieved on
@@ -34,6 +35,8 @@ message AppReference {
 // 3. -> goto 2
 
 message ApplicationDefinition {
+  // deploymonkey internal ID
+  uint64 ID = 13;
   // a url where the binary or tar archive is downloaded from
   // (may also be an absolute filename)
   string DownloadURL = 1;
@@ -60,8 +63,6 @@ message ApplicationDefinition {
   string Machines = 11;
   // either "webpackage" or empty string
   string DeployType = 12;
-  // deploymonkey internal ID
-  uint64 ID = 13;
   // if false, the app is considered optional. It won't be restarted nor alerted on
   bool Critical = 14;
   // typically application starts and continues to run. some applications, however are run-once. AlwaysOn=false means it runs once and exits and that is normal
@@ -85,6 +86,7 @@ message ApplicationDefinition {
   ContainerDef Container=22 [(common.sql_type)="uint64",(common.sql_reference)="containerdef.id"]; // if set, a container is going to be created to run the app in
   bool DiscardLog=23; // if true discard logfiles. this is really only useful for the logservice
   uint64 ArtefactID = 24;
+  uint32 Created=25; // when was this created
 }
 
 message ContainerDef {
@@ -361,4 +363,7 @@ service DeployMonkey {
   rpc GetSuggestions(SuggestRequest) returns (SuggestionList);
   // delete an application definition
   rpc DeleteVersion(DelVersionRequest) returns (common.Void);
+  // make it queryable
+  rpc QueryTimeseries(grafanadata.QueryRequest) returns (stream grafanadata.QueryResponse);
+
 }
