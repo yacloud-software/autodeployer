@@ -324,11 +324,11 @@ func (a *DBArgument) CreateTable(ctx context.Context) error {
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),instancedef bigint not null ,argument text not null );`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),instancedef bigint not null ,argument text not null );`,
-		`ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS instancedef bigint not null default 0;`,
-		`ALTER TABLE deployminator_argument ADD COLUMN IF NOT EXISTS argument text not null default '';`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS instancedef bigint not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS argument text not null default '';`,
 
-		`ALTER TABLE deployminator_argument_archive ADD COLUMN IF NOT EXISTS instancedef bigint not null  default 0;`,
-		`ALTER TABLE deployminator_argument_archive ADD COLUMN IF NOT EXISTS argument text not null  default '';`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS instancedef bigint not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS argument text not null  default '';`,
 	}
 
 	for i, c := range csql {
@@ -360,4 +360,3 @@ func (a *DBArgument) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
-

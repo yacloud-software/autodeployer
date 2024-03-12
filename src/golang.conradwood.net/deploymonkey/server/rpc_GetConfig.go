@@ -101,9 +101,9 @@ func (s *DeployMonkey) GetApplications(ctx context.Context, cr *pb.GetAppsReques
 	}
 	ad, err := loadAppGroupVersion(ctx, dbg.DeployedVersion)
 	if err != nil {
-		s := fmt.Sprintf("No applications for version %d: (%s,%s)\n", dbg.DeployedVersion, cr.NameSpace, cr.GroupName)
-		fmt.Println(s)
-		return nil, errors.New(s)
+		s := fmt.Sprintf("GetApplications(): No applications for version %d (%s,%s)", dbg.DeployedVersion, cr.NameSpace, cr.GroupName)
+		fmt.Printf("%s: %s\n", s, err)
+		return nil, fmt.Errorf("%s [%s]", s, err)
 	}
 	resp := pb.GetAppsResponse{}
 	resp.Applications = ad

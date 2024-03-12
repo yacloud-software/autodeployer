@@ -323,11 +323,11 @@ func (a *DBContainerDef) CreateTable(ctx context.Context) error {
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null ,useoverlayfs boolean not null );`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),url text not null ,useoverlayfs boolean not null );`,
-		`ALTER TABLE containerdef ADD COLUMN IF NOT EXISTS url text not null default '';`,
-		`ALTER TABLE containerdef ADD COLUMN IF NOT EXISTS useoverlayfs boolean not null default false;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS url text not null default '';`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS useoverlayfs boolean not null default false;`,
 
-		`ALTER TABLE containerdef_archive ADD COLUMN IF NOT EXISTS url text not null  default '';`,
-		`ALTER TABLE containerdef_archive ADD COLUMN IF NOT EXISTS useoverlayfs boolean not null  default false;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS url text not null  default '';`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS useoverlayfs boolean not null  default false;`,
 	}
 
 	for i, c := range csql {
@@ -359,4 +359,3 @@ func (a *DBContainerDef) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
-

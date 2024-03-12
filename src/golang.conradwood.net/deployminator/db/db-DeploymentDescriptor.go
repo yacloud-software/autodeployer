@@ -388,15 +388,15 @@ func (a *DBDeploymentDescriptor) CreateTable(ctx context.Context) error {
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),application bigint not null ,buildnumber bigint not null ,branch text not null ,deployme boolean not null );`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),application bigint not null ,buildnumber bigint not null ,branch text not null ,deployme boolean not null );`,
-		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS application bigint not null default 0;`,
-		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS buildnumber bigint not null default 0;`,
-		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS branch text not null default '';`,
-		`ALTER TABLE deployminator_deploymentdescriptor ADD COLUMN IF NOT EXISTS deployme boolean not null default false;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS application bigint not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS buildnumber bigint not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS branch text not null default '';`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS deployme boolean not null default false;`,
 
-		`ALTER TABLE deployminator_deploymentdescriptor_archive ADD COLUMN IF NOT EXISTS application bigint not null  default 0;`,
-		`ALTER TABLE deployminator_deploymentdescriptor_archive ADD COLUMN IF NOT EXISTS buildnumber bigint not null  default 0;`,
-		`ALTER TABLE deployminator_deploymentdescriptor_archive ADD COLUMN IF NOT EXISTS branch text not null  default '';`,
-		`ALTER TABLE deployminator_deploymentdescriptor_archive ADD COLUMN IF NOT EXISTS deployme boolean not null  default false;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS application bigint not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS buildnumber bigint not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS branch text not null  default '';`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS deployme boolean not null  default false;`,
 	}
 
 	for i, c := range csql {
@@ -428,4 +428,3 @@ func (a *DBDeploymentDescriptor) Error(ctx context.Context, q string, e error) e
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
-

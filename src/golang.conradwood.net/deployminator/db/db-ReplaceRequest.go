@@ -325,11 +325,11 @@ func (a *DBReplaceRequest) CreateTable(ctx context.Context) error {
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),olddeployment bigint not null ,newdeployment bigint not null );`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),olddeployment bigint not null ,newdeployment bigint not null );`,
-		`ALTER TABLE deployminator_replacerequest ADD COLUMN IF NOT EXISTS olddeployment bigint not null default 0;`,
-		`ALTER TABLE deployminator_replacerequest ADD COLUMN IF NOT EXISTS newdeployment bigint not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS olddeployment bigint not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS newdeployment bigint not null default 0;`,
 
-		`ALTER TABLE deployminator_replacerequest_archive ADD COLUMN IF NOT EXISTS olddeployment bigint not null  default 0;`,
-		`ALTER TABLE deployminator_replacerequest_archive ADD COLUMN IF NOT EXISTS newdeployment bigint not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS olddeployment bigint not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS newdeployment bigint not null  default 0;`,
 	}
 
 	for i, c := range csql {
@@ -362,4 +362,3 @@ func (a *DBReplaceRequest) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
-

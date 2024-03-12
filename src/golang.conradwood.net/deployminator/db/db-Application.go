@@ -355,13 +355,13 @@ func (a *DBApplication) CreateTable(ctx context.Context) error {
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),r_binary text not null ,repositoryid bigint not null ,downloadurl text not null );`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),r_binary text not null ,repositoryid bigint not null ,downloadurl text not null );`,
-		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS r_binary text not null default '';`,
-		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;`,
-		`ALTER TABLE deployminator_application ADD COLUMN IF NOT EXISTS downloadurl text not null default '';`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS r_binary text not null default '';`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS downloadurl text not null default '';`,
 
-		`ALTER TABLE deployminator_application_archive ADD COLUMN IF NOT EXISTS r_binary text not null  default '';`,
-		`ALTER TABLE deployminator_application_archive ADD COLUMN IF NOT EXISTS repositoryid bigint not null  default 0;`,
-		`ALTER TABLE deployminator_application_archive ADD COLUMN IF NOT EXISTS downloadurl text not null  default '';`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS r_binary text not null  default '';`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS repositoryid bigint not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS downloadurl text not null  default '';`,
 	}
 
 	for i, c := range csql {
@@ -393,4 +393,3 @@ func (a *DBApplication) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
-

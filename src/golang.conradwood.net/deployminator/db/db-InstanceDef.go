@@ -388,15 +388,15 @@ func (a *DBInstanceDef) CreateTable(ctx context.Context) error {
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),deploymentid bigint not null ,machinegroup text not null ,instances integer not null ,instancecountispermachine boolean not null );`,
 		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),deploymentid bigint not null ,machinegroup text not null ,instances integer not null ,instancecountispermachine boolean not null );`,
-		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS deploymentid bigint not null default 0;`,
-		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS machinegroup text not null default '';`,
-		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS instances integer not null default 0;`,
-		`ALTER TABLE deployminator_instancedef ADD COLUMN IF NOT EXISTS instancecountispermachine boolean not null default false;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS deploymentid bigint not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS machinegroup text not null default '';`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS instances integer not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS instancecountispermachine boolean not null default false;`,
 
-		`ALTER TABLE deployminator_instancedef_archive ADD COLUMN IF NOT EXISTS deploymentid bigint not null  default 0;`,
-		`ALTER TABLE deployminator_instancedef_archive ADD COLUMN IF NOT EXISTS machinegroup text not null  default '';`,
-		`ALTER TABLE deployminator_instancedef_archive ADD COLUMN IF NOT EXISTS instances integer not null  default 0;`,
-		`ALTER TABLE deployminator_instancedef_archive ADD COLUMN IF NOT EXISTS instancecountispermachine boolean not null  default false;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS deploymentid bigint not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS machinegroup text not null  default '';`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS instances integer not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS instancecountispermachine boolean not null  default false;`,
 	}
 
 	for i, c := range csql {
@@ -428,4 +428,3 @@ func (a *DBInstanceDef) Error(ctx context.Context, q string, e error) error {
 	}
 	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
-

@@ -271,6 +271,7 @@ func saveApp(app *pb.ApplicationDefinition) (string, error) {
 	} else {
 		app.Container = &pb.ContainerDef{ID: 0}
 	}
+	app.Created = uint32(time.Now().Unix())
 	id, err := appdef_store.Save(TEMPCONTEXT(), app)
 	if err != nil {
 		return "", errors.New(fmt.Sprintf("Failed to insert application: %s", err))
@@ -324,7 +325,7 @@ func loadAppGroupVersion(ctx context.Context, version int) ([]*pb.ApplicationDef
 	rows, err := dbcon.QueryContext(ctx, "loadappgroupversion", "SELECT lnk_app_grp.app_id from lnk_app_grp where lnk_app_grp.group_version_id = $1", version)
 	if err != nil {
 		fmt.Printf("Failed to get apps for version %d:%s\n", version, err)
-		return nil, err
+		return nil, fmt.Errorf("loadAppGroupVersion(): query failed with %s", err)
 	}
 	var ids []uint64
 	for rows.Next() {
@@ -341,7 +342,7 @@ func loadAppGroupVersion(ctx context.Context, version int) ([]*pb.ApplicationDef
 		r, err := loadApp(ctx, id)
 
 		if err != nil {
-			fmt.Printf("Failed to get app for version %d:%s\n", version, err)
+			fmt.Printf("loadAppGroupVersion(): Failed to load app for version %d (got id==%d from lnk_app_grp.app_id) :%s\n", version, id, err)
 			return nil, err
 		}
 		res = append(res, r)
@@ -361,10 +362,11 @@ func loadApp(ctx context.Context, id uint64) (*pb.ApplicationDefinition, error) 
 
 	res, err := appdef_store.ByID(ctx, id)
 	if err != nil {
-		res, err = ConvertOldApp(ctx, id)
-		if err != nil {
-			return nil, err
-		}
+		fmt.Printf("loadApp(): APPDEF store error: %s\n", err)
+		//		res, err = ConvertOldApp(ctx, id)
+		//		if err != nil {
+		return nil, fmt.Errorf("loading app #%d caused error: %s", id, err)
+		//		}
 	}
 	if res.Container == nil || res.Container.ID == 0 {
 		res.Container = nil
