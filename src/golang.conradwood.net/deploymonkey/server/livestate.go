@@ -93,8 +93,24 @@ func MakeItSoLoop() {
 
 func MakeItSoAsync(m miso) error {
 	group := m.group
-	ads := m.ads
+
+	// split appdefs into "old" and "new" codepath
+	var new_path []*pb.ApplicationDefinition
+	var old_path []*pb.ApplicationDefinition
+	for _, appdef := range m.ads {
+		if appdef.Instances != 0 && appdef.InstancesMeansPerAutodeployer {
+			new_path = append(new_path, appdef)
+			continue
+		}
+		old_path = append(old_path, appdef)
+	}
+
+	err := makeitso_new(group, new_path)
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Applying group %v, version %d\n", group, m.version)
+
 	sas, err := GetDeployers()
 	if err != nil {
 		return err
@@ -112,14 +128,14 @@ func MakeItSoAsync(m miso) error {
 	workeridx := 0
 	startupids := make(map[string]*rpb.ServiceAddress) // startupid -> autodeployer
 	var user_messages []string
-	for _, app := range ads {
+	for _, app := range old_path {
 		mgroup := app.Machines
 		fsas, err := getDeployersInGroup(mgroup, sas)
 		if err != nil {
 			fmt.Printf("Could not get deployers for group \"%s\": %s\n", mgroup, err)
 		}
 		if (fsas == nil) || (len(fsas) == 0) {
-			s := fmt.Sprintf("No deployers to deploy on for group \"%s\" (app=%v)", mgroup, ads)
+			s := fmt.Sprintf("No deployers to deploy on for group \"%s\" (app=%v)", mgroup, old_path)
 			fmt.Println(s)
 			user_messages = append(user_messages, s)
 			cancelStop(trans, user_messages, s)
