@@ -87,7 +87,9 @@ message ApplicationDefinition {
   bool DiscardLog=23; // if true discard logfiles. this is really only useful for the logservice
   uint64 ArtefactID = 24;
   uint32 Created=25; // when was this created
+  bool InstancesMeansPerAutodeployer=26; // ugly hack: if true, means deploymonkey will deploy 'instances' per autodeployer rather than in total. Intented to be useful for "one per autodeployer"
 }
+
 
 message ContainerDef {
   uint64 ID=1;
