@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
-	"golang.conradwood.net/apis/registry"
+	//	"golang.conradwood.net/apis/registry"
+	//	"golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/deploymonkey/deployplacements"
 	"sync"
 )
 
@@ -25,14 +27,6 @@ func (cr *cachereq) String() string {
 	return fmt.Sprintf("[cachereq for %s]", cr.url)
 }
 
-type deploy_request struct {
-	appdef *pb.ApplicationDefinition
-	sa     *deployer
-}
-
-func (dr *deploy_request) String() string {
-	return fmt.Sprintf("%s on %s", dr.appdef.Binary, dr.sa.String())
-}
 func init() {
 	for i := 0; i < CACHE_WORKERS; i++ {
 		go cache_worker_loop()
@@ -47,9 +41,9 @@ func makeitso_new(group *DBGroup, apps []*pb.ApplicationDefinition) error {
 	}
 
 	// step #1 - build up a list what we want to deploy on which autodeployer
-	var deployments []*deploy_request
+	var deployments []*deployplacements.DeployRequest
 	for _, app := range apps {
-		drs, err := create_requests_for_app(group, app, sas)
+		drs, err := deployplacements.Create_requests_for_app(group, app, sas)
 		if err != nil {
 			return err
 		}
@@ -60,38 +54,6 @@ func makeitso_new(group *DBGroup, apps []*pb.ApplicationDefinition) error {
 		fmt.Printf("[newstyle] Deploy: %s\n", d.String())
 	}
 	return nil
-}
-func create_requests_for_app(group *DBGroup, app *pb.ApplicationDefinition, sas []*registry.ServiceAddress) ([]*deploy_request, error) {
-	var res []*deploy_request
-	ag := NewAutodeployerGroup(sas)
-	if app.InstancesMeansPerAutodeployer {
-		for _, s := range ag.FilterByMachine(app.Machines).Deployers() {
-			for i := 0; i < int(app.Instances); i++ {
-				dr := &deploy_request{
-					appdef: app,
-					sa:     s,
-				}
-				res = append(res, dr)
-			}
-		}
-		return res, nil
-	}
-
-	for len(res) < int(app.Instances) {
-		for _, s := range ag.FilterByMachine(app.Machines).Deployers() {
-			dr := &deploy_request{
-				appdef: app,
-				sa:     s,
-			}
-			res = append(res, dr)
-			if len(res) >= int(app.Instances) {
-				break
-			}
-
-		}
-	}
-	return res, nil
-
 }
 func cache_worker_loop() {
 	for {

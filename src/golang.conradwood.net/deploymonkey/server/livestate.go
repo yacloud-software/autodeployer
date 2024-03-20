@@ -37,7 +37,8 @@ const (
 )
 
 var (
-	cacheGauge = prometheus.NewGaugeVec(
+	use_new_style = flag.Int("use_new_deploy_style", 0, "a new experimental deployment style (0=never, 1=for instancesperautodeployer only, 2=always")
+	cacheGauge    = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "deploymonkey_precache_status",
 			Help: "V=1 UNIT=percent DESC=percentage of pre cache downloads completed",
@@ -98,7 +99,13 @@ func MakeItSoAsync(m miso) error {
 	var new_path []*pb.ApplicationDefinition
 	var old_path []*pb.ApplicationDefinition
 	for _, appdef := range m.ads {
-		if appdef.Instances != 0 && appdef.InstancesMeansPerAutodeployer {
+		if *use_new_style == 1 {
+			if appdef.Instances != 0 && appdef.InstancesMeansPerAutodeployer {
+				new_path = append(new_path, appdef)
+				continue
+			}
+		}
+		if *use_new_style == 2 {
 			new_path = append(new_path, appdef)
 			continue
 		}
