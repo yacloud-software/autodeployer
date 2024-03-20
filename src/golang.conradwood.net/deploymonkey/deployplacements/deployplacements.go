@@ -17,6 +17,12 @@ type Group interface {
 func (dr *DeployRequest) String() string {
 	return fmt.Sprintf("%s on %s", dr.appdef.Binary, dr.sa.String())
 }
+func (dr *DeployRequest) AutodeployerHost() string {
+	return dr.sa.Host()
+}
+func (dr *DeployRequest) AppDef() *pb.ApplicationDefinition {
+	return dr.appdef
+}
 func Create_requests_for_app(group Group, app *pb.ApplicationDefinition, sas []*registry.ServiceAddress) ([]*DeployRequest, error) {
 	var res []*DeployRequest
 	ag := common.NewAutodeployerGroup(sas)

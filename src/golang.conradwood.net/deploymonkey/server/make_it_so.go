@@ -6,6 +6,7 @@ import (
 	//	"golang.conradwood.net/apis/registry"
 	//	"golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/deploymonkey/deployplacements"
+	"golang.conradwood.net/deploymonkey/deployq"
 	"sync"
 )
 
@@ -53,6 +54,10 @@ func makeitso_new(group *DBGroup, apps []*pb.ApplicationDefinition) error {
 	for _, d := range deployments {
 		fmt.Printf("[newstyle] Deploy: %s\n", d.String())
 	}
+
+	// now we got a bunch of deployment requests, handle them
+	deployq.Add(deployments)
+
 	return nil
 }
 func cache_worker_loop() {
