@@ -109,6 +109,10 @@ func MakeItSoAsync(m miso) error {
 	if err != nil {
 		return err
 	}
+	if len(old_path) == 0 {
+		fmt.Printf("no oldstyle stuff to do for this deployment.\n")
+		return nil
+	}
 	fmt.Printf("Applying group %v, version %d\n", group, m.version)
 
 	sas, err := GetDeployers()

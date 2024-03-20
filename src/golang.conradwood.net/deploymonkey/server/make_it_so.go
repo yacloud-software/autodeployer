@@ -57,7 +57,7 @@ func makeitso_new(group *DBGroup, apps []*pb.ApplicationDefinition) error {
 	}
 	fmt.Printf("[newstyle] %d deployments:\n", len(deployments))
 	for _, d := range deployments {
-		fmt.Printf("Deploy: %s\n", d.String())
+		fmt.Printf("[newstyle] Deploy: %s\n", d.String())
 	}
 	return nil
 }
