@@ -40,7 +40,7 @@ func init() {
 }
 
 func makeitso_new(group *DBGroup, apps []*pb.ApplicationDefinition) error {
-	fmt.Printf("meant to deploy %d apps, but cannot, because it is too new\n", len(apps))
+	fmt.Printf("[newstyle] deploying %d apps in new_style\n", len(apps))
 	sas, err := GetDeployers()
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func makeitso_new(group *DBGroup, apps []*pb.ApplicationDefinition) error {
 		}
 		deployments = append(deployments, drs...)
 	}
-
+	fmt.Printf("[newstyle] %d deployments:\n", len(deployments))
 	for _, d := range deployments {
 		fmt.Printf("Deploy: %s\n", d.String())
 	}
