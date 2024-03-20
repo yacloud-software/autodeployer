@@ -38,6 +38,8 @@ func Add(dr []*dp.DeployRequest) {
 	q.Lock()
 	tr := &deployTransaction{requests: dr}
 	q.requests = append(q.requests, tr)
+	q.work_distributor_chan <- true
+	q.Unlock()
 }
 
 type DeployQueue struct {
@@ -52,18 +54,26 @@ type DeployQueue struct {
 func (q *DeployQueue) work_distributor() {
 	for {
 		<-q.work_distributor_chan
-		q.Lock()
-		var next *deployTransaction
-		for _, dt := range q.requests {
-			if q.hasLockedAutodeployers(dt) {
-				continue
+		for {
+			q.Lock()
+			var next *deployTransaction
+			for _, dt := range q.requests {
+				if dt.scheduled {
+					continue
+				}
+				if q.hasLockedAutodeployers(dt) {
+					continue
+				}
+				if next == nil || dt.Score() > next.Score() {
+					next = dt
+				}
 			}
-			if next == nil || dt.Score() > next.Score() {
-				next = dt
+			q.Unlock()
+			if next == nil {
+				break
 			}
-		}
-		q.Unlock()
-		if next != nil {
+
+			next.scheduled = true
 			q.work_handler_chan <- next
 		}
 	}

@@ -18,7 +18,8 @@ var (
 )
 
 type deployTransaction struct {
-	requests []*dp.DeployRequest
+	scheduled bool // true if it is being sent to the worker for processing
+	requests  []*dp.DeployRequest
 }
 
 func (dt *deployTransaction) Score() int {
