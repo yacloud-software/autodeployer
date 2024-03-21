@@ -162,3 +162,11 @@ func (dt *deployTransaction) StartEverywhere() error {
 	return xerr
 
 }
+
+func (dt *deployTransaction) sendUpdate(ev EVENT) {
+	du := &DeployUpdate{
+		event: ev,
+		err:   dt.err,
+	}
+	dt.result_chan <- du
+}

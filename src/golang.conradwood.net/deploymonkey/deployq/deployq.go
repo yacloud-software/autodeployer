@@ -13,6 +13,16 @@ import (
 	"sync"
 )
 
+type EVENT int
+
+const (
+	EVENT_CACHE    = 1
+	EVENT_START    = 2
+	EVENT_PREPARE  = 3
+	EVENT_ERROR    = 4
+	EVENT_FINISHED = 5
+)
+
 var (
 	q = &DeployQueue{
 		autodeployer_locks:    make(map[string]bool),
@@ -47,6 +57,8 @@ func Add(dr []*dp.DeployRequest) chan *DeployUpdate {
 }
 
 type DeployUpdate struct {
+	event EVENT
+	err   error
 }
 
 type DeployQueue struct {
@@ -154,33 +166,40 @@ func (q *DeployQueue) work_handler() {
 	for {
 		dt := <-q.work_handler_chan
 		fmt.Printf("work handling: %#v\n", dt)
+		dt.sendUpdate(EVENT_PREPARE)
 		q.Lock()
 		err := q.lockTransaction(dt)
 		if err != nil {
 			dt.SetError(fmt.Errorf("failed to lock transaction (%w)", err))
 			q.Unlock()
+			dt.sendUpdate(EVENT_FINISHED)
 			dt.Close()
 			continue
 		}
 		q.Unlock()
+
+		dt.sendUpdate(EVENT_CACHE)
 		// now cache it everywhere
 		err = dt.CacheEverywhere()
 		if err != nil {
 			dt.SetError(err)
 			q.unlockTransaction(dt)
+			dt.sendUpdate(EVENT_FINISHED)
 			dt.Close()
 			continue
 		}
-
+		dt.sendUpdate(EVENT_START)
 		// now start it everywhere
 		err = dt.StartEverywhere()
 		if err != nil {
 			dt.SetError(err)
 			q.unlockTransaction(dt)
+			dt.sendUpdate(EVENT_FINISHED)
 			dt.Close()
 			continue
 		}
 		q.unlockTransaction(dt)
+		dt.sendUpdate(EVENT_FINISHED)
 		dt.Close()
 	}
 }
