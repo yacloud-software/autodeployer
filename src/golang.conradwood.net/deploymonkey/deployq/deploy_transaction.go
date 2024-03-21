@@ -28,7 +28,7 @@ type deployTransaction struct {
 	requests     []*dp.DeployRequest
 	err          error // set on failure
 	result_chan  chan *DeployUpdate
-	deployed_ids map[string][]string
+	deployed_ids []*deployed // list of successful deployments
 }
 
 func (dt *deployTransaction) Close() {
@@ -107,6 +107,11 @@ func (dt *deployTransaction) CacheEverywhere() error {
 	return xerr
 }
 
+type deployed struct {
+	req *dp.DeployRequest
+	ID  string
+}
+
 // assuming it is cached everywhere, this will start the appdef
 func (dt *deployTransaction) StartEverywhere() error {
 	wg := &sync.WaitGroup{}
@@ -130,12 +135,30 @@ func (dt *deployTransaction) StartEverywhere() error {
 				return
 			}
 			depl_lock.Lock()
-			dt.deployed_ids[r.AutodeployerHost()] = append(dt.deployed_ids[r.AutodeployerHost()], dr.ID)
+			dt.deployed_ids = append(dt.deployed_ids, &deployed{req: r, ID: dr.ID})
 			depl_lock.Unlock()
 			fmt.Printf("deployed %s on %s (ID=%s)\n", r.URL(), r.AutodeployerHost(), dr.ID)
 		}(req)
 	}
 	wg.Wait()
+
+	if xerr != nil {
+		// got failure, cleanup all those which were deployed already. Best-effort, ignoring errors
+		for _, depl := range dt.deployed_ids {
+			ctx := authremote.ContextWithTimeout(time.Duration(20) * time.Second)
+			cl, err := depl.req.GetAutodeployerClient()
+			if err != nil {
+				fmt.Printf("failed to get client to undeploy: %s\n", err)
+				continue
+			}
+			_, err = cl.Undeploy(ctx, &ad.UndeployRequest{ID: depl.ID})
+			if err != nil {
+				fmt.Printf("failed to undeploy: %s\n", err)
+				continue
+			}
+		}
+	}
+
 	return xerr
 
 }
