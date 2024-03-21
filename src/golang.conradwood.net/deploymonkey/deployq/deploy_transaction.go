@@ -24,10 +24,11 @@ var (
 )
 
 type deployTransaction struct {
-	scheduled   bool // true if it is being sent to the worker for processing
-	requests    []*dp.DeployRequest
-	err         error // set on failure
-	result_chan chan *DeployUpdate
+	scheduled    bool // true if it is being sent to the worker for processing
+	requests     []*dp.DeployRequest
+	err          error // set on failure
+	result_chan  chan *DeployUpdate
+	deployed_ids map[string][]string
 }
 
 func (dt *deployTransaction) Close() {
@@ -109,6 +110,7 @@ func (dt *deployTransaction) CacheEverywhere() error {
 // assuming it is cached everywhere, this will start the appdef
 func (dt *deployTransaction) StartEverywhere() error {
 	wg := &sync.WaitGroup{}
+	var depl_lock sync.Mutex
 	var xerr error
 	for _, req := range dt.requests {
 		wg.Add(1)
@@ -121,13 +123,16 @@ func (dt *deployTransaction) StartEverywhere() error {
 				xerr = fmt.Errorf("(deploying %s): failed to connect to %s: %s", r.URL(), r.AutodeployerHost(), err)
 				return
 			}
-			dt := common.CreateDeployRequest(nil, r.AppDef())
-			_, err = cl.Deploy(ctx, dt)
+			dreq := common.CreateDeployRequest(nil, r.AppDef())
+			dr, err := cl.Deploy(ctx, dreq)
 			if err != nil {
 				xerr = fmt.Errorf("(deploying %s): failed to cache on %s: %s", r.URL(), r.AutodeployerHost(), err)
 				return
 			}
-			fmt.Printf("deployed %s on %s\n", r.URL(), r.AutodeployerHost())
+			depl_lock.Lock()
+			dt.deployed_ids[r.AutodeployerHost()] = append(dt.deployed_ids[r.AutodeployerHost()], dr.ID)
+			depl_lock.Unlock()
+			fmt.Printf("deployed %s on %s (ID=%s)\n", r.URL(), r.AutodeployerHost(), dr.ID)
 		}(req)
 	}
 	wg.Wait()
