@@ -2,6 +2,7 @@ package deployplacements
 
 import (
 	"fmt"
+	ad "golang.conradwood.net/apis/autodeployer"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/apis/registry"
 	"golang.conradwood.net/deploymonkey/common"
@@ -17,8 +18,18 @@ type Group interface {
 func (dr *DeployRequest) String() string {
 	return fmt.Sprintf("%s on %s", dr.appdef.Binary, dr.sa.String())
 }
+func (dr *DeployRequest) GetAutodeployerClient() (ad.AutoDeployerClient, error) {
+	con, err := dr.sa.GetConnection()
+	if err != nil {
+		return nil, err
+	}
+	return ad.NewAutoDeployerClient(con), nil
+}
 func (dr *DeployRequest) AutodeployerHost() string {
 	return dr.sa.Host()
+}
+func (dr *DeployRequest) URL() string {
+	return dr.AppDef().DownloadURL
 }
 func (dr *DeployRequest) AppDef() *pb.ApplicationDefinition {
 	return dr.appdef

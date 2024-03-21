@@ -23,7 +23,7 @@ var (
 )
 
 // add a bunch of requests, treat them somewhat as one transaction
-func Add(dr []*dp.DeployRequest) {
+func Add(dr []*dp.DeployRequest) chan *DeployUpdate {
 
 	// start worker if necessary
 	starterlock.Lock()
@@ -36,10 +36,17 @@ func Add(dr []*dp.DeployRequest) {
 
 	// add to queue
 	q.Lock()
-	tr := &deployTransaction{requests: dr}
+	tr := &deployTransaction{
+		requests:    dr,
+		result_chan: make(chan *DeployUpdate, 100),
+	}
 	q.requests = append(q.requests, tr)
 	q.work_distributor_chan <- true
 	q.Unlock()
+	return tr.result_chan
+}
+
+type DeployUpdate struct {
 }
 
 type DeployQueue struct {
@@ -79,6 +86,7 @@ func (q *DeployQueue) work_distributor() {
 	}
 }
 
+// call with q.lock() held
 func (q *DeployQueue) hasLockedAutodeployers(dt *deployTransaction) bool {
 	for _, r := range dt.requests {
 		host := r.AutodeployerHost()
@@ -89,9 +97,90 @@ func (q *DeployQueue) hasLockedAutodeployers(dt *deployTransaction) bool {
 	return false
 }
 
+// call with q.lock() held
+func (q *DeployQueue) lockAutodeployers(dt *deployTransaction) error {
+	for _, host := range dt.AutodeployerHosts() {
+		b := q.autodeployer_locks[host]
+		if b {
+			return fmt.Errorf("autodeployer %s locked already", host)
+		}
+		q.autodeployer_locks[host] = true
+
+	}
+	return nil
+}
+
+// call with q.lock() held
+func (q *DeployQueue) unlockAutodeployers(dt *deployTransaction) {
+	for _, host := range dt.AutodeployerHosts() {
+		q.autodeployer_locks[host] = false
+
+	}
+}
+
+// call with q.lock() held
+func (q *DeployQueue) lockApplications(dt *deployTransaction) error {
+	// this is a noop at the moment
+	return nil
+}
+
+// call with q.lock() held
+func (q *DeployQueue) unlockApplications(dt *deployTransaction) {
+	// this is a noop at the moment
+}
+
+// call with q.lock() held
+func (q *DeployQueue) lockTransaction(dt *deployTransaction) error {
+	err := q.lockAutodeployers(dt)
+	if err != nil {
+		return err
+	}
+	err = q.lockApplications(dt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// call WITHOUT q.lock() held
+func (q *DeployQueue) unlockTransaction(dt *deployTransaction) {
+	q.Lock()
+	defer q.Unlock()
+	q.unlockApplications(dt)
+	q.unlockAutodeployers(dt)
+}
 func (q *DeployQueue) work_handler() {
 	for {
 		dt := <-q.work_handler_chan
 		fmt.Printf("work handling: %#v\n", dt)
+		q.Lock()
+		err := q.lockTransaction(dt)
+		if err != nil {
+			dt.SetError(fmt.Errorf("failed to lock transaction (%w)", err))
+			q.Unlock()
+			dt.Close()
+			continue
+		}
+		q.Unlock()
+		// now cache it everywhere
+		err = dt.CacheEverywhere()
+		if err != nil {
+			dt.SetError(err)
+			q.unlockTransaction(dt)
+			dt.Close()
+			continue
+		}
+
+		// now start it everywhere
+		err = dt.StartEverywhere()
+		if err != nil {
+			dt.SetError(err)
+			q.unlockTransaction(dt)
+			dt.Close()
+			continue
+		}
+		q.unlockTransaction(dt)
+		dt.Close()
 	}
 }

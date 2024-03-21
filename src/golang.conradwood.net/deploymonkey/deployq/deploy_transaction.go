@@ -1,9 +1,15 @@
 package deployq
 
 import (
+	"fmt"
+	ad "golang.conradwood.net/apis/autodeployer"
 	pb "golang.conradwood.net/apis/deploymonkey"
+	"golang.conradwood.net/deploymonkey/common"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
+	"golang.conradwood.net/go-easyops/authremote"
 	"strings"
+	"sync"
+	"time"
 )
 
 var (
@@ -18,10 +24,15 @@ var (
 )
 
 type deployTransaction struct {
-	scheduled bool // true if it is being sent to the worker for processing
-	requests  []*dp.DeployRequest
+	scheduled   bool // true if it is being sent to the worker for processing
+	requests    []*dp.DeployRequest
+	err         error // set on failure
+	result_chan chan *DeployUpdate
 }
 
+func (dt *deployTransaction) Close() {
+	close(dt.result_chan)
+}
 func (dt *deployTransaction) Score() int {
 	has_instances := false
 	app_score := 0
@@ -41,6 +52,17 @@ func (dt *deployTransaction) Score() int {
 	}
 	return res
 }
+func (dt *deployTransaction) AutodeployerHosts() []string {
+	rm := make(map[string]bool)
+	for _, r := range dt.requests {
+		rm[r.AutodeployerHost()] = true
+	}
+	var res []string
+	for k, _ := range rm {
+		res = append(res, k)
+	}
+	return res
+}
 
 func appScore(ad *pb.ApplicationDefinition) int {
 	for k, v := range bin_score_match {
@@ -49,4 +71,66 @@ func appScore(ad *pb.ApplicationDefinition) int {
 		}
 	}
 	return 0
+}
+func (dt *deployTransaction) SetError(err error) {
+	dt.err = err
+	// TODO: send on a channel to notify listeeners
+	fmt.Printf("error on deployment: %s\n", err)
+}
+
+// caches it on every autodeployer. returns when done
+// note: if multiple deployrequests target the same autodeployer it *will* process those concurrently. that may or may not be desired. tbd
+func (dt *deployTransaction) CacheEverywhere() error {
+	wg := &sync.WaitGroup{}
+	var xerr error
+	for _, req := range dt.requests {
+		wg.Add(1)
+		go func(r *dp.DeployRequest) {
+			defer wg.Done()
+			fmt.Printf("Caching %s on %s\n", r.URL(), r.AutodeployerHost())
+			ctx := authremote.ContextWithTimeout(time.Duration(60) * time.Second)
+			cl, err := r.GetAutodeployerClient()
+			if err != nil {
+				xerr = fmt.Errorf("(caching %s): failed to connect to %s: %s", r.URL(), r.AutodeployerHost(), err)
+				return
+			}
+			_, err = cl.CacheURL(ctx, &ad.URLRequest{URL: r.URL()})
+			if err != nil {
+				xerr = fmt.Errorf("(caching %s): failed to cache on %s: %s", r.URL(), r.AutodeployerHost(), err)
+				return
+			}
+			fmt.Printf("Cached %s on %s\n", r.URL(), r.AutodeployerHost())
+		}(req)
+	}
+	wg.Wait()
+	return xerr
+}
+
+// assuming it is cached everywhere, this will start the appdef
+func (dt *deployTransaction) StartEverywhere() error {
+	wg := &sync.WaitGroup{}
+	var xerr error
+	for _, req := range dt.requests {
+		wg.Add(1)
+		go func(r *dp.DeployRequest) {
+			defer wg.Done()
+			fmt.Printf("Deploying %s on %s\n", r.URL(), r.AutodeployerHost())
+			ctx := authremote.ContextWithTimeout(time.Duration(20) * time.Second)
+			cl, err := r.GetAutodeployerClient()
+			if err != nil {
+				xerr = fmt.Errorf("(deploying %s): failed to connect to %s: %s", r.URL(), r.AutodeployerHost(), err)
+				return
+			}
+			dt := common.CreateDeployRequest(nil, r.AppDef())
+			_, err = cl.Deploy(ctx, dt)
+			if err != nil {
+				xerr = fmt.Errorf("(deploying %s): failed to cache on %s: %s", r.URL(), r.AutodeployerHost(), err)
+				return
+			}
+			fmt.Printf("deployed %s on %s\n", r.URL(), r.AutodeployerHost())
+		}(req)
+	}
+	wg.Wait()
+	return xerr
+
 }
