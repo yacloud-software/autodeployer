@@ -79,6 +79,8 @@ func main() {
 	utils.Bail("failed to open postgres", err)
 	db.DefaultDBContainerDef().SaveWithID(context.Background(), &pb.ContainerDef{ID: 0})
 	appdef_store = db.DefaultDBApplicationDefinition()
+	db.DefaultDBAppGroup()
+	db.DefaultDBGroupVersion()
 	if *testScanner {
 		ScanAutodeployersTest()
 		os.Exit(0)
@@ -104,7 +106,10 @@ func main() {
 		}()
 	}
 	if *enableScanner {
-		StartScanner()
+		go func() {
+			time.Sleep(time.Duration(3) * time.Second)
+			StartScanner()
+		}()
 	}
 	go startVersionGauge()
 	sd := server.NewServerDef()
@@ -157,106 +162,6 @@ func applyAllVersions(ctx context.Context, pendingonly bool) error {
 /**********************************
 * implementing the postgres functions here:
 ***********************************/
-
-type DBGroup struct {
-	id              int
-	DeployedVersion int
-	PendingVersion  int
-	groupDef        *pb.GroupDefinitionRequest
-}
-
-func getGroupForAppByID(ctx context.Context, appid int) (*DBGroup, error) {
-	rows, err := dbcon.QueryContext(ctx, "getgroupforapp", "select appgroup.id,appgroup.groupname,appgroup.deployedversion,appgroup.pendingversion,appgroup.namespace from appgroup,group_version,lnk_app_grp where appgroup.id = group_version.group_id and lnk_app_grp.group_version_id = group_version.id and lnk_app_grp.app_id=$1", appid)
-	if err != nil {
-		fmt.Printf("Failed to get for app #%d: %s\n", appid, err)
-		return nil, err
-	}
-	return getGroupFromDatabaseByRow(rows)
-
-}
-
-// get the group with given id from database. if no such group will return nil
-func getGroupFromDatabaseByID(ctx context.Context, id int) (*DBGroup, error) {
-	rows, err := dbcon.QueryContext(ctx, "getgroupbyid", "SELECT id,groupname,deployedversion,pendingversion,namespace from appgroup where id=$1", id)
-	if err != nil {
-		fmt.Printf("Failed to get group #%d: %s\n", id, err)
-		return nil, err
-	}
-	return getGroupFromDatabaseByRow(rows)
-}
-
-// get the group with given name from database. if no such group will return nil
-func getGroupFromDatabase(ctx context.Context, nameSpace string, groupName string) (*DBGroup, error) {
-	rows, err := dbcon.QueryContext(ctx, "getgroup", "SELECT id,groupname,deployedversion,pendingversion,namespace from appgroup where groupname=$1 and namespace=$2", groupName, nameSpace)
-	if err != nil {
-		fmt.Printf("Failed to get groupname %s\n", groupName)
-		return nil, err
-	}
-	return getGroupFromDatabaseByRow(rows)
-}
-func getGroupFromDatabaseByRow(rows *sql.Rows) (*DBGroup, error) {
-	defer rows.Close()
-	res := pb.GroupDefinitionRequest{}
-	d := DBGroup{}
-	gotone := false
-	for rows.Next() {
-		gotone = true
-		err := rows.Scan(&d.id, &res.GroupID, &d.DeployedVersion, &d.PendingVersion, &res.Namespace)
-		if err != nil {
-			fmt.Printf("Failed to get row for group: %s\n", err)
-			return nil, err
-		}
-	}
-	if !gotone {
-		return nil, nil
-	}
-	d.groupDef = &res
-	return &d, nil
-
-}
-func createGroup(ctx context.Context, nameSpace string, groupName string) (*DBGroup, error) {
-	_, err := dbcon.ExecContext(ctx, "insertappgroup", "INSERT into appgroup (groupname,namespace) values ($1,$2)", groupName, nameSpace)
-	if err != nil {
-		return nil, err
-	}
-	return getGroupFromDatabase(ctx, nameSpace, groupName)
-
-}
-
-// create a new group version, return versionID
-func createGroupVersion(ctx context.Context, nameSpace string, groupName string, def []*pb.ApplicationDefinition) (string, error) {
-	var id int
-	r, err := getGroupFromDatabase(ctx, nameSpace, groupName)
-	if err != nil {
-		return "", err
-	}
-	if r.groupDef.GroupID == "" {
-		// had no row!
-		r, err = createGroup(ctx, nameSpace, groupName)
-		if err != nil {
-			return "", err
-		}
-	}
-	err = dbcon.QueryRowContext(TEMPCONTEXT(), "newgroupversion", "INSERT into group_version (group_id) values ($1) RETURNING id", r.id).Scan(&id)
-	if err != nil {
-		return "", errors.New(fmt.Sprintf("Failed to insert group_version: %s", err))
-	}
-	versionId := id
-	fmt.Printf("New Version: %d for Group #%d\n", versionId, r.id)
-	for _, ad := range def {
-		fmt.Printf("Saving: %v (alwayson=%v,critical=%v)\n", ad, ad.AlwaysOn, ad.Critical)
-		id, err := saveApp(ad)
-		if err != nil {
-			return "", err
-		}
-		fmt.Printf("Inserted App #%s\n", id)
-		_, err = dbcon.ExecContext(TEMPCONTEXT(), "lnkappgrp", "INSERT into lnk_app_grp (group_version_id,app_id) values ($1,$2)", versionId, id)
-		if err != nil {
-			return "", errors.New(fmt.Sprintf("Failed to add application to new version: %s", err))
-		}
-	}
-	return fmt.Sprintf("%d", versionId), nil
-}
 
 func saveApp(app *pb.ApplicationDefinition) (string, error) {
 	err := dc.CheckAppComplete(app)
@@ -319,6 +224,10 @@ func getGroupLatestVersion(ctx context.Context, namespace string, groupname stri
 // given a group version will load all its apps into objects
 func loadAppGroupVersion(ctx context.Context, version int) ([]*pb.ApplicationDefinition, error) {
 	var res []*pb.ApplicationDefinition
+	if version == 0 {
+		return res, nil
+	}
+
 	//if *testmode {
 	//fmt.Printf("Loading appgroup version #%d\n", version)
 	//}
@@ -551,9 +460,9 @@ func (s *DeployMonkey) DefineGroup(ctx context.Context, cr *pb.GroupDefinitionRe
 			return nil, err
 		}
 	}
-	apps, err := loadAppGroupVersion(ctx, cur.DeployedVersion)
+	apps, err := loadAppGroupVersion(ctx, cur.GetDeployedVersion())
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to get apps for version %d from db: %s", cur.DeployedVersion, err))
+		return nil, errors.New(fmt.Sprintf("Failed to get apps for version %d from db: %s", cur.GetDeployedVersion(), err))
 	}
 	cur.groupDef.Applications = apps
 	fmt.Printf("Loaded Group from database: \n")

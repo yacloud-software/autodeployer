@@ -54,7 +54,7 @@ var (
 
 type miso struct {
 	version int
-	group   *DBGroup
+	group   DBGroup
 	ads     []*pb.ApplicationDefinition
 }
 
@@ -86,6 +86,8 @@ func MakeItSo(group *DBGroup, ads []*pb.ApplicationDefinition, version int) erro
 }
 
 func MakeItSoLoop() {
+	t := time.Duration(3) * time.Second
+	time.Sleep(t)
 	for {
 		m := <-asyncMaker
 		MakeItSoAsync(m)
