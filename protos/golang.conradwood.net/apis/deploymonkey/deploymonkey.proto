@@ -19,6 +19,20 @@ message AppReference {
   uint64 ID = 1;
   ApplicationDefinition AppDef = 2;
 }
+// sql table definition
+message AppGroup {
+  uint64 ID=1;
+  string Namespace=2;
+  string Groupname=3;
+  uint32 DeployedVersion=4;
+  uint32 PendingVersion=5;
+}
+// sql table definition
+message GroupVersion {
+  uint64 ID=1;
+  AppGroup GroupID=2 [(common.sql_type)="uint64",(common.sql_reference)="appgroup.id"];
+  uint32 Created=3;
+}
 
 //*************************
 // This proto is super annoying because its naming
