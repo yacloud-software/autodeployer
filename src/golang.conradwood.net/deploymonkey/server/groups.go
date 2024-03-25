@@ -3,31 +3,34 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
+	//	"errors"
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/db"
 )
 
-/*
-   Apps are always in a group. a group has 0 or more apps. This relationship is defined in the deploy.yaml and reflected in the database.
-   Groups are versioned - a new version of an appdef creates a new groupVersion.
-   a new app version also creates a new applicationdefinition row.
-   the new app version is linked to a group version with lnk_app_grp.
-   lnk_app_grp.app_id           -> applicationdefinition.id
-   lnk_app_grp.group_version_id -> group_version.id
-   group_version.group_id       -> group.id
-*/
-
 type DBGroup interface {
 	GetDeployedVersion() uint32
 	GetPendingVersion() uint32
+	// SetApplications(x []*pb.ApplicationDefinition)
+	GetGroupDef() *pb.GroupDefinitionRequest
 }
 type XDBGroup struct {
 	id              int
 	DeployedVersion int
 	PendingVersion  int
 	groupDef        *pb.GroupDefinitionRequest
+}
+
+func (db *XDBGroup) GetGroupDef() *pb.GroupDefinitionRequest {
+	return db.groupDef
+}
+
+func (db *XDBGroup) GetDeployedVersion() uint32 {
+	return uint32(db.DeployedVersion)
+}
+func (db *XDBGroup) GetPendingVersion() uint32 {
+	return uint32(db.PendingVersion)
 }
 
 func getGroupForAppByID(ctx context.Context, appid int) (DBGroup, error) {
@@ -87,36 +90,5 @@ func createGroup(ctx context.Context, nameSpace string, groupName string) (DBGro
 
 // create a new group version, return versionID
 func createGroupVersion(ctx context.Context, nameSpace string, groupName string, def []*pb.ApplicationDefinition) (string, error) {
-	var id int
-	r, err := getGroupFromDatabase(ctx, nameSpace, groupName)
-	if err != nil {
-		return "", fmt.Errorf("[1]createGroupVersion():%s", err)
-	}
-	if r.groupDef.GroupID == "" {
-		// had no row!
-		r, err = createGroup(ctx, nameSpace, groupName)
-		if err != nil {
-			return "", fmt.Errorf("[2]createGroupVersion():%s", err)
-		}
-	}
-	//	gv := &pb.GroupVersion{GroupID: r.Proto()}
-	err = dbcon.QueryRowContext(TEMPCONTEXT(), "newgroupversion", "INSERT into group_version (group_id) values ($1) RETURNING id", r.id).Scan(&id)
-	if err != nil {
-		return "", errors.New(fmt.Sprintf("Failed to insert group_version: %s", err))
-	}
-	versionId := id
-	fmt.Printf("New Version: %d for Group #%d\n", versionId, r.id)
-	for _, ad := range def {
-		fmt.Printf("Saving: %v (alwayson=%v,critical=%v)\n", ad, ad.AlwaysOn, ad.Critical)
-		id, err := saveApp(ad)
-		if err != nil {
-			return "", err
-		}
-		fmt.Printf("Inserted App #%s\n", id)
-		_, err = dbcon.ExecContext(TEMPCONTEXT(), "lnkappgrp", "INSERT into lnk_app_grp (group_version_id,app_id) values ($1,$2)", versionId, id)
-		if err != nil {
-			return "", errors.New(fmt.Sprintf("Failed to add application to new version: %s", err))
-		}
-	}
-	return fmt.Sprintf("%d", versionId), nil
+	panic("no group")
 }

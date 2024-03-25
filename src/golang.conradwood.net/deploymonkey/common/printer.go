@@ -6,13 +6,22 @@ import (
 	pb "golang.conradwood.net/apis/deploymonkey"
 )
 
-func PrintGroup(x *pb.GroupDefinitionRequest) {
-	fmt.Printf("  Group: %s with %d applications\n", x.GroupID, len(x.Applications))
-	fmt.Printf("        Namespace  : %s\n", x.Namespace)
-	for _, a := range x.Applications {
-		fmt.Printf("%s", PrintApp(a))
-	}
+type PDBGroup interface {
 }
+
+func PrintGroup(dbg PDBGroup) {
+	fmt.Printf("DBGROUP: %#v\n", dbg)
+}
+
+/*
+	func PrintGroup(x *pb.GroupDefinitionRequest) {
+		fmt.Printf("  Group: %s with %d applications\n", x.GroupID, len(x.Applications))
+		fmt.Printf("        Namespace  : %s\n", x.Namespace)
+		for _, a := range x.Applications {
+			fmt.Printf("%s", PrintApp(a))
+		}
+	}
+*/
 func PrintApp(a *pb.ApplicationDefinition) string {
 	var b bytes.Buffer
 

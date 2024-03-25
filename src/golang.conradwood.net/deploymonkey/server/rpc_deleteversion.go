@@ -9,7 +9,7 @@ import (
 
 func (d *DeployMonkey) DeleteVersion(ctx context.Context, req *pb.DelVersionRequest) (*common.Void, error) {
 	fmt.Printf("Deleting version %d\n", req.Version)
-	apps, err := loadAppGroupVersion(ctx, int(req.Version))
+	apps, err := loadAppGroupVersion(ctx, uint32(req.Version))
 	if err != nil {
 		return nil, err
 	}

@@ -59,6 +59,12 @@ golang.conradwood.net/apis/slackgateway v1.1.2881 h1:p2zEBO3oDAqU4MUdVilOwAfGuWJ
 golang.conradwood.net/apis/slackgateway v1.1.2881/go.mod h1:4vkf1OZHfbC2A3z95AmL4SVNM1ZGjz4hbG4thWru+Ik=
 golang.conradwood.net/go-easyops v0.1.26323 h1:Kc5HjPkI0STe3K3PykdTqUNahknFxJuESZhgs4hAunU=
 golang.conradwood.net/go-easyops v0.1.26323/go.mod h1:XBBbnqAyToj9GIW8hyco77XXc+eXko5IFWJ+jzdulVY=
+golang.conradwood.net/go-easyops v0.1.26447 h1:0Yh3MLOCsO9xkayiJUHzhiJklCxZpyk4Q3T5NVM4KCY=
+golang.conradwood.net/go-easyops v0.1.26447/go.mod h1:XBBbnqAyToj9GIW8hyco77XXc+eXko5IFWJ+jzdulVY=
+golang.conradwood.net/go-easyops v0.1.26455 h1:qcXEXcy6lbgBTcWbqAeAc0OlIqdIw51Kbeos8J2FGaE=
+golang.conradwood.net/go-easyops v0.1.26455/go.mod h1:XBBbnqAyToj9GIW8hyco77XXc+eXko5IFWJ+jzdulVY=
+golang.conradwood.net/go-easyops v0.1.26458 h1:QT1NAgrSk8OFqyKBch8GreujYXlNEeIIgAqhYEq+9Lw=
+golang.conradwood.net/go-easyops v0.1.26458/go.mod h1:XBBbnqAyToj9GIW8hyco77XXc+eXko5IFWJ+jzdulVY=
 golang.org/x/net v0.22.0 h1:9sGLhx7iRIHEiX0oAJ3MRZMUCElJgy7Br1nO+AMN3Tc=
 golang.org/x/net v0.22.0/go.mod h1:JKghWKKOSdJwpW2GEx0Ja7fmaKnMsbu+MWVZTokSYmg=
 golang.org/x/sys v0.18.0 h1:DBdB3niSjOA/O0blCZBqDefyWNYveAYMNF1Wum0DYQ4=
@@ -77,6 +83,7 @@ golang.yacloud.eu/apis/urlcacher v1.1.2881 h1:FpN+00KBcTa+ufaxZa6FC/QvsWheZhfcFb
 golang.yacloud.eu/apis/urlcacher v1.1.2881/go.mod h1:7BTf8ypD/dhGXTZ0X78HZ5MOGPQuRzH6K7ZCRQ+QqN0=
 golang.yacloud.eu/unixipc v0.1.26314 h1:mcThsRoGqxAQIsMc3UVQLlVSLQo6P/pBAAm+WlN5YUI=
 golang.yacloud.eu/unixipc v0.1.26314/go.mod h1:BboKEBCyQzeXbtXowwSLV9U+wI32wq49ZVs72+uO/ZI=
+google.golang.org/genproto v0.0.0-20240123012728-ef4313101c80 h1:KAeGQVN3M9nD0/bQXnr/ClcEMJ968gUXJQ9pwfSynuQ=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 h1:AjyfHzEPEFp/NpvfN5g+KDla3EMojjhRVZc1i7cj+oM=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80/go.mod h1:PAREbraiVEVGVdTZsVWjSbbTtSyGbAgIIvni8a8CD5s=
 google.golang.org/grpc v1.62.1 h1:B4n+nfKzOICUXMgyrNd19h/I9oH0L1pizfk1d4zSgTk=

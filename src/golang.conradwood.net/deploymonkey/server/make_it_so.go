@@ -34,7 +34,7 @@ func init() {
 	}
 }
 
-func makeitso_new(group *DBGroup, apps []*pb.ApplicationDefinition) error {
+func makeitso_new(group DBGroup, apps []*pb.ApplicationDefinition) error {
 	fmt.Printf("[newstyle] deploying %d apps in new_style\n", len(apps))
 	sas, err := GetDeployers()
 	if err != nil {

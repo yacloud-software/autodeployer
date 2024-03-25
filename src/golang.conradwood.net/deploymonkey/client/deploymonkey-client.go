@@ -30,6 +30,7 @@ var (
 	dosuggest         = flag.Bool("suggest", false, "suggest fixes")
 	applysuggest      = flag.Bool("apply_suggest", false, "suggest & applyfixes")
 	short             = flag.Bool("short", false, "short listing")
+	p_newbuild        = flag.Bool("newbuild", false, "if true, simulate a new build, as triggered by buildrepo")
 	filename          = flag.String("configfile", "", "the yaml config file to submit to server")
 	namespace         = flag.String("namespace", "", "namespace of the group to update")
 	groupname         = flag.String("groupname", "", "groupname of the group to update")
@@ -51,7 +52,10 @@ func main() {
 
 	fmt.Printf("Starting deploymonkey client...\n")
 	depl = pb.NewDeployMonkeyClient(client.Connect("deploymonkey.DeployMonkey"))
-
+	if *p_newbuild {
+		utils.Bail("failed to do newbuild", newbuild())
+		os.Exit(0)
+	}
 	done := false
 	if *del_version != 0 {
 		utils.Bail("failed to delete version", delVersion())

@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
-	dc "golang.conradwood.net/deploymonkey/common"
-	"strconv"
+	//	dc "golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/go-easyops/errors"
+	// "strconv"
 )
 
 // stuff that's used by deploymonkey (only)
@@ -68,7 +68,7 @@ order by group_version_id desc
 // the query must return (in that order) applicationdefinition.id, lnk_app_grp.group_version_id, group_version,created
 func listVersions(ctx context.Context, q string) ([]*appVersionDef, error) {
 	if dbcon == nil {
-		return nil, errors.New("database not open")
+		return nil, fmt.Errorf("database not open")
 	}
 	fmt.Printf("Getting versions\n")
 	// this query gives us the version in lnk_app_grp.group_version_id
@@ -104,149 +104,10 @@ func listVersions(ctx context.Context, q string) ([]*appVersionDef, error) {
 
 // updates a single app to a new version
 func (s *DeployMonkey) UpdateApp(ctx context.Context, cr *pb.UpdateAppRequest) (*pb.GroupDefResponse, error) {
-	if cr.App.BuildID == 0 {
-		return nil, errors.New("BuildID 0 is invalid")
-	}
-	if cr.Namespace == "" {
-		return nil, errors.New("Namespace required")
-	}
-	if cr.GroupID == "" {
-		return nil, errors.New("GroupID required")
-	}
-	if cr.App.RepositoryID == 0 {
-		return nil, errors.New("App Repository required")
-	}
-	fmt.Printf("Request to update app:\n")
-	dc.PrintApp(cr.App)
-
-	cur, err := getGroupFromDatabase(ctx, cr.Namespace, cr.GroupID)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to get group from db: %s", err))
-	}
-	if cur == nil {
-		return nil, errors.New(fmt.Sprintf("No such group: (%s,%s)", cr.Namespace, cr.GroupID))
-	}
-
-	lastVersion, err := getGroupLatestVersion(ctx, cr.Namespace, cr.GroupID)
-	if err != nil {
-		return nil, err
-	}
-	apps, err := loadAppGroupVersion(ctx, lastVersion)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to get apps for version %d from db: %s", cur.DeployedVersion, err))
-	}
-	fmt.Printf("Loaded Group from database: \n")
-	cur.groupDef.Applications = apps
-	dc.PrintGroup(cur.groupDef)
-	// now find the app we want to update:
-	foundone := false
-	for _, app := range apps {
-		if isSame(app, cr.App) {
-			fmt.Printf("Updating app: %d\n", app.RepositoryID)
-			m := mergeApp(app, cr.App)
-			if !m {
-				fmt.Printf("Nothing to update, app is already up to date\n")
-				r := pb.GroupDefResponse{Result: pb.GroupResponseStatus_NOCHANGE}
-				return &r, nil
-			}
-			foundone = true
-			break
-		}
-	}
-	if !foundone {
-		return nil, errors.New(fmt.Sprintf("There is no app \"%d\" in group (%s,%s)", cr.App.RepositoryID, cr.Namespace, cr.GroupID))
-	}
-	cur.groupDef.Applications = apps
-	fmt.Printf("Updated Group: \n")
-	cur.groupDef.Applications = apps
-	dc.PrintGroup(cur.groupDef)
-
-	sv, err := createGroupVersion(ctx, cr.Namespace, cr.GroupID, apps)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("failed to create a new group version: %s", err))
-	}
-	fmt.Printf("Created group version: %s\n", sv)
-	version, err := strconv.Atoi(sv)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("version group not a number (%s)? BUG!: %s", sv, err))
-	}
-
-	applyVersion(version)
-	if err != nil {
-		return nil, err
-	}
-	updateDeployedVersionNumber(version)
-	r := pb.GroupDefResponse{Result: pb.GroupResponseStatus_CHANGEACCEPTED}
-	return &r, nil
+	return nil, errors.NotImplemented(ctx, "UpdateApp")
 }
 
 // updates all apps in a repo to a new buildid
 func (s *DeployMonkey) UpdateRepo(ctx context.Context, cr *pb.UpdateRepoRequest) (*pb.GroupDefResponse, error) {
-	if cr.Namespace == "" {
-		return nil, errors.New("Namespace required")
-	}
-	if cr.GroupID == "" {
-		return nil, errors.New("GroupID required")
-	}
-	if cr.RepositoryID == 0 {
-		return nil, errors.New("App Repository required")
-	}
-	fmt.Printf("Updating all apps in repository %d in (%s,%s) to buildid: %d\n", cr.RepositoryID,
-		cr.Namespace, cr.GroupID, cr.BuildID)
-	cur, err := getGroupFromDatabase(ctx, cr.Namespace, cr.GroupID)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to get group from db: %s", err))
-	}
-	if cur == nil {
-		return nil, errors.New(fmt.Sprintf("No such group: (%s,%s)", cr.Namespace, cr.GroupID))
-	}
-
-	lastVersion, err := getGroupLatestVersion(ctx, cr.Namespace, cr.GroupID)
-	if err != nil {
-		return nil, err
-	}
-	apps, err := loadAppGroupVersion(ctx, lastVersion)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to get apps for version %d from db: %s", cur.DeployedVersion, err))
-	}
-	fmt.Printf("Loaded Group from database: \n")
-	cur.groupDef.Applications = apps
-	dc.PrintGroup(cur.groupDef)
-	// now find the app we want to update:
-	foundone := false
-	for _, app := range apps {
-		if app.RepositoryID != cr.RepositoryID {
-			continue
-		}
-		fmt.Printf("Updating app: %d\n", app.RepositoryID)
-		app.BuildID = cr.BuildID
-		foundone = true
-	}
-	if !foundone {
-		fmt.Printf("Nothing to update, app is already up to date\n")
-		r := pb.GroupDefResponse{Result: pb.GroupResponseStatus_NOCHANGE}
-		return &r, nil
-	}
-	cur.groupDef.Applications = apps
-	fmt.Printf("Updated Group: \n")
-	cur.groupDef.Applications = apps
-	dc.PrintGroup(cur.groupDef)
-
-	sv, err := createGroupVersion(ctx, cr.Namespace, cr.GroupID, apps)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("failed to create a new group version: %s", err))
-	}
-	fmt.Printf("Created group version: %s\n", sv)
-	version, err := strconv.Atoi(sv)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("version group not a number (%s)? BUG!: %s", sv, err))
-	}
-	applyVersion(version)
-	if err != nil {
-		return nil, err
-	}
-	updateDeployedVersionNumber(version)
-	r := pb.GroupDefResponse{Result: pb.GroupResponseStatus_CHANGEACCEPTED}
-	return &r, nil
-
+	return nil, errors.NotImplemented(ctx, "UpdateRepo")
 }

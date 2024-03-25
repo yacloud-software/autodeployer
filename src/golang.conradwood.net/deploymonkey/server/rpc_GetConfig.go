@@ -59,10 +59,11 @@ func (s *DeployMonkey) GetGroups(ctx context.Context, cr *pb.GetGroupsRequest) (
 		if err != nil {
 			return nil, err
 		}
-		gd := pb.GroupDef{DeployedVersion: int64(dbg.DeployedVersion),
-			PendingVersion: int64(dbg.PendingVersion),
-			GroupID:        dbg.groupDef.GroupID,
-			NameSpace:      dbg.groupDef.Namespace,
+		gd := pb.GroupDef{
+			DeployedVersion: int64(dbg.GetDeployedVersion()),
+			PendingVersion:  int64(dbg.GetPendingVersion()),
+			GroupID:         dbg.GetGroupDef().GroupID,
+			NameSpace:       dbg.GetGroupDef().Namespace,
 		}
 		resp.Groups = append(resp.Groups, &gd)
 
@@ -99,9 +100,9 @@ func (s *DeployMonkey) GetApplications(ctx context.Context, cr *pb.GetAppsReques
 		fmt.Println(s)
 		return nil, errors.New(s)
 	}
-	ad, err := loadAppGroupVersion(ctx, dbg.DeployedVersion)
+	ad, err := loadAppGroupVersion(ctx, dbg.GetDeployedVersion())
 	if err != nil {
-		s := fmt.Sprintf("GetApplications(): No applications for version %d (%s,%s)", dbg.DeployedVersion, cr.NameSpace, cr.GroupName)
+		s := fmt.Sprintf("GetApplications(): No applications for version %d (%s,%s)", dbg.GetDeployedVersion(), cr.NameSpace, cr.GroupName)
 		fmt.Printf("%s: %s\n", s, err)
 		return nil, fmt.Errorf("%s [%s]", s, err)
 	}

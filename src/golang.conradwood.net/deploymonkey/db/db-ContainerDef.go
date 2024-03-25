@@ -96,7 +96,7 @@ func (a *DBContainerDef) Archive(ctx context.Context, id uint64) error {
 // Save (and use database default ID generation)
 func (a *DBContainerDef) Save(ctx context.Context, p *savepb.ContainerDef) (uint64, error) {
 	qn := "DBContainerDef_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (url, useoverlayfs) values ($1, $2) returning id", p.URL, p.UseOverlayFS)
+	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (url, useoverlayfs) values ($1, $2) returning id", a.get_URL(p), a.get_UseOverlayFS(p))
 	if e != nil {
 		return 0, a.Error(ctx, qn, e)
 	}
@@ -122,7 +122,7 @@ func (a *DBContainerDef) SaveWithID(ctx context.Context, p *savepb.ContainerDef)
 
 func (a *DBContainerDef) Update(ctx context.Context, p *savepb.ContainerDef) error {
 	qn := "DBContainerDef_Update"
-	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set url=$1, useoverlayfs=$2 where id = $3", p.URL, p.UseOverlayFS, p.ID)
+	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set url=$1, useoverlayfs=$2 where id = $3", a.get_URL(p), a.get_UseOverlayFS(p), p.ID)
 
 	return a.Error(ctx, qn, e)
 }
@@ -253,6 +253,22 @@ func (a *DBContainerDef) ByLikeUseOverlayFS(ctx context.Context, p bool) ([]*sav
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByUseOverlayFS: error scanning (%s)", e))
 	}
 	return l, nil
+}
+
+/**********************************************************************
+* The field getters
+**********************************************************************/
+
+func (a *DBContainerDef) get_ID(p *savepb.ContainerDef) uint64 {
+	return p.ID
+}
+
+func (a *DBContainerDef) get_URL(p *savepb.ContainerDef) string {
+	return p.URL
+}
+
+func (a *DBContainerDef) get_UseOverlayFS(p *savepb.ContainerDef) bool {
+	return p.UseOverlayFS
 }
 
 /**********************************************************************

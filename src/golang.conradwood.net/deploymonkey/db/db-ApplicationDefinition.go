@@ -16,7 +16,7 @@ package db
 
 Main Table:
 
- CREATE TABLE applicationdefinition (id integer primary key default nextval('applicationdefinition_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint not null  references containerdef (id) on delete cascade  ,discardlog boolean not null  ,artefactid bigint not null  ,created integer not null  ,instancesmeansperautodeployer boolean not null  );
+ CREATE TABLE applicationdefinition (id integer primary key default nextval('applicationdefinition_seq'),downloadurl text not null  ,downloaduser text not null  ,downloadpassword text not null  ,r_binary text not null  ,buildid bigint not null  ,instances integer not null  ,deploymentid text not null  ,machines text not null  ,deploytype text not null  ,critical boolean not null  ,alwayson boolean not null  ,statictargetdir text not null  ,r_public boolean not null  ,java boolean not null  ,repositoryid bigint not null  ,asroot boolean not null  ,container bigint   references containerdef (id) on delete cascade  references INVALID REFERENCE: "true" (INVALID REFERENCE: "true") on delete cascade  ,discardlog boolean not null  ,artefactid bigint not null  ,created integer not null  ,instancesmeansperautodeployer boolean not null  );
 
 Alter statements:
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS downloadurl text not null default '';
@@ -35,7 +35,7 @@ ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS r_public boolean not 
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS java boolean not null default false;
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS asroot boolean not null default false;
-ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS container bigint not null references containerdef (id) on delete cascade  default 0;
+ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS container bigint  references containerdef (id) on delete cascade  references INVALID REFERENCE: "true" (INVALID REFERENCE: "true") on delete cascade  default 0;
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS discardlog boolean not null default false;
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS artefactid bigint not null default 0;
 ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS created integer not null default 0;
@@ -44,7 +44,7 @@ ALTER TABLE applicationdefinition ADD COLUMN IF NOT EXISTS instancesmeansperauto
 
 Archive Table: (structs can be moved from main to archive using Archive() function)
 
- CREATE TABLE applicationdefinition_archive (id integer unique not null,downloadurl text not null,downloaduser text not null,downloadpassword text not null,r_binary text not null,buildid bigint not null,instances integer not null,deploymentid text not null,machines text not null,deploytype text not null,critical boolean not null,alwayson boolean not null,statictargetdir text not null,r_public boolean not null,java boolean not null,repositoryid bigint not null,asroot boolean not null,container bigint not null,discardlog boolean not null,artefactid bigint not null,created integer not null,instancesmeansperautodeployer boolean not null);
+ CREATE TABLE applicationdefinition_archive (id integer unique not null,downloadurl text not null,downloaduser text not null,downloadpassword text not null,r_binary text not null,buildid bigint not null,instances integer not null,deploymentid text not null,machines text not null,deploytype text not null,critical boolean not null,alwayson boolean not null,statictargetdir text not null,r_public boolean not null,java boolean not null,repositoryid bigint not null,asroot boolean not null,container bigint ,discardlog boolean not null,artefactid bigint not null,created integer not null,instancesmeansperautodeployer boolean not null);
 */
 
 import (
@@ -115,7 +115,7 @@ func (a *DBApplicationDefinition) Archive(ctx context.Context, id uint64) error 
 // Save (and use database default ID generation)
 func (a *DBApplicationDefinition) Save(ctx context.Context, p *savepb.ApplicationDefinition) (uint64, error) {
 	qn := "DBApplicationDefinition_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) returning id", p.DownloadURL, p.DownloadUser, p.DownloadPassword, p.Binary, p.BuildID, p.Instances, p.DeploymentID, p.Machines, p.DeployType, p.Critical, p.AlwaysOn, p.StaticTargetDir, p.Public, p.Java, p.RepositoryID, p.AsRoot, p.Container.ID, p.DiscardLog, p.ArtefactID, p.Created, p.InstancesMeansPerAutodeployer)
+	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) returning id", a.get_DownloadURL(p), a.get_DownloadUser(p), a.get_DownloadPassword(p), a.get_Binary(p), a.get_BuildID(p), a.get_Instances(p), a.get_DeploymentID(p), a.get_Machines(p), a.get_DeployType(p), a.get_Critical(p), a.get_AlwaysOn(p), a.get_StaticTargetDir(p), a.get_Public(p), a.get_Java(p), a.get_RepositoryID(p), a.get_AsRoot(p), a.get_Container_ID(p), a.get_DiscardLog(p), a.get_ArtefactID(p), a.get_Created(p), a.get_InstancesMeansPerAutodeployer(p))
 	if e != nil {
 		return 0, a.Error(ctx, qn, e)
 	}
@@ -141,7 +141,7 @@ func (a *DBApplicationDefinition) SaveWithID(ctx context.Context, p *savepb.Appl
 
 func (a *DBApplicationDefinition) Update(ctx context.Context, p *savepb.ApplicationDefinition) error {
 	qn := "DBApplicationDefinition_Update"
-	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set downloadurl=$1, downloaduser=$2, downloadpassword=$3, r_binary=$4, buildid=$5, instances=$6, deploymentid=$7, machines=$8, deploytype=$9, critical=$10, alwayson=$11, statictargetdir=$12, r_public=$13, java=$14, repositoryid=$15, asroot=$16, container=$17, discardlog=$18, artefactid=$19, created=$20, instancesmeansperautodeployer=$21 where id = $22", p.DownloadURL, p.DownloadUser, p.DownloadPassword, p.Binary, p.BuildID, p.Instances, p.DeploymentID, p.Machines, p.DeployType, p.Critical, p.AlwaysOn, p.StaticTargetDir, p.Public, p.Java, p.RepositoryID, p.AsRoot, p.Container.ID, p.DiscardLog, p.ArtefactID, p.Created, p.InstancesMeansPerAutodeployer, p.ID)
+	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set downloadurl=$1, downloaduser=$2, downloadpassword=$3, r_binary=$4, buildid=$5, instances=$6, deploymentid=$7, machines=$8, deploytype=$9, critical=$10, alwayson=$11, statictargetdir=$12, r_public=$13, java=$14, repositoryid=$15, asroot=$16, container=$17, discardlog=$18, artefactid=$19, created=$20, instancesmeansperautodeployer=$21 where id = $22", a.get_DownloadURL(p), a.get_DownloadUser(p), a.get_DownloadPassword(p), a.get_Binary(p), a.get_BuildID(p), a.get_Instances(p), a.get_DeploymentID(p), a.get_Machines(p), a.get_DeployType(p), a.get_Critical(p), a.get_AlwaysOn(p), a.get_StaticTargetDir(p), a.get_Public(p), a.get_Java(p), a.get_RepositoryID(p), a.get_AsRoot(p), a.get_Container_ID(p), a.get_DiscardLog(p), a.get_ArtefactID(p), a.get_Created(p), a.get_InstancesMeansPerAutodeployer(p), p.ID)
 
 	return a.Error(ctx, qn, e)
 }
@@ -845,6 +845,101 @@ func (a *DBApplicationDefinition) ByLikeInstancesMeansPerAutodeployer(ctx contex
 }
 
 /**********************************************************************
+* The field getters
+**********************************************************************/
+
+func (a *DBApplicationDefinition) get_ID(p *savepb.ApplicationDefinition) uint64 {
+	return p.ID
+}
+
+func (a *DBApplicationDefinition) get_DownloadURL(p *savepb.ApplicationDefinition) string {
+	return p.DownloadURL
+}
+
+func (a *DBApplicationDefinition) get_DownloadUser(p *savepb.ApplicationDefinition) string {
+	return p.DownloadUser
+}
+
+func (a *DBApplicationDefinition) get_DownloadPassword(p *savepb.ApplicationDefinition) string {
+	return p.DownloadPassword
+}
+
+func (a *DBApplicationDefinition) get_Binary(p *savepb.ApplicationDefinition) string {
+	return p.Binary
+}
+
+func (a *DBApplicationDefinition) get_BuildID(p *savepb.ApplicationDefinition) uint64 {
+	return p.BuildID
+}
+
+func (a *DBApplicationDefinition) get_Instances(p *savepb.ApplicationDefinition) uint32 {
+	return p.Instances
+}
+
+func (a *DBApplicationDefinition) get_DeploymentID(p *savepb.ApplicationDefinition) string {
+	return p.DeploymentID
+}
+
+func (a *DBApplicationDefinition) get_Machines(p *savepb.ApplicationDefinition) string {
+	return p.Machines
+}
+
+func (a *DBApplicationDefinition) get_DeployType(p *savepb.ApplicationDefinition) string {
+	return p.DeployType
+}
+
+func (a *DBApplicationDefinition) get_Critical(p *savepb.ApplicationDefinition) bool {
+	return p.Critical
+}
+
+func (a *DBApplicationDefinition) get_AlwaysOn(p *savepb.ApplicationDefinition) bool {
+	return p.AlwaysOn
+}
+
+func (a *DBApplicationDefinition) get_StaticTargetDir(p *savepb.ApplicationDefinition) string {
+	return p.StaticTargetDir
+}
+
+func (a *DBApplicationDefinition) get_Public(p *savepb.ApplicationDefinition) bool {
+	return p.Public
+}
+
+func (a *DBApplicationDefinition) get_Java(p *savepb.ApplicationDefinition) bool {
+	return p.Java
+}
+
+func (a *DBApplicationDefinition) get_RepositoryID(p *savepb.ApplicationDefinition) uint64 {
+	return p.RepositoryID
+}
+
+func (a *DBApplicationDefinition) get_AsRoot(p *savepb.ApplicationDefinition) bool {
+	return p.AsRoot
+}
+
+func (a *DBApplicationDefinition) get_Container_ID(p *savepb.ApplicationDefinition) gosql.NullInt64 {
+	if p.Container == nil {
+		return gosql.NullInt64{Valid: false}
+	}
+	return gosql.NullInt64{Valid: true, Int64: int64(p.Container.ID)}
+}
+
+func (a *DBApplicationDefinition) get_DiscardLog(p *savepb.ApplicationDefinition) bool {
+	return p.DiscardLog
+}
+
+func (a *DBApplicationDefinition) get_ArtefactID(p *savepb.ApplicationDefinition) uint64 {
+	return p.ArtefactID
+}
+
+func (a *DBApplicationDefinition) get_Created(p *savepb.ApplicationDefinition) uint32 {
+	return p.Created
+}
+
+func (a *DBApplicationDefinition) get_InstancesMeansPerAutodeployer(p *savepb.ApplicationDefinition) bool {
+	return p.InstancesMeansPerAutodeployer
+}
+
+/**********************************************************************
 * Helper to convert from an SQL Query
 **********************************************************************/
 
@@ -889,7 +984,6 @@ func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows
 		// SCANNER:
 		foo := &savepb.ApplicationDefinition{}
 		// create the non-nullable pointers
-		foo.Container = &savepb.ContainerDef{} // non-nullable
 		// create variables for scan results
 		scanTarget_0 := &foo.ID
 		scanTarget_1 := &foo.DownloadURL
@@ -908,12 +1002,23 @@ func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows
 		scanTarget_14 := &foo.Java
 		scanTarget_15 := &foo.RepositoryID
 		scanTarget_16 := &foo.AsRoot
-		scanTarget_17 := &foo.Container.ID
+		scanTarget_17 := &gosql.NullInt64{} // Container.ID
 		scanTarget_18 := &foo.DiscardLog
 		scanTarget_19 := &foo.ArtefactID
 		scanTarget_20 := &foo.Created
 		scanTarget_21 := &foo.InstancesMeansPerAutodeployer
 		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2, scanTarget_3, scanTarget_4, scanTarget_5, scanTarget_6, scanTarget_7, scanTarget_8, scanTarget_9, scanTarget_10, scanTarget_11, scanTarget_12, scanTarget_13, scanTarget_14, scanTarget_15, scanTarget_16, scanTarget_17, scanTarget_18, scanTarget_19, scanTarget_20, scanTarget_21)
+		if scanTarget_17.Valid {
+			if foo.Container == nil {
+				foo.Container = &savepb.ContainerDef{}
+			}
+
+			_, err := scanTarget_17.Value()
+			if err != nil {
+				return nil, err
+			}
+			foo.Container.ID = uint64(scanTarget_17.Int64)
+		}
 		// END SCANNER
 
 		if err != nil {
@@ -930,8 +1035,8 @@ func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows
 func (a *DBApplicationDefinition) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null ,downloaduser text not null ,downloadpassword text not null ,r_binary text not null ,buildid bigint not null ,instances integer not null ,deploymentid text not null ,machines text not null ,deploytype text not null ,critical boolean not null ,alwayson boolean not null ,statictargetdir text not null ,r_public boolean not null ,java boolean not null ,repositoryid bigint not null ,asroot boolean not null ,container bigint not null ,discardlog boolean not null ,artefactid bigint not null ,created integer not null ,instancesmeansperautodeployer boolean not null );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null ,downloaduser text not null ,downloadpassword text not null ,r_binary text not null ,buildid bigint not null ,instances integer not null ,deploymentid text not null ,machines text not null ,deploytype text not null ,critical boolean not null ,alwayson boolean not null ,statictargetdir text not null ,r_public boolean not null ,java boolean not null ,repositoryid bigint not null ,asroot boolean not null ,container bigint not null ,discardlog boolean not null ,artefactid bigint not null ,created integer not null ,instancesmeansperautodeployer boolean not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null ,downloaduser text not null ,downloadpassword text not null ,r_binary text not null ,buildid bigint not null ,instances integer not null ,deploymentid text not null ,machines text not null ,deploytype text not null ,critical boolean not null ,alwayson boolean not null ,statictargetdir text not null ,r_public boolean not null ,java boolean not null ,repositoryid bigint not null ,asroot boolean not null ,container bigint  ,discardlog boolean not null ,artefactid bigint not null ,created integer not null ,instancesmeansperautodeployer boolean not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),downloadurl text not null ,downloaduser text not null ,downloadpassword text not null ,r_binary text not null ,buildid bigint not null ,instances integer not null ,deploymentid text not null ,machines text not null ,deploytype text not null ,critical boolean not null ,alwayson boolean not null ,statictargetdir text not null ,r_public boolean not null ,java boolean not null ,repositoryid bigint not null ,asroot boolean not null ,container bigint  ,discardlog boolean not null ,artefactid bigint not null ,created integer not null ,instancesmeansperautodeployer boolean not null );`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS downloadurl text not null default '';`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS downloaduser text not null default '';`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS downloadpassword text not null default '';`,
@@ -948,7 +1053,7 @@ func (a *DBApplicationDefinition) CreateTable(ctx context.Context) error {
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS java boolean not null default false;`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS repositoryid bigint not null default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS asroot boolean not null default false;`,
-		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS container bigint not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS container bigint  default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS discardlog boolean not null default false;`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS artefactid bigint not null default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS created integer not null default 0;`,
@@ -970,7 +1075,7 @@ func (a *DBApplicationDefinition) CreateTable(ctx context.Context) error {
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS java boolean not null  default false;`,
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS repositoryid bigint not null  default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS asroot boolean not null  default false;`,
-		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS container bigint not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS container bigint   default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS discardlog boolean not null  default false;`,
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS artefactid bigint not null  default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS created integer not null  default 0;`,
@@ -989,7 +1094,7 @@ func (a *DBApplicationDefinition) CreateTable(ctx context.Context) error {
 		// Indices:
 
 		// Foreign keys:
-		`ALTER TABLE applicationdefinition add constraint mkdb_fk_applicationdefinition_container_containerdefid FOREIGN KEY (container) references containerdef (id) on delete cascade ;`,
+		`ALTER TABLE ` + a.SQLTablename + ` add constraint mkdb_fk_applicationdefinition_container_containerdefid FOREIGN KEY (container) references containerdef (id) on delete cascade ;`,
 	}
 	for i, c := range csql {
 		a.DB.ExecContextQuiet(ctx, fmt.Sprintf("create_"+a.SQLTablename+"_%d", i), c)

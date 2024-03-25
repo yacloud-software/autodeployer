@@ -29,24 +29,18 @@ func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuil
 		return nil, err
 	}
 	fmt.Printf("Creating new group for build %d\n", req.BuildID)
+
 	for _, group := range fd.Groups {
-		// save new submitted stuff
-		resp, err := depl.DefineGroup(ctx, group)
+		gv, err := groupHandler.CreateGroupVersion(ctx, group)
 		if err != nil {
-			fmt.Printf("Failed to define group: %s\n", err)
-			return nil, fmt.Errorf("failed to define group: %w", err)
-		}
-		if resp.Result != dm.GroupResponseStatus_CHANGEACCEPTED {
-			fmt.Printf("Response to deploy: %s - skipping\n", resp.Result)
-			continue
-		}
-		dr := dm.DeployRequest{VersionID: resp.VersionID}
-		dresp, err := depl.DeployVersion(ctx, &dr)
-		if err != nil {
-			fmt.Printf("Failed to deploy version %s: %s\n", resp.VersionID, err)
 			return nil, err
 		}
-		fmt.Printf("Deploy response: %v\n", dresp)
+		fmt.Printf("New Group Version: %v\n", gv)
+		dr := &dm.DeployRequest{VersionID: fmt.Sprintf("%d", gv.ID)}
+		_, err = depl.DeployVersion(ctx, dr)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &common.Void{}, nil
 }

@@ -17,7 +17,7 @@ var (
 	slack sb.SlackGatewayClient
 )
 
-func NotifyPeopleAboutDeploy(dbgroup *DBGroup, apps []*pb.ApplicationDefinition, version int) {
+func NotifyPeopleAboutDeploy(dbgroup DBGroup, apps []*pb.ApplicationDefinition, version int) {
 	if !NOTIFY_ON_DEPLOY {
 		return
 	}
@@ -26,7 +26,7 @@ func NotifyPeopleAboutDeploy(dbgroup *DBGroup, apps []*pb.ApplicationDefinition,
 		slack = sb.NewSlackGatewayClient(client.Connect("slackgateway.SlackGateway"))
 	}
 	ctx := authremote.Context()
-	msg := fmt.Sprintf("Datacenter update:\nApplied change #%d (%s), containing: \n", version, dbgroup.groupDef.Namespace)
+	msg := fmt.Sprintf("Datacenter update:\nApplied change #%d, containing: \n", version)
 	for _, app := range apps {
 		msg = msg + fmt.Sprintf("   %d instances: build #%d of application %s\n", app.Instances, app.BuildID, app.Binary)
 	}

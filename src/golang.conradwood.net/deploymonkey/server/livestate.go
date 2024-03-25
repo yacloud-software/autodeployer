@@ -72,7 +72,7 @@ func init() {
 // * if any deployment failed: clear the "new ones" again and abort
 // * if all succeeded:
 // * clear those which are no longer needed (e.g. old ones in a lower version)
-func MakeItSo(group *DBGroup, ads []*pb.ApplicationDefinition, version int) error {
+func MakeItSo(group DBGroup, ads []*pb.ApplicationDefinition, version int) error {
 	// brief sanity check for common stuff...
 	for _, ad := range ads {
 		if ad.BuildID == 0 {
@@ -128,9 +128,10 @@ func MakeItSoAsync(m miso) error {
 	if err != nil {
 		return err
 	}
+	groupid := 1
 	// deploymentid is "PREFIX-GroupID-BuildID"
 	// stop all for groupid
-	stopPrefix := fmt.Sprintf("%s-%d-", DEPLOY_PREFIX, group.id)
+	stopPrefix := fmt.Sprintf("%s-%d-", DEPLOY_PREFIX, groupid)
 	trans, err := stop(stopPrefix)
 	if err != nil {
 		return fmt.Errorf("Failed to stop current instances: %s\n", err)
@@ -214,7 +215,8 @@ func replaceVars(text string, vars map[string]string) string {
 
 // deploys an instance
 // returns deploymentid,usermessage,error
-func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinition) (string, string, error) {
+func deployOn(sa *rpb.ServiceAddress, group DBGroup, app *pb.ApplicationDefinition) (string, string, error) {
+	groupid := 1
 	ctx := authremote.Context()
 	fmt.Printf("Deploying app on host %s:\n", sa.Host)
 	dc.PrintApp(app)
@@ -228,12 +230,12 @@ func deployOn(sa *rpb.ServiceAddress, group *DBGroup, app *pb.ApplicationDefinit
 	vars := make(map[string]string)
 	vars["BUILDID"] = fmt.Sprintf("%d", app.BuildID)
 	vars["REPOSITORYID"] = fmt.Sprintf("%d", app.RepositoryID)
-	deplid := fmt.Sprintf("%s-%d-%d", DEPLOY_PREFIX, group.id, app.BuildID)
+	deplid := fmt.Sprintf("%s-%d-%d", DEPLOY_PREFIX, groupid, app.BuildID)
 	if *incAppId {
-		deplid = fmt.Sprintf("%s-%d-%d-%d", DEPLOY_PREFIX, group.id, app.BuildID, app.ID)
+		deplid = fmt.Sprintf("%s-%d-%d-%d", DEPLOY_PREFIX, groupid, app.BuildID, app.ID)
 	}
 	adc := ad.NewAutoDeployerClient(conn)
-	dr := dc.CreateDeployRequest(group.groupDef, app)
+	dr := dc.CreateDeployRequest(nil, app)
 
 	dr.DownloadURL = replaceVars(app.DownloadURL, vars)
 	dr.DeploymentID = deplid

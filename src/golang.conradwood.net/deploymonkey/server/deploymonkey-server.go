@@ -80,7 +80,8 @@ func main() {
 	db.DefaultDBContainerDef().SaveWithID(context.Background(), &pb.ContainerDef{ID: 0})
 	appdef_store = db.DefaultDBApplicationDefinition()
 	db.DefaultDBAppGroup()
-	db.DefaultDBGroupVersion()
+	//	db.DefaultDBGroupVersion()
+	utils.Bail("failed to start group2 handler", start_group2_handler())
 	if *testScanner {
 		ScanAutodeployersTest()
 		os.Exit(0)
@@ -222,7 +223,7 @@ func getGroupLatestVersion(ctx context.Context, namespace string, groupname stri
 }
 
 // given a group version will load all its apps into objects
-func loadAppGroupVersion(ctx context.Context, version int) ([]*pb.ApplicationDefinition, error) {
+func loadAppGroupVersion(ctx context.Context, version uint32) ([]*pb.ApplicationDefinition, error) {
 	var res []*pb.ApplicationDefinition
 	if version == 0 {
 		return res, nil
@@ -424,7 +425,7 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Unable to get group (%s,%s) from db: %s", ns, gn, err))
 	}
-	apps, err := loadAppGroupVersion(ctx, curApply.version)
+	apps, err := loadAppGroupVersion(ctx, uint32(curApply.version))
 	if err != nil {
 		return errors.New(fmt.Sprintf("error loading apps for version %d: %s", curApply.version, err))
 	}
@@ -460,14 +461,19 @@ func (s *DeployMonkey) DefineGroup(ctx context.Context, cr *pb.GroupDefinitionRe
 			return nil, err
 		}
 	}
-	apps, err := loadAppGroupVersion(ctx, cur.GetDeployedVersion())
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to get apps for version %d from db: %s", cur.GetDeployedVersion(), err))
-	}
-	cur.groupDef.Applications = apps
+	//	apps, err := loadAppGroupVersion(ctx, cur.GetDeployedVersion())
+	//	if err != nil {
+	//		return nil, errors.New(fmt.Sprintf("Failed to get apps for version %d from db: %s", cur.GetDeployedVersion(), err))
+	//	}
+	//	cur.SetApplications(apps) // 	cur.groupDef.Applications = apps
 	fmt.Printf("Loaded Group from database: \n")
-	dc.PrintGroup(cur.groupDef)
-	diff, err := Compare(cur.groupDef, cr)
+	dc.PrintGroup(cur)
+	i := true
+	if i {
+		panic("group incompatible")
+	}
+	var diff *Diff
+	//	diff, err := Compare(cur.groupDef, cr)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Failed to compare: %s", err))
 	}
@@ -616,7 +622,7 @@ func (s *DeployMonkey) DeleteApplication(ctx context.Context, dar *pb.DeleteAppl
 func (s *DeployMonkey) UndeployApplication(ctx context.Context, uar *pb.UndeployApplicationRequest) (*pb.UndeployResponse, error) {
 	res := &pb.UndeployResponse{}
 	fmt.Printf("Request to stop app version #%d\n", uar.ID)
-	pbs, err := loadAppGroupVersion(ctx, int(uar.ID))
+	pbs, err := loadAppGroupVersion(ctx, uint32(uar.ID))
 	if err != nil {
 		msg := fmt.Sprintf("Error getting group for ID=%d %s\n", uar.ID, err)
 		fmt.Println(msg)
@@ -700,7 +706,12 @@ func convertDeployedToGroupDef(ctx context.Context, app *apb.DeployedApp) (*pb.G
 	if group == nil {
 		return nil, fmt.Errorf("No group with id %d\n", groupid)
 	}
-	res := group.groupDef
+	i := true
+	if i {
+		panic("incompatible groupdef (2)")
+	}
+	var res *pb.GroupDefinitionRequest
+	//res := group.groupDef
 	var appdef *pb.ApplicationDefinition
 	if appdefid > 0 {
 		appdef, err = loadAppByID(ctx, uint64(appdefid))

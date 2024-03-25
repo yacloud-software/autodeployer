@@ -98,7 +98,7 @@ func (a *DBAppGroup) Archive(ctx context.Context, id uint64) error {
 // Save (and use database default ID generation)
 func (a *DBAppGroup) Save(ctx context.Context, p *savepb.AppGroup) (uint64, error) {
 	qn := "DBAppGroup_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (namespace, groupname, deployedversion, pendingversion) values ($1, $2, $3, $4) returning id", p.Namespace, p.Groupname, p.DeployedVersion, p.PendingVersion)
+	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (namespace, groupname, deployedversion, pendingversion) values ($1, $2, $3, $4) returning id", a.get_Namespace(p), a.get_Groupname(p), a.get_DeployedVersion(p), a.get_PendingVersion(p))
 	if e != nil {
 		return 0, a.Error(ctx, qn, e)
 	}
@@ -124,7 +124,7 @@ func (a *DBAppGroup) SaveWithID(ctx context.Context, p *savepb.AppGroup) error {
 
 func (a *DBAppGroup) Update(ctx context.Context, p *savepb.AppGroup) error {
 	qn := "DBAppGroup_Update"
-	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set namespace=$1, groupname=$2, deployedversion=$3, pendingversion=$4 where id = $5", p.Namespace, p.Groupname, p.DeployedVersion, p.PendingVersion, p.ID)
+	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set namespace=$1, groupname=$2, deployedversion=$3, pendingversion=$4 where id = $5", a.get_Namespace(p), a.get_Groupname(p), a.get_DeployedVersion(p), a.get_PendingVersion(p), p.ID)
 
 	return a.Error(ctx, qn, e)
 }
@@ -315,6 +315,30 @@ func (a *DBAppGroup) ByLikePendingVersion(ctx context.Context, p uint32) ([]*sav
 		return nil, a.Error(ctx, qn, fmt.Errorf("ByPendingVersion: error scanning (%s)", e))
 	}
 	return l, nil
+}
+
+/**********************************************************************
+* The field getters
+**********************************************************************/
+
+func (a *DBAppGroup) get_ID(p *savepb.AppGroup) uint64 {
+	return p.ID
+}
+
+func (a *DBAppGroup) get_Namespace(p *savepb.AppGroup) string {
+	return p.Namespace
+}
+
+func (a *DBAppGroup) get_Groupname(p *savepb.AppGroup) string {
+	return p.Groupname
+}
+
+func (a *DBAppGroup) get_DeployedVersion(p *savepb.AppGroup) uint32 {
+	return p.DeployedVersion
+}
+
+func (a *DBAppGroup) get_PendingVersion(p *savepb.AppGroup) uint32 {
+	return p.PendingVersion
 }
 
 /**********************************************************************
