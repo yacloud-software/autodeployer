@@ -708,6 +708,9 @@ func INT_GetDeploymentsFromCache(ctx context.Context) (*pb.DeploymentList, error
 
 func convertDeployedToGroupDef(ctx context.Context, app *apb.DeployedApp) (*pb.GroupDefinitionRequest, error) {
 	d := app.Deployment
+	if d.DeploymentID == "" {
+		return nil, fmt.Errorf("missing deploymentid unable to convert app %s to groupdef", d.Binary)
+	}
 	groupid, _, appdefid := DecodeDeploymentID(d.DeploymentID)
 	group, err := groupHandler.GroupByID(ctx, uint64(groupid))
 	if err != nil {
