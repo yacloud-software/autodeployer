@@ -30,8 +30,14 @@ message AppGroup {
 // sql table definition
 message GroupVersion {
   uint64 ID=1;
-  AppGroup GroupID=2 [(common.sql_type)="uint64",(common.sql_reference)="appgroup.id"];
-  uint32 Created=3;
+  AppGroup GroupID=2 [ (common.sql_name)="group_id",(common.sql_type)="uint64",(common.sql_reference)="appgroup.id"];
+  uint32 CreatedTimestamp=3 ;
+}
+// sql table definition
+message LinkAppGroup {
+  uint64 ID=1;
+  GroupVersion GroupVersion=2  [(common.sql_name)="group_version_id",(common.sql_type)="uint64",(common.sql_reference)="group_version.id"];
+  ApplicationDefinition App=3  [(common.sql_name)="app_id",(common.sql_type)="uint64",(common.sql_reference)="applicationdefinition.id"];
 }
 
 //*************************
@@ -97,7 +103,7 @@ message ApplicationDefinition {
   bool Java = 19;
   uint64 RepositoryID = 20; // obsolete the git repository id (use artefactid instead)
   bool AsRoot=21; // if true, run this as root
-  ContainerDef Container=22 [(common.sql_type)="uint64",(common.sql_reference)="containerdef.id"]; // if set, a container is going to be created to run the app in
+  ContainerDef Container=22 [(common.sql_nullreference)="true",(common.sql_type)="uint64",(common.sql_reference)="containerdef.id"]; // if set, a container is going to be created to run the app in
   bool DiscardLog=23; // if true discard logfiles. this is really only useful for the logservice
   uint64 ArtefactID = 24;
   uint32 Created=25; // when was this created
@@ -162,7 +168,7 @@ message GroupDefResponse {
 }
 
 message DeployRequest {
-  string VersionID = 1;
+  string VersionID = 1; // group version id
 }
 
 message DeployResponse {
