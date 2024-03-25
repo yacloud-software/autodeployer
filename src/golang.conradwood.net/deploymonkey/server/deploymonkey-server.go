@@ -421,7 +421,7 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Unable to get groupnames: %s", err))
 	}
-	dbgroup, err := getGroupFromDatabase(ctx, ns, gn)
+	dbgroup, err := groupHandler.FindAppGroupByNamespace(ctx, ns)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Unable to get group (%s,%s) from db: %s", ns, gn, err))
 	}
@@ -451,16 +451,18 @@ func (s *DeployMonkey) DefineGroup(ctx context.Context, cr *pb.GroupDefinitionRe
 		return nil, errors.New("GroupID required")
 	}
 
-	cur, err := getGroupFromDatabase(ctx, cr.Namespace, cr.GroupID)
+	cur, err := groupHandler.FindOrCreateAppGroupByNamespace(ctx, cr.Namespace)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("Failed to get group from db: %s", err))
 	}
-	if cur == nil {
-		cur, err = createGroup(ctx, cr.Namespace, cr.GroupID)
-		if err != nil {
-			return nil, err
+	/*
+		if cur == nil {
+			cur, err = createGroup(ctx, cr.Namespace, cr.GroupID)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
+	*/
 	//	apps, err := loadAppGroupVersion(ctx, cur.GetDeployedVersion())
 	//	if err != nil {
 	//		return nil, errors.New(fmt.Sprintf("Failed to get apps for version %d from db: %s", cur.GetDeployedVersion(), err))
@@ -754,7 +756,7 @@ func (depl *DeployMonkey) DeployAppOnTarget(ctx context.Context, dr *pb.DeployAp
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load app #%d: %s", dr.AppID, err)
 	}
-	dbg, err := getGroupForAppByID(ctx, int(dr.AppID))
+	dbg, err := groupHandler.GroupByID(ctx, uint64(dr.AppID))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get group for app #%d: %s", dr.AppID, err)
 	}

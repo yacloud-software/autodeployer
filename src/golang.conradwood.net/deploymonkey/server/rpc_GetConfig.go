@@ -50,24 +50,19 @@ func (s *DeployMonkey) GetGroups(ctx context.Context, cr *pb.GetGroupsRequest) (
 		return nil, errors.New("Namespace required")
 	}
 	resp := pb.GetGroupsResponse{}
-	n, err := getStringsFromDB("select groupname from appgroup where namespace = $1 order by groupname asc", cr.NameSpace)
+
+	dbg, err := groupHandler.FindAppGroupByNamespace(ctx, cr.NameSpace)
+	//		dbg, err := getGroupFromDatabase(ctx, cr.NameSpace, name)
 	if err != nil {
 		return nil, err
 	}
-	for _, name := range n {
-		dbg, err := getGroupFromDatabase(ctx, cr.NameSpace, name)
-		if err != nil {
-			return nil, err
-		}
-		gd := pb.GroupDef{
-			DeployedVersion: int64(dbg.GetDeployedVersion()),
-			PendingVersion:  int64(dbg.GetPendingVersion()),
-			GroupID:         dbg.GetGroupDef().GroupID,
-			NameSpace:       dbg.GetGroupDef().Namespace,
-		}
-		resp.Groups = append(resp.Groups, &gd)
-
+	gd := pb.GroupDef{
+		DeployedVersion: int64(dbg.GetDeployedVersion()),
+		PendingVersion:  int64(dbg.GetPendingVersion()),
+		GroupID:         fmt.Sprintf("%d", dbg.ID),
+		NameSpace:       cr.NameSpace,
 	}
+	resp.Groups = append(resp.Groups, &gd)
 
 	return &resp, nil
 }
@@ -94,7 +89,7 @@ func (s *DeployMonkey) GetDeployers(ctx context.Context, cr *common.Void) (*pb.D
 }
 
 func (s *DeployMonkey) GetApplications(ctx context.Context, cr *pb.GetAppsRequest) (*pb.GetAppsResponse, error) {
-	dbg, err := getGroupFromDatabase(ctx, cr.NameSpace, cr.GroupName)
+	dbg, err := groupHandler.FindAppGroupByNamespace(ctx, cr.NameSpace)
 	if err != nil {
 		s := fmt.Sprintf("No such group: (%s,%s)\n", cr.NameSpace, cr.GroupName)
 		fmt.Println(s)

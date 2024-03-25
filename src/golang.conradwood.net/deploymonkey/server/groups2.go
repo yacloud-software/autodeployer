@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/db"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,7 @@ import (
 */
 
 var (
+	grouplock    sync.Mutex
 	groupHandler *Group2Handler
 )
 
@@ -63,7 +65,7 @@ func (g *Group2Handler) GroupByID(ctx context.Context, ID uint64) (*pb.AppGroup,
 	return ags, nil
 }
 func (g *Group2Handler) CreateGroupVersion(ctx context.Context, group *pb.GroupDefinitionRequest) (*pb.GroupVersion, error) {
-	appgroup, err := g.findOrCreateAppGroupByNamespace(ctx, group.Namespace)
+	appgroup, err := g.FindOrCreateAppGroupByNamespace(ctx, group.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +98,20 @@ func (g *Group2Handler) CreateGroupVersion(ctx context.Context, group *pb.GroupD
 	}
 	return gv, nil
 }
+func (g *Group2Handler) FindAppGroupByNamespace(ctx context.Context, namespace string) (*pb.AppGroup, error) {
+	ags, err := g.db_ag.ByNamespace(ctx, namespace)
+	if err != nil {
+		return nil, err
+	}
+	if len(ags) == 0 {
+		return nil, nil
+	}
+	return ags[0], nil
 
-func (g *Group2Handler) findOrCreateAppGroupByNamespace(ctx context.Context, namespace string) (*pb.AppGroup, error) {
+}
+func (g *Group2Handler) FindOrCreateAppGroupByNamespace(ctx context.Context, namespace string) (*pb.AppGroup, error) {
+	grouplock.Lock()
+	defer grouplock.Unlock()
 	ags, err := g.db_ag.ByNamespace(ctx, namespace)
 	if err != nil {
 		return nil, err
