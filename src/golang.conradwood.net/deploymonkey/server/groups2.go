@@ -129,3 +129,25 @@ func (g *Group2Handler) FindOrCreateAppGroupByNamespace(ctx context.Context, nam
 	}
 	return appgroup, nil
 }
+
+func (g *Group2Handler) GetGroupForApp(ctx context.Context, app *pb.ApplicationDefinition) (*pb.AppGroup, error) {
+	lgroups, err := g.db_lag.ByApp(ctx, app.ID)
+	if err != nil {
+		return nil, err
+	}
+	if len(lgroups) == 0 {
+		return nil, fmt.Errorf("no group for app %d", app.ID)
+	}
+	lgr := lgroups[0]
+
+	gv, err := g.db_gv.ByID(ctx, lgr.GroupVersion.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	group, err := g.db_ag.ByID(ctx, gv.GroupID.ID)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
+}

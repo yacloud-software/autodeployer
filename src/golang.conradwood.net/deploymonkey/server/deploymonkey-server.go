@@ -756,7 +756,7 @@ func (depl *DeployMonkey) DeployAppOnTarget(ctx context.Context, dr *pb.DeployAp
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load app #%d: %s", dr.AppID, err)
 	}
-	dbg, err := groupHandler.GroupByID(ctx, uint64(dr.AppID))
+	dbg, err := groupHandler.GetGroupForApp(ctx, app)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get group for app #%d: %s", dr.AppID, err)
 	}
