@@ -22,7 +22,8 @@ func CreateInfoRequest() *ad.InfoRequest {
 }
 
 func CreateDeploymentID(app *dm.ApplicationDefinition) string {
-	return fmt.Sprintf("DM-APPDEF2-%d-%d", app.BuildID, app.ID)
+	groupid := 1
+	return fmt.Sprintf("DM-APPDEF--%d-%d-%d", groupid, app.BuildID, app.ID)
 }
 
 func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDefinition) *ad.DeployRequest {
