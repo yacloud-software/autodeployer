@@ -6,6 +6,7 @@ import (
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/apis/registry"
 	"golang.conradwood.net/deploymonkey/common"
+	"strings"
 )
 
 type DeployRequest struct {
@@ -28,6 +29,15 @@ func (dr *DeployRequest) GetAutodeployerClient() (ad.AutoDeployerClient, error) 
 func (dr *DeployRequest) AutodeployerHost() string {
 	return dr.sa.Host()
 }
+
+// the url with variables resolved
+func (dr *DeployRequest) DownloadURL() string {
+	s := dr.AppDef().DownloadURL
+	s = strings.ReplaceAll(s, "${BUILDID}", fmt.Sprintf("%d", dr.AppDef().BuildID))
+	return s
+}
+
+// the url as defined in deploy.yaml
 func (dr *DeployRequest) URL() string {
 	return dr.AppDef().DownloadURL
 }

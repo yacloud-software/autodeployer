@@ -31,6 +31,14 @@ type deployTransaction struct {
 	deployed_ids []*deployed // list of successful deployments
 }
 
+func (dt *deployTransaction) String() string {
+	x := ""
+	if len(dt.requests) > 0 {
+		x = dt.requests[0].AppDef().Binary
+	}
+	return fmt.Sprintf("deploytransaction %d deployrequests, first binary: \"%s\"", len(dt.requests), x)
+}
+
 func (dt *deployTransaction) Close() {
 	close(dt.result_chan)
 }
@@ -88,19 +96,19 @@ func (dt *deployTransaction) CacheEverywhere() error {
 		wg.Add(1)
 		go func(r *dp.DeployRequest) {
 			defer wg.Done()
-			fmt.Printf("Caching %s on %s\n", r.URL(), r.AutodeployerHost())
+			fmt.Printf("Caching %s on %s\n", r.DownloadURL(), r.AutodeployerHost())
 			ctx := authremote.ContextWithTimeout(time.Duration(60) * time.Second)
 			cl, err := r.GetAutodeployerClient()
 			if err != nil {
-				xerr = fmt.Errorf("(caching %s): failed to connect to %s: %s", r.URL(), r.AutodeployerHost(), err)
+				xerr = fmt.Errorf("(caching %s): failed to connect to %s: %s", r.DownloadURL(), r.AutodeployerHost(), err)
 				return
 			}
-			_, err = cl.CacheURL(ctx, &ad.URLRequest{URL: r.URL()})
+			_, err = cl.CacheURL(ctx, &ad.URLRequest{URL: r.DownloadURL()})
 			if err != nil {
-				xerr = fmt.Errorf("(caching %s): failed to cache on %s: %s", r.URL(), r.AutodeployerHost(), err)
+				xerr = fmt.Errorf("(caching %s): failed to cache on %s: %s", r.DownloadURL(), r.AutodeployerHost(), err)
 				return
 			}
-			fmt.Printf("Cached %s on %s\n", r.URL(), r.AutodeployerHost())
+			fmt.Printf("Cached %s on %s\n", r.DownloadURL(), r.AutodeployerHost())
 		}(req)
 	}
 	wg.Wait()

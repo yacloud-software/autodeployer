@@ -37,7 +37,7 @@ const (
 )
 
 var (
-	use_new_style = flag.Int("use_new_deploy_style", 0, "a new experimental deployment style (0=never, 1=for instancesperautodeployer only, 2=always")
+	use_new_style = flag.Int("use_new_deploy_style", 1, "a new experimental deployment style (0=never, 1=for instancesperautodeployer only, 2=always")
 	cacheGauge    = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "deploymonkey_precache_status",
@@ -416,7 +416,7 @@ func GetDeployers() ([]*rpb.ServiceAddress, error) {
 			RoutingInfo: r.Target.RoutingInfo,
 		}
 		res = append(res, sa)
-		fmt.Printf("Counting autodeployer at %s\n", r.Target.IP)
+		//fmt.Printf("Counting autodeployer at %s\n", r.Target.IP)
 	}
 	return res, nil
 }
@@ -496,7 +496,7 @@ func DialService(sa *rpb.ServiceAddress) (*grpc.ClientConn, error) {
 // version may be -1 if not part of this id
 func DecodeDeploymentID(deplid string) (int, int, int) {
 	if !strings.HasPrefix(deplid, DEPLOY_PREFIX) {
-		fmt.Printf("Not a valid deploy_prefix: %s\n", deplid)
+		fmt.Printf("Not a valid deploy_prefix: \"%s\"\n", deplid)
 		return -1, -1, -1
 	}
 	x := deplid[len(DEPLOY_PREFIX)+1:]

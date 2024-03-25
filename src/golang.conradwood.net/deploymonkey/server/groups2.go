@@ -82,7 +82,7 @@ func (g *Group2Handler) CreateGroupVersion(ctx context.Context, group *pb.GroupD
 	fmt.Printf("Groupversion: %d\n", gv.ID)
 	// add the applications to the group version
 	for _, app := range group.Applications {
-		id, err := db.DefaultDBApplicationDefinition().Save(ctx, app)
+		id, err := saveApp(app) //db.DefaultDBApplicationDefinition().Save(ctx, app)
 		if err != nil {
 			return nil, err
 		}

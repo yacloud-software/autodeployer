@@ -191,7 +191,7 @@ func cleanRequestQueue() {
 
 // filter an instance (from registry)
 func filterExecute(sr *stopRequest) error {
-	fmt.Printf("Filter execute disabled. Hidden service should be unnecessary\n")
+	//	fmt.Printf("Filter execute disabled. Hidden service should be unnecessary\n")
 	return nil
 }
 

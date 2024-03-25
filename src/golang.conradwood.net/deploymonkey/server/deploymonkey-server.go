@@ -164,15 +164,15 @@ func applyAllVersions(ctx context.Context, pendingonly bool) error {
 * implementing the postgres functions here:
 ***********************************/
 
-func saveApp(app *pb.ApplicationDefinition) (string, error) {
+func saveApp(app *pb.ApplicationDefinition) (uint64, error) {
 	err := dc.CheckAppComplete(app)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	if app.Container != nil {
 		_, err = db.DefaultDBContainerDef().Save(TEMPCONTEXT(), app.Container)
 		if err != nil {
-			return "", err
+			return 0, err
 		}
 	} else {
 		app.Container = &pb.ContainerDef{ID: 0}
@@ -180,26 +180,26 @@ func saveApp(app *pb.ApplicationDefinition) (string, error) {
 	app.Created = uint32(time.Now().Unix())
 	id, err := appdef_store.Save(TEMPCONTEXT(), app)
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("Failed to insert application: %s", err))
+		return 0, errors.New(fmt.Sprintf("Failed to insert application: %s", err))
 	}
 
 	for _, arg := range app.Args {
 		_, err = dbcon.ExecContext(TEMPCONTEXT(), "insertargs", "INSERT INTO args (argument,app_id) values ($1,$2)", arg, id)
 		if err != nil {
-			return "", errors.New(fmt.Sprintf("Failed to insert tag for app %d: %s", id, err))
+			return 0, errors.New(fmt.Sprintf("Failed to insert tag for app %d: %s", id, err))
 		}
 	}
 	for _, ar := range app.AutoRegs {
 		_, err = dbcon.ExecContext(TEMPCONTEXT(), "foo", "INSERT INTO autoreg (portdef,servicename,apitypes,app_id) values ($1,$2,$3,$4)", ar.Portdef, ar.ServiceName, ar.ApiTypes, id)
 		if err != nil {
-			return "", errors.New(fmt.Sprintf("Failed to insert autoreg for app %d: %s", id, err))
+			return 0, errors.New(fmt.Sprintf("Failed to insert autoreg for app %d: %s", id, err))
 		}
 	}
 	_, err = dbcon.ExecContext(TEMPCONTEXT(), "foo", "INSERT into applimits (app_id,maxmemory,priority) values ($1,$2,$3)", id, app.Limits.MaxMemory, app.Limits.Priority)
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("Failed to insert limits for app %d: %s", id, err))
+		return 0, errors.New(fmt.Sprintf("Failed to insert limits for app %d: %s", id, err))
 	}
-	return fmt.Sprintf("%d", id), nil
+	return id, nil
 }
 
 // given a group version will load all its apps into objects
@@ -429,8 +429,16 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("error loading apps for version %d: %s", curApply.version, err))
 	}
+	var f_apps []*pb.ApplicationDefinition
+	for _, a := range apps {
+		app, err := loadAppByID(ctx, a.ID)
+		if err != nil {
+			return err
+		}
+		f_apps = append(f_apps, app)
+	}
 	fmt.Printf("Makeitso (%d)...\n", curApply.version)
-	err = MakeItSo(dbgroup, apps, curApply.version)
+	err = MakeItSo(dbgroup, f_apps, curApply.version)
 	if err != nil {
 		return errors.New(fmt.Sprintf("error applyings apps for version %d: %s", curApply.version, err))
 	}

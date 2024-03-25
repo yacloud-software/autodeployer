@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	//	"golang.conradwood.net/apis/registry"
@@ -44,7 +45,12 @@ func makeitso_new(group DBGroup, apps []*pb.ApplicationDefinition) error {
 	// step #1 - build up a list what we want to deploy on which autodeployer
 	var deployments []*deployplacements.DeployRequest
 	for _, app := range apps {
-		drs, err := deployplacements.Create_requests_for_app(group, app, sas)
+		ctx := context.Background()
+		ap, err := loadAppByID(ctx, app.ID)
+		if err != nil {
+			return err
+		}
+		drs, err := deployplacements.Create_requests_for_app(group, ap, sas)
 		if err != nil {
 			return err
 		}

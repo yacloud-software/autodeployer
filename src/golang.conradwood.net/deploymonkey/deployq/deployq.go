@@ -8,6 +8,7 @@
 package deployq
 
 import (
+	"flag"
 	"fmt"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
 	"sync"
@@ -24,7 +25,8 @@ const (
 )
 
 var (
-	q = &DeployQueue{
+	debug = flag.Bool("debug_deployq", true, "debug the deployq")
+	q     = &DeployQueue{
 		autodeployer_locks:    make(map[string]bool),
 		work_distributor_chan: make(chan bool),
 		work_handler_chan:     make(chan *deployTransaction),
@@ -34,7 +36,6 @@ var (
 
 // add a bunch of requests, treat them somewhat as one transaction
 func Add(dr []*dp.DeployRequest) chan *DeployUpdate {
-
 	// start worker if necessary
 	starterlock.Lock()
 	if !q.workers_started {
@@ -43,13 +44,18 @@ func Add(dr []*dp.DeployRequest) chan *DeployUpdate {
 		q.workers_started = true
 	}
 	starterlock.Unlock()
-
+	for _, r := range dr {
+		if len(r.AppDef().Args) == 0 {
+			panic(fmt.Sprintf("no args for %d(%s)", r.AppDef().ID, r.AppDef().Binary))
+		}
+	}
 	// add to queue
 	q.Lock()
 	tr := &deployTransaction{
 		requests:    dr,
 		result_chan: make(chan *DeployUpdate, 100),
 	}
+	debugf("adding deploytransaction %s", tr.String())
 	q.requests = append(q.requests, tr)
 	q.work_distributor_chan <- true
 	q.Unlock()
@@ -77,6 +83,8 @@ func (q *DeployQueue) work_distributor() {
 			q.Lock()
 			var next *deployTransaction
 			for _, dt := range q.requests {
+				debugf("processing deploytransaction %s", dt.String())
+
 				if dt.scheduled {
 					continue
 				}
@@ -202,4 +210,12 @@ func (q *DeployQueue) work_handler() {
 		dt.sendUpdate(EVENT_FINISHED)
 		dt.Close()
 	}
+}
+
+func debugf(format string, args ...interface{}) {
+	if *debug {
+		return
+	}
+	s := fmt.Sprintf(format, args...)
+	fmt.Printf("[deployq] %s\n", s)
 }
