@@ -685,7 +685,7 @@ func INT_GetDeploymentsFromCache(ctx context.Context) (*pb.DeploymentList, error
 					add := ad.Deployment
 					s = fmt.Sprintf("%s/%s/%d", add.Binary, add.Namespace, add.RepositoryID)
 				}
-				fmt.Printf("Our cache is dodgy. Converting deployed app (%s) into our own, we got: %s\n", s, err)
+				fmt.Printf("Our cache is dodgy. Converting deployed app (%s) on %s into our own, we got: %s\n", s, dl.IP, err)
 				continue
 			}
 			d.Apps = append(d.Apps, g)
