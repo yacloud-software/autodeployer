@@ -699,18 +699,15 @@ func INT_GetDeploymentsFromCache(ctx context.Context) (*pb.DeploymentList, error
 func convertDeployedToGroupDef(ctx context.Context, app *apb.DeployedApp) (*pb.GroupDefinitionRequest, error) {
 	d := app.Deployment
 	groupid, _, appdefid := DecodeDeploymentID(d.DeploymentID)
-	group, err := getGroupFromDatabaseByID(ctx, groupid)
+	group, err := groupHandler.GroupByID(ctx, uint64(groupid))
 	if err != nil {
 		return nil, err
 	}
 	if group == nil {
 		return nil, fmt.Errorf("No group with id %d\n", groupid)
 	}
-	i := true
-	if i {
-		panic("incompatible groupdef (2)")
-	}
-	var res *pb.GroupDefinitionRequest
+
+	res := &pb.GroupDefinitionRequest{}
 	//res := group.groupDef
 	var appdef *pb.ApplicationDefinition
 	if appdefid > 0 {
@@ -725,6 +722,10 @@ func convertDeployedToGroupDef(ctx context.Context, app *apb.DeployedApp) (*pb.G
 			appdef.DeploymentID = d.DeploymentID
 		}
 	} else {
+		i := true
+		if i {
+			panic("appdefid is 0")
+		}
 		// this shouldn't need to be called,
 		// once we got all deployed apps with the ID we'll load all of them
 		// from database instead (see above)

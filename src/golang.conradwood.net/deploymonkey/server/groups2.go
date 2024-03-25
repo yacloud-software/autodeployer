@@ -55,6 +55,13 @@ func start_group2_handler() error {
 	groupHandler = g2
 	return nil
 }
+func (g *Group2Handler) GroupByID(ctx context.Context, ID uint64) (*pb.AppGroup, error) {
+	ags, err := g.db_ag.ByID(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	return ags, nil
+}
 func (g *Group2Handler) CreateGroupVersion(ctx context.Context, group *pb.GroupDefinitionRequest) (*pb.GroupVersion, error) {
 	appgroup, err := g.findOrCreateAppGroupByNamespace(ctx, group.Namespace)
 	if err != nil {
