@@ -346,7 +346,7 @@ service DeployMonkey {
   // called by build repository
   rpc NewBuildAvailable(NewBuildAvailableRequest) returns (common.Void);
   // obsolete called by build repository if new deploy.yamls are submitted
-  rpc DefineGroup(GroupDefinitionRequest) returns (GroupDefResponse);
+  //  rpc DefineGroup(GroupDefinitionRequest) returns (GroupDefResponse);
   // called by build repository after new deploy.yamls was submitted in DefineGroup() and accepted
   rpc DeployVersion(DeployRequest) returns (DeployResponse);
   //  obsolete deploymonkey-client: update all apps in a repo in a group to a new buildid
