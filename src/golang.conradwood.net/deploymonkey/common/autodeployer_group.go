@@ -38,6 +38,10 @@ func (d *Deployer) GetMachineGroups() []string {
 	return d.machine_info.MachineGroup
 }
 func (d *Deployer) ServesMachineGroup(machinegroupname string) bool {
+	if machinegroupname == "" {
+		//nothing -> match anything
+		return true
+	}
 	if strings.Contains(machinegroupname, "*") {
 		//asterisk -> match anything
 		return true
