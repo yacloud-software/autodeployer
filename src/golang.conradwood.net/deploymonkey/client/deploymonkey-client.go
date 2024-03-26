@@ -14,7 +14,7 @@ import (
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/utils"
-	"google.golang.org/grpc"
+	//	"google.golang.org/grpc"
 	"os"
 	"strings"
 	"time"
@@ -100,11 +100,6 @@ func main() {
 	if *apply_version != 0 {
 		applyVersion()
 		done = true
-	}
-	if *filename != "" {
-		processFile()
-		done = true
-		os.Exit(0)
 	}
 	if *namespace != "" {
 		if *binary != "" {
@@ -301,51 +296,6 @@ func updateApp() {
 		return
 	}
 	fmt.Printf("Response to updateapp: %v\n", resp.Result)
-}
-
-func processFile() {
-	fmt.Printf("Processing file...\n")
-	if *namespace != "" {
-		fmt.Printf("-configfile and -namespace are mutually exclusive\n")
-		os.Exit(10)
-	}
-	fd, err := dc.ParseFile(*filename, *repository)
-	if err != nil {
-		fmt.Printf("Failed to parse file %s: %s\n", *filename, err)
-		os.Exit(10)
-	}
-	// print limits...
-	for _, group := range fd.Groups {
-		for _, app := range group.Applications {
-			app.BuildID = uint64(*buildid)
-			fmt.Printf("Binary: %s\n", app.Binary)
-			fmt.Printf("   Limits: %#v\n", app.Limits)
-		}
-	}
-
-	*namespace = fd.Namespace
-	fmt.Printf("Set namespace to \"%s\"\n", *namespace)
-	grpc.EnableTracing = true
-	ctx := authremote.Context()
-
-	for _, req := range fd.Groups {
-		resp, err := depl.DefineGroup(ctx, req)
-		if err != nil {
-			fmt.Printf("Failed to define group: %s\n", err)
-			return
-		}
-		if resp.Result != pb.GroupResponseStatus_CHANGEACCEPTED {
-			fmt.Printf("Response to deploy: %s - skipping\n", resp.Result)
-			continue
-		}
-		dr := pb.DeployRequest{VersionID: resp.VersionID}
-		dresp, err := depl.DeployVersion(ctx, &dr)
-		if err != nil {
-			fmt.Printf("Failed to deploy version %s: %s\n", resp.VersionID, err)
-			return
-		}
-		fmt.Printf("Deploy response: %v\n", dresp)
-	}
 }
 
 func listSuggestions() {

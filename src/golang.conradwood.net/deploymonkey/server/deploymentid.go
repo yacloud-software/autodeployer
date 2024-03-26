@@ -45,6 +45,6 @@ func DecodeDeploymentID(deplid string) (int, int, int) {
 }
 
 func DecodeDeploymentIDv2(deplid string) (int, int, int) {
-	fmt.Printf("Unable to parse v2 atm\n")
+	fmt.Printf("Unable to parse v2 atm (%s)\n", deplid)
 	return 0, 0, 0
 }

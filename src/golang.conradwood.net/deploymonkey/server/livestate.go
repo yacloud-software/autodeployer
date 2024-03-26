@@ -12,6 +12,7 @@ package main
 // ATM we need registry, auth and autodeploy
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -53,7 +54,6 @@ var (
 
 type miso struct {
 	version int
-	group   DBGroup
 	ads     []*pb.ApplicationDefinition
 }
 
@@ -71,15 +71,15 @@ func init() {
 // * if any deployment failed: clear the "new ones" again and abort
 // * if all succeeded:
 // * clear those which are no longer needed (e.g. old ones in a lower version)
-func MakeItSo(group DBGroup, ads []*pb.ApplicationDefinition, version int) error {
+func MakeItSo(ads []*pb.ApplicationDefinition, version int) error {
 	// brief sanity check for common stuff...
 	for _, ad := range ads {
 		if ad.BuildID == 0 {
 			return fmt.Errorf("Refusing to deploy application %s with buildid #0", ad.Binary)
 		}
 	}
-	fmt.Printf("Request to upgrade group %v with %d groups in queue to be updated\n", group, len(asyncMaker))
-	m := miso{group: group, ads: ads, version: version}
+	fmt.Printf("Request to upgrade \n")
+	m := miso{ads: ads, version: version}
 	asyncMaker <- m
 	return nil
 }
@@ -94,7 +94,7 @@ func MakeItSoLoop() {
 }
 
 func MakeItSoAsync(m miso) error {
-	group := m.group
+	//group := m.group
 
 	// split appdefs into "old" and "new" codepath
 	var new_path []*pb.ApplicationDefinition
@@ -113,7 +113,7 @@ func MakeItSoAsync(m miso) error {
 		old_path = append(old_path, appdef)
 	}
 
-	err := makeitso_new(group, new_path)
+	err := makeitso_new(new_path)
 	if err != nil {
 		return err
 	}
@@ -121,13 +121,35 @@ func MakeItSoAsync(m miso) error {
 		fmt.Printf("no oldstyle stuff to do for this deployment.\n")
 		return nil
 	}
-	fmt.Printf("Applying group %v, version %d\n", group, m.version)
+	//	fmt.Printf("Applying group %v, version %d\n", group, m.version)
 
 	sas, err := GetDeployers()
 	if err != nil {
 		return err
 	}
-	groupid := 1
+
+	// check all apps are in the same group
+	var group *pb.AppGroup
+	ctx := context.Background()
+	for _, app := range old_path {
+		g, err := groupHandler.GetGroupForApp(ctx, app)
+		if err != nil {
+			return err
+		}
+		if group == nil {
+			group = g
+		} else {
+			if group.ID != g.ID {
+				s := fmt.Sprintf("ERROR: Different groups to deploy (%d and %d)", group.ID, g.ID)
+				fmt.Println(s)
+				return fmt.Errorf("%s", s)
+			}
+		}
+	}
+	if group == nil {
+		return fmt.Errorf("no group. no apps?\n")
+	}
+	groupid := group.ID
 	// deploymentid is "PREFIX-GroupID-BuildID"
 	// stop all for groupid
 	stopPrefix := fmt.Sprintf("%s-%d-", DEPLOY_PREFIX, groupid)
@@ -173,7 +195,7 @@ func MakeItSoAsync(m miso) error {
 				workeridx = 0
 			}
 			autodeployer := fsas[workeridx]
-			startupid, msg, terr := deployOn(autodeployer, group, app)
+			startupid, msg, terr := deployOn(autodeployer, app)
 			if terr == nil {
 				startupids[startupid] = autodeployer
 				instances++
@@ -214,9 +236,13 @@ func replaceVars(text string, vars map[string]string) string {
 
 // deploys an instance
 // returns deploymentid,usermessage,error
-func deployOn(sa *rpb.ServiceAddress, group DBGroup, app *pb.ApplicationDefinition) (string, string, error) {
-	groupid := 1
+func deployOn(sa *rpb.ServiceAddress, app *pb.ApplicationDefinition) (string, string, error) {
 	ctx := authremote.Context()
+	gr, err := groupHandler.GetGroupForApp(ctx, app)
+	if err != nil {
+		return "", "", err
+	}
+	groupid := gr.ID
 	fmt.Printf("Deploying app on host %s:\n", sa.Host)
 	dc.PrintApp(app)
 	conn, err := DialService(sa)
@@ -245,7 +271,6 @@ func deployOn(sa *rpb.ServiceAddress, group DBGroup, app *pb.ApplicationDefiniti
 			// given that all config files & db go through an automatic common.AppLimit() to fix up empty AppLimits, this should never happen.
 			panic("Program error. shutting down instead of breaking deployments. fix me.")
 		}
-		dr.Limits = app.Limits
 	}
 	if *precache {
 		err = waitForCacheStatus(adc, dr, sa.Host)

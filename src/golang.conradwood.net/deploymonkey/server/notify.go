@@ -17,7 +17,7 @@ var (
 	slack sb.SlackGatewayClient
 )
 
-func NotifyPeopleAboutDeploy(dbgroup DBGroup, apps []*pb.ApplicationDefinition, version int) {
+func NotifyPeopleAboutDeploy(apps []*pb.ApplicationDefinition, version int) {
 	if !NOTIFY_ON_DEPLOY {
 		return
 	}

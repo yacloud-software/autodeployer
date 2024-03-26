@@ -157,6 +157,7 @@ func applyAllVersions(ctx context.Context, pendingonly bool) error {
 		}
 		applyVersion(dv)
 	}
+	fmt.Printf("Reapply complete\n")
 	return nil
 }
 
@@ -394,6 +395,7 @@ func updateDeployedVersionNumber(v int) error {
 }
 
 func applyVersion(version int) {
+	fmt.Printf("Submitting version %d to apply\n", version)
 	x := applyingInfo{version: version}
 	applyChannel <- &x
 }
@@ -421,10 +423,7 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Unable to get groupnames: %s", err))
 	}
-	dbgroup, err := groupHandler.FindAppGroupByNamespace(ctx, ns)
-	if err != nil {
-		return errors.New(fmt.Sprintf("Unable to get group (%s,%s) from db: %s", ns, gn, err))
-	}
+
 	apps, err := loadAppGroupVersion(ctx, uint32(curApply.version))
 	if err != nil {
 		return errors.New(fmt.Sprintf("error loading apps for version %d: %s", curApply.version, err))
@@ -438,11 +437,11 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 		f_apps = append(f_apps, app)
 	}
 	fmt.Printf("Makeitso (%d)...\n", curApply.version)
-	err = MakeItSo(dbgroup, f_apps, curApply.version)
+	err = MakeItSo(f_apps, curApply.version)
 	if err != nil {
 		return errors.New(fmt.Sprintf("error applyings apps for version %d: %s", curApply.version, err))
 	}
-	go NotifyPeopleAboutDeploy(dbgroup, apps, curApply.version)
+	go NotifyPeopleAboutDeploy(apps, curApply.version)
 	return nil
 }
 
@@ -450,66 +449,6 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 * implementing the server functions here:
 ***********************************/
 type DeployMonkey struct{}
-
-func (s *DeployMonkey) DefineGroup(ctx context.Context, cr *pb.GroupDefinitionRequest) (*pb.GroupDefResponse, error) {
-	if cr.Namespace == "" {
-		return nil, errors.New("Namespace required")
-	}
-	if cr.GroupID == "" {
-		return nil, errors.New("GroupID required")
-	}
-
-	cur, err := groupHandler.FindOrCreateAppGroupByNamespace(ctx, cr.Namespace)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to get group from db: %s", err))
-	}
-	/*
-		if cur == nil {
-			cur, err = createGroup(ctx, cr.Namespace, cr.GroupID)
-			if err != nil {
-				return nil, err
-			}
-		}
-	*/
-	//	apps, err := loadAppGroupVersion(ctx, cur.GetDeployedVersion())
-	//	if err != nil {
-	//		return nil, errors.New(fmt.Sprintf("Failed to get apps for version %d from db: %s", cur.GetDeployedVersion(), err))
-	//	}
-	//	cur.SetApplications(apps) // 	cur.groupDef.Applications = apps
-	fmt.Printf("Loaded Group from database: \n")
-	dc.PrintGroup(cur)
-	i := true
-	if i {
-		panic("group incompatible")
-	}
-	var diff *Diff
-	//	diff, err := Compare(cur.groupDef, cr)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to compare: %s", err))
-	}
-	if len(diff.AppDiffs) == 0 {
-		r := pb.GroupDefResponse{Result: pb.GroupResponseStatus_NOCHANGE}
-		return &r, nil
-	}
-
-	// in diff we now have a list of appdiffs (stuff we need to change)
-	for _, dg := range diff.AppDiffs {
-		fmt.Printf("Update: %s\n", dg.Describe())
-	}
-
-	// create a new version with our new app definitions
-	vid, err := createGroupVersion(ctx, cr.Namespace, cr.GroupID, cr.Applications)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failed to create new version: %s", err))
-	}
-
-	// tell client we have saved the changes (return an ID to refer to this version)
-	// (to call DeployVersion() later)
-	r := pb.GroupDefResponse{Result: pb.GroupResponseStatus_CHANGEACCEPTED,
-		VersionID: vid,
-	}
-	return &r, nil
-}
 
 // given a Version# -> Take it online ("Make it so")
 func (s *DeployMonkey) DeployVersion(ctx context.Context, cr *pb.DeployRequest) (*pb.DeployResponse, error) {
@@ -767,13 +706,10 @@ func (depl *DeployMonkey) DeployAppOnTarget(ctx context.Context, dr *pb.DeployAp
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load app #%d: %s", dr.AppID, err)
 	}
-	dbg, err := groupHandler.GetGroupForApp(ctx, app)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get group for app #%d: %s", dr.AppID, err)
-	}
+
 	sa := &rpb.ServiceAddress{Host: dr.Host, Port: 4000}
 	fmt.Printf("Deploying App %v on %s\n", app, dr.Host)
-	_, msg, err := deployOn(sa, dbg, app)
+	_, msg, err := deployOn(sa, app)
 	if err != nil {
 		fmt.Println(msg)
 		return nil, err

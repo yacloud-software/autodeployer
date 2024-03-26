@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	missing_deployers_count_zero = flag.Bool("count_missing_deployers_as_zero", false, "if true assumes that machinegroups without deployers have 0 instances (but continue with suggestions")
+	missing_deployers_count_zero = flag.Bool("count_missing_deployers_as_zero", true, "if true assumes that machinegroups without deployers have 0 instances (but continue with suggestions")
 )
 
 type fixMissing struct {

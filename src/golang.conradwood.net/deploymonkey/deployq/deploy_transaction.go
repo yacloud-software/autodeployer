@@ -98,12 +98,8 @@ func (dt *deployTransaction) CacheEverywhere() error {
 			defer wg.Done()
 			fmt.Printf("Caching %s on %s\n", r.DownloadURL(), r.AutodeployerHost())
 			ctx := authremote.ContextWithTimeout(time.Duration(60) * time.Second)
-			cl, err := r.GetAutodeployerClient()
-			if err != nil {
-				xerr = fmt.Errorf("(caching %s): failed to connect to %s: %s", r.DownloadURL(), r.AutodeployerHost(), err)
-				return
-			}
-			_, err = cl.CacheURL(ctx, &ad.URLRequest{URL: r.DownloadURL()})
+			cl := r.GetAutodeployerClient()
+			_, err := cl.CacheURL(ctx, &ad.URLRequest{URL: r.DownloadURL()})
 			if err != nil {
 				xerr = fmt.Errorf("(caching %s): failed to cache on %s: %s", r.DownloadURL(), r.AutodeployerHost(), err)
 				return
@@ -131,11 +127,7 @@ func (dt *deployTransaction) StartEverywhere() error {
 			defer wg.Done()
 			fmt.Printf("Deploying %s on %s\n", r.URL(), r.AutodeployerHost())
 			ctx := authremote.ContextWithTimeout(time.Duration(20) * time.Second)
-			cl, err := r.GetAutodeployerClient()
-			if err != nil {
-				xerr = fmt.Errorf("(deploying %s): failed to connect to %s: %s", r.URL(), r.AutodeployerHost(), err)
-				return
-			}
+			cl := r.GetAutodeployerClient()
 			dreq := common.CreateDeployRequest(nil, r.AppDef())
 			dr, err := cl.Deploy(ctx, dreq)
 			if err != nil {
@@ -154,12 +146,8 @@ func (dt *deployTransaction) StartEverywhere() error {
 		// got failure, cleanup all those which were deployed already. Best-effort, ignoring errors
 		for _, depl := range dt.deployed_ids {
 			ctx := authremote.ContextWithTimeout(time.Duration(20) * time.Second)
-			cl, err := depl.req.GetAutodeployerClient()
-			if err != nil {
-				fmt.Printf("failed to get client to undeploy: %s\n", err)
-				continue
-			}
-			_, err = cl.Undeploy(ctx, &ad.UndeployRequest{ID: depl.ID})
+			cl := depl.req.GetAutodeployerClient()
+			_, err := cl.Undeploy(ctx, &ad.UndeployRequest{ID: depl.ID})
 			if err != nil {
 				fmt.Printf("failed to undeploy: %s\n", err)
 				continue

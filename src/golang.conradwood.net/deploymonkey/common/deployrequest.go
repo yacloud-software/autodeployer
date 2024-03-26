@@ -47,12 +47,15 @@ func CreateDeployRequest(group *dm.GroupDefinitionRequest, app *dm.ApplicationDe
 		StaticTargetDir:  app.StaticTargetDir,
 		Public:           app.Public,
 		AutoRegistration: app.AutoRegs,
-		Limits:           app.Limits,
-		AppReference:     &dm.AppReference{AppDef: app},
-		ArtefactID:       app.ArtefactID,
+		//Limits:           app.Limits,
+		AppReference: &dm.AppReference{AppDef: app},
+		ArtefactID:   app.ArtefactID,
 	}
-	if res.Limits == nil {
+	if res.AppReference.AppDef.Limits == nil {
 		panic("No limits assigned, despite running Applimits() earlier on\n")
+	}
+	if res.AppReference.AppDef.Limits.MaxMemory == 0 {
+		res.AppReference.AppDef.Limits.MaxMemory = 3000
 	}
 
 	if group != nil {

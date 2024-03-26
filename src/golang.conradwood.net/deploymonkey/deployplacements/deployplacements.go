@@ -19,12 +19,8 @@ type Group interface {
 func (dr *DeployRequest) String() string {
 	return fmt.Sprintf("%s on %s", dr.appdef.Binary, dr.sa.String())
 }
-func (dr *DeployRequest) GetAutodeployerClient() (ad.AutoDeployerClient, error) {
-	con, err := dr.sa.GetConnection()
-	if err != nil {
-		return nil, err
-	}
-	return ad.NewAutoDeployerClient(con), nil
+func (dr *DeployRequest) GetAutodeployerClient() ad.AutoDeployerClient {
+	return dr.sa.GetClient()
 }
 func (dr *DeployRequest) AutodeployerHost() string {
 	return dr.sa.Host()
@@ -46,7 +42,10 @@ func (dr *DeployRequest) AppDef() *pb.ApplicationDefinition {
 }
 func Create_requests_for_app(group Group, app *pb.ApplicationDefinition, sas []*registry.ServiceAddress) ([]*DeployRequest, error) {
 	var res []*DeployRequest
-	ag := common.NewAutodeployerGroup(sas)
+	ag, err := common.NewAutodeployerGroup(sas)
+	if err != nil {
+		return nil, err
+	}
 	if app.InstancesMeansPerAutodeployer {
 		for _, s := range ag.FilterByMachine(app.Machines).Deployers() {
 			for i := 0; i < int(app.Instances); i++ {

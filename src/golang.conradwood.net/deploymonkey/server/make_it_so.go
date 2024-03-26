@@ -35,7 +35,7 @@ func init() {
 	}
 }
 
-func makeitso_new(group DBGroup, apps []*pb.ApplicationDefinition) error {
+func makeitso_new(apps []*pb.ApplicationDefinition) error {
 	fmt.Printf("[newstyle] deploying %d apps in new_style\n", len(apps))
 	sas, err := GetDeployers()
 	if err != nil {
@@ -47,6 +47,10 @@ func makeitso_new(group DBGroup, apps []*pb.ApplicationDefinition) error {
 	for _, app := range apps {
 		ctx := context.Background()
 		ap, err := loadAppByID(ctx, app.ID)
+		if err != nil {
+			return err
+		}
+		group, err := groupHandler.GetGroupForApp(ctx, app)
 		if err != nil {
 			return err
 		}

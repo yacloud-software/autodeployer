@@ -198,7 +198,11 @@ func filterExecute(sr *stopRequest) error {
 // stop an instance NOW
 func stopExecute(sr *stopRequest) error {
 	var err error
-	fmt.Printf("Shutting down: %s on %s\n", sr.id, sr.autodeployer.Host)
+	s := ""
+	if sr.deployInfo != nil {
+		s = sr.deployInfo.Binary
+	}
+	fmt.Printf("Shutting down: %s (%s) on %s\n", sr.id, s, sr.autodeployer.Host)
 	conn, err := DialService(sr.autodeployer)
 	if err != nil {
 		return fmt.Errorf("Failed to connect to autodeployer %v", sr.autodeployer)
@@ -207,11 +211,12 @@ func stopExecute(sr *stopRequest) error {
 	adc := ad.NewAutoDeployerClient(conn)
 
 	ud := ad.UndeployRequest{ID: sr.id}
-	_, err = adc.Undeploy(authremote.Context(), &ud)
+	ures, err := adc.Undeploy(authremote.Context(), &ud)
 	if err != nil {
 		fmt.Printf("Failed to shutdown %s @ %s: %s\n", sr.id, sr.autodeployer.Host, err)
 		return fmt.Errorf("Failed to shutdown %s @ %s: %s\n", sr.id, sr.autodeployer.Host, err)
 	}
+	fmt.Printf("Undeployed request sent, confirmed ID %s\n", ures.ID)
 	return nil
 }
 
