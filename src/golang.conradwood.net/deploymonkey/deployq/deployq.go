@@ -52,8 +52,8 @@ func Add(dr []*dp.DeployRequest) chan *DeployUpdate {
 	// add to queue
 	q.Lock()
 	tr := &deployTransaction{
-		requests:    dr,
-		result_chan: make(chan *DeployUpdate, 100),
+		start_requests: dr,
+		result_chan:    make(chan *DeployUpdate, 100),
 	}
 	debugf("adding deploytransaction %s", tr.String())
 	q.requests = append(q.requests, tr)
@@ -108,7 +108,7 @@ func (q *DeployQueue) work_distributor() {
 
 // call with q.lock() held
 func (q *DeployQueue) hasLockedAutodeployers(dt *deployTransaction) bool {
-	for _, r := range dt.requests {
+	for _, r := range dt.start_requests {
 		host := r.AutodeployerHost()
 		if q.autodeployer_locks[host] {
 			return true

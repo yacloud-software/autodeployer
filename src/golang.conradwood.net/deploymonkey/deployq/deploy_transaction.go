@@ -24,19 +24,19 @@ var (
 )
 
 type deployTransaction struct {
-	scheduled    bool // true if it is being sent to the worker for processing
-	requests     []*dp.DeployRequest
-	err          error // set on failure
-	result_chan  chan *DeployUpdate
-	deployed_ids []*deployed // list of successful deployments
+	scheduled      bool // true if it is being sent to the worker for processing
+	start_requests []*dp.DeployRequest
+	err            error // set on failure
+	result_chan    chan *DeployUpdate
+	deployed_ids   []*deployed // list of successful deployments
 }
 
 func (dt *deployTransaction) String() string {
 	x := ""
-	if len(dt.requests) > 0 {
-		x = dt.requests[0].AppDef().Binary
+	if len(dt.start_requests) > 0 {
+		x = dt.start_requests[0].AppDef().Binary
 	}
-	return fmt.Sprintf("deploytransaction %d deployrequests, first binary: \"%s\"", len(dt.requests), x)
+	return fmt.Sprintf("deploytransaction %d deployrequests, first binary: \"%s\"", len(dt.start_requests), x)
 }
 
 func (dt *deployTransaction) Close() {
@@ -45,7 +45,7 @@ func (dt *deployTransaction) Close() {
 func (dt *deployTransaction) Score() int {
 	has_instances := false
 	app_score := 0
-	for _, r := range dt.requests {
+	for _, r := range dt.start_requests {
 		appdef := r.AppDef()
 		if appdef.InstancesMeansPerAutodeployer {
 			has_instances = true
@@ -63,7 +63,7 @@ func (dt *deployTransaction) Score() int {
 }
 func (dt *deployTransaction) AutodeployerHosts() []string {
 	rm := make(map[string]bool)
-	for _, r := range dt.requests {
+	for _, r := range dt.start_requests {
 		rm[r.AutodeployerHost()] = true
 	}
 	var res []string
@@ -92,7 +92,7 @@ func (dt *deployTransaction) SetError(err error) {
 func (dt *deployTransaction) CacheEverywhere() error {
 	wg := &sync.WaitGroup{}
 	var xerr error
-	for _, req := range dt.requests {
+	for _, req := range dt.start_requests {
 		wg.Add(1)
 		go func(r *dp.DeployRequest) {
 			defer wg.Done()
@@ -121,7 +121,7 @@ func (dt *deployTransaction) StartEverywhere() error {
 	wg := &sync.WaitGroup{}
 	var depl_lock sync.Mutex
 	var xerr error
-	for _, req := range dt.requests {
+	for _, req := range dt.start_requests {
 		wg.Add(1)
 		go func(r *dp.DeployRequest) {
 			defer wg.Done()
