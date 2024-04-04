@@ -25,6 +25,9 @@ func (dr *DeployRequest) GetAutodeployerClient() ad.AutoDeployerClient {
 func (dr *DeployRequest) AutodeployerHost() string {
 	return dr.sa.Host()
 }
+func (dr *DeployRequest) Deployer() *common.Deployer {
+	return dr.sa
+}
 
 // the url with variables resolved
 func (dr *DeployRequest) DownloadURL() string {

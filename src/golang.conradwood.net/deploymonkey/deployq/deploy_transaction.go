@@ -24,11 +24,14 @@ var (
 )
 
 type deployTransaction struct {
-	scheduled      bool // true if it is being sent to the worker for processing
-	start_requests []*dp.DeployRequest
-	err            error // set on failure
-	result_chan    chan *DeployUpdate
-	deployed_ids   []*deployed // list of successful deployments
+	scheduled                  bool // true if it is being sent to the worker for processing
+	start_requests             []*dp.DeployRequest
+	err                        error // set on failure
+	result_chan                chan *DeployUpdate
+	deployed_ids               []*deployed // list of successful deployments
+	stop_running_in_same_group bool        // if true, after successful deployment, undeploy versions in the same group other than the ones just started
+	started                    bool        // true if stuff has been successfully started (and is expected to now be monitored until older versions can be shut down)
+	started_time               time.Time
 }
 
 func (dt *deployTransaction) String() string {
@@ -81,9 +84,14 @@ func appScore(ad *pb.ApplicationDefinition) int {
 	}
 	return 0
 }
+func (dt *deployTransaction) SetSuccess() {
+	fmt.Printf("Transaction %s completed successfully\n", dt.String())
+	dt.Close()
+	//TODO: do something here, like tell the user
+}
 func (dt *deployTransaction) SetError(err error) {
 	dt.err = err
-	// TODO: send on a channel to notify listeeners
+	// TODO: send on a channel to notify listeners
 	fmt.Printf("error on deployment: %s\n", err)
 }
 
@@ -112,8 +120,11 @@ func (dt *deployTransaction) CacheEverywhere() error {
 }
 
 type deployed struct {
-	req *dp.DeployRequest
-	ID  string
+	req        *dp.DeployRequest
+	ID         string // the autodeployer ID
+	deployer   *common.Deployer
+	ready_time time.Time
+	ready      bool
 }
 
 // assuming it is cached everywhere, this will start the appdef
@@ -135,7 +146,7 @@ func (dt *deployTransaction) StartEverywhere() error {
 				return
 			}
 			depl_lock.Lock()
-			dt.deployed_ids = append(dt.deployed_ids, &deployed{req: r, ID: dr.ID})
+			dt.deployed_ids = append(dt.deployed_ids, &deployed{deployer: r.Deployer(), req: r, ID: dr.ID})
 			depl_lock.Unlock()
 			fmt.Printf("deployed %s on %s (ID=%s)\n", r.URL(), r.AutodeployerHost(), dr.ID)
 		}(req)

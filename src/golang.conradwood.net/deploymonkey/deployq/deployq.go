@@ -4,6 +4,14 @@
 	        This isn't quite a queue, because subsequent deployrequests might cancel out previous ones.
 	        For example: "deploy application foo in version 5 on 3 autodeployers", subsequent submission of
 	        "deploy application foo in version 6 on 3 autodeployers cancels the first one out".
+
+the deployq has multiple independent workers:
+1) cache & deploy
+2) monitor new deployments for crashes and wait for all to report "ready" status
+3) shut down old ones
+4) communicate error or success to users (via slack)
+
+each transaction is processed by one of the workers until either it encounters an error (SetError()) or success (SetSuccess())
 */
 package deployq
 
@@ -12,6 +20,7 @@ import (
 	"fmt"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
 	"sync"
+	"time"
 )
 
 type EVENT int
@@ -22,6 +31,7 @@ const (
 	EVENT_PREPARE  = 3
 	EVENT_ERROR    = 4
 	EVENT_FINISHED = 5
+	EVENT_STARTED  = 6
 )
 
 var (
@@ -35,12 +45,16 @@ var (
 )
 
 // add a bunch of requests, treat them somewhat as one transaction
-func Add(dr []*dp.DeployRequest) chan *DeployUpdate {
+func Add(dr []*dp.DeployRequest) (chan *DeployUpdate, error) {
+	if len(dr) == 0 {
+		return nil, fmt.Errorf("0 deployrequests received")
+	}
 	// start worker if necessary
 	starterlock.Lock()
 	if !q.workers_started {
 		go q.work_distributor()
 		go q.work_handler()
+		go q.work_monitoring()
 		q.workers_started = true
 	}
 	starterlock.Unlock()
@@ -52,14 +66,15 @@ func Add(dr []*dp.DeployRequest) chan *DeployUpdate {
 	// add to queue
 	q.Lock()
 	tr := &deployTransaction{
-		start_requests: dr,
-		result_chan:    make(chan *DeployUpdate, 100),
+		start_requests:             dr,
+		result_chan:                make(chan *DeployUpdate, 100),
+		stop_running_in_same_group: true,
 	}
 	debugf("adding deploytransaction %s", tr.String())
 	q.requests = append(q.requests, tr)
 	q.work_distributor_chan <- true
 	q.Unlock()
-	return tr.result_chan
+	return tr.result_chan, nil
 }
 
 type DeployUpdate struct {
@@ -104,6 +119,18 @@ func (q *DeployQueue) work_distributor() {
 			q.work_handler_chan <- next
 		}
 	}
+}
+func (q *DeployQueue) remove(dt *deployTransaction) {
+	q.Lock()
+	defer q.Unlock()
+	var res []*deployTransaction
+	for _, r := range q.requests {
+		if r == dt {
+			continue
+		}
+		res = append(res, r)
+	}
+	q.requests = res
 }
 
 // call with q.lock() held
@@ -170,6 +197,12 @@ func (q *DeployQueue) unlockTransaction(dt *deployTransaction) {
 	q.unlockApplications(dt)
 	q.unlockAutodeployers(dt)
 }
+
+/*
+this is part 1 of the deployment process. this is where the application is cached and started on each autodeployer that is relevant.
+if something goes wrong, it will set an error on the transaction.
+if all goes well it sets the 'started' flag on the transaction. (which then gets picked up by the completion worker)
+*/
 func (q *DeployQueue) work_handler() {
 	for {
 		dt := <-q.work_handler_chan
@@ -181,7 +214,6 @@ func (q *DeployQueue) work_handler() {
 			dt.SetError(fmt.Errorf("failed to lock transaction (%w)", err))
 			q.Unlock()
 			dt.sendUpdate(EVENT_FINISHED)
-			dt.Close()
 			continue
 		}
 		q.Unlock()
@@ -193,7 +225,6 @@ func (q *DeployQueue) work_handler() {
 			dt.SetError(err)
 			q.unlockTransaction(dt)
 			dt.sendUpdate(EVENT_FINISHED)
-			dt.Close()
 			continue
 		}
 		dt.sendUpdate(EVENT_START)
@@ -203,12 +234,12 @@ func (q *DeployQueue) work_handler() {
 			dt.SetError(err)
 			q.unlockTransaction(dt)
 			dt.sendUpdate(EVENT_FINISHED)
-			dt.Close()
 			continue
 		}
+		dt.sendUpdate(EVENT_STARTED)
 		q.unlockTransaction(dt)
-		dt.sendUpdate(EVENT_FINISHED)
-		dt.Close()
+		dt.started = true // means it will now be monitored
+		dt.started_time = time.Now()
 	}
 }
 

@@ -36,6 +36,7 @@ type Deployer struct {
 	machine_info               *ad.MachineInfoResponse
 	lastInfoResponse           *ad.InfoResponse
 	info_response_retrieved_at time.Time
+	currently_refreshing       bool
 }
 
 // log a failed deployment. Eventually a deployer will be excluded if it continues to fail
@@ -72,6 +73,19 @@ func (d *Deployer) GetDeployments() *DeploymentGroup {
 	res := NewDeploymentGroup()
 	res.AddDeployment(d, d.lastInfoResponse, d.info_response_retrieved_at)
 	return res
+}
+func (d *Deployer) AppByID(id string) *ad.DeployedApp {
+	lir := d.lastInfoResponse
+	if lir == nil {
+		return nil
+	}
+
+	for _, app := range lir.Apps {
+		if app.ID == id {
+			return app
+		}
+	}
+	return nil
 }
 func (d *Deployer) ServesMachineGroup(machinegroupname string) bool {
 	if machinegroupname == "" {
@@ -119,13 +133,22 @@ func (d *Deployer) init() error {
 
 // re-requery the deployer about its deployments
 func (d *Deployer) refresh_deployments(ctx context.Context) {
+	if d.currently_refreshing {
+		// despite race-condition should keep refresh thread count lowish
+		return
+	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	d.currently_refreshing = true
 	ir, err := d.GetClient().GetDeployments(ctx, CreateInfoRequest())
 	if err != nil {
+		d.currently_refreshing = false
 		// failed to query
 		return
 	}
 	d.lastInfoResponse = ir
 	d.info_response_retrieved_at = time.Now()
+	d.currently_refreshing = false
 	return
 
 }
@@ -176,7 +199,7 @@ func query_autodeployers_loop() {
 		select {
 		case s = <-kick_query:
 			//
-		case <-time.After(time.Duration(5) * time.Second):
+		case <-time.After(time.Duration(15) * time.Second):
 			//
 		}
 		if s != "" {
