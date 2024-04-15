@@ -107,7 +107,7 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 		return nil
 	}
 	// TODO: proceed to next step, shutting down previous instances
-	fmt.Printf("DT %s is now good\n", dt.String())
+	fmt.Printf("DT %s is now good (ready since %0.1f seconds ago)\n", dt.String(), ago.Seconds())
 	var err error
 	for _, dt_stop := range dt.stop_these {
 		xerr := stop_app(dt_stop.deployer, dt_stop.deplapp.ID)
