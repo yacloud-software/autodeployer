@@ -78,6 +78,7 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 				dt.sendUpdate(EVENT_FINISHED)
 				return nil
 			}
+			all_ready = false
 			continue
 		}
 		did.running = true // it is running, mark as such
