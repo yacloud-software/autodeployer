@@ -114,11 +114,11 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 		if xerr != nil {
 			err = xerr
 		} else {
-			fmt.Printf("Stopped %s on deployer \"%s\"\n", dt_stop.deployer.Host(), dt_stop.deplapp.ID)
+			fmt.Printf("%s Stopped %s on deployer \"%s\"\n", dt.String(), dt_stop.deployer.Host(), dt_stop.deplapp.ID)
 		}
 	}
 	if err != nil {
-		fmt.Printf("failed to stop app: %s\n", err)
+		fmt.Printf("%s failed to stop app: %s\n", dt.String(), err)
 	}
 	dt.deployment_processed = true
 	return err
