@@ -33,6 +33,7 @@ func (q *DeployQueue) work_monitoring() {
 			}
 			if !t.deployment_processed {
 				new_transactions = append(new_transactions, t)
+				continue
 			}
 			if t.started {
 				transactions = append(transactions, t)
