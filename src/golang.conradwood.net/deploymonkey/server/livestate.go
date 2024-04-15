@@ -264,7 +264,7 @@ func deployOn(sa *rpb.ServiceAddress, app *pb.ApplicationDefinition) (string, st
 
 	dr.DownloadURL = replaceVars(app.DownloadURL, vars)
 	dr.DeploymentID = deplid
-	dr.AppReference = &pb.AppReference{ID: 34534534, AppDef: app}
+	dr.AppReference = &pb.AppReference{ID: app.ID, AppDef: app}
 
 	if *set_limits {
 		if app.Limits == nil {

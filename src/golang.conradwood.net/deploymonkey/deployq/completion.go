@@ -3,6 +3,7 @@ package deployq
 import (
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
+	"golang.conradwood.net/apis/common"
 	"time"
 )
 
@@ -50,7 +51,7 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 			dt.sendUpdate(EVENT_FINISHED)
 			return nil
 		}
-		if app.Status == ad.DeploymentStatus_EXECUSER {
+		if app.Status == ad.DeploymentStatus_EXECUSER && app.Health == common.Health_READY {
 			if !did.ready {
 				did.ready = true
 				did.ready_time = time.Now()
@@ -74,7 +75,17 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 		fmt.Printf("DT %s started %0.1f seconds ago - no action yet\n", dt.String(), ago.Seconds())
 		return nil
 	}
-	// TODO: proceed to next step,
+	// TODO: proceed to next step, shutting down previous instances
 	fmt.Printf("DT %s is now good\n", dt.String())
-	return nil
+	var err error
+	for _, dt_stop := range dt.stop_these {
+		xerr := stop_app(dt_stop)
+		if xerr != nil {
+			err = xerr
+		}
+	}
+	if err != nil {
+		fmt.Printf("failed to stop app: %s\n", err)
+	}
+	return err
 }

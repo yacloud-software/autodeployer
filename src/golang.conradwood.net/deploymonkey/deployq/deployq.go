@@ -18,6 +18,8 @@ package deployq
 import (
 	"flag"
 	"fmt"
+	//	ad "golang.conradwood.net/apis/autodeployer"
+	"golang.conradwood.net/deploymonkey/common"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
 	"sync"
 	"time"
@@ -228,6 +230,23 @@ func (q *DeployQueue) work_handler() {
 			continue
 		}
 		dt.sendUpdate(EVENT_START)
+
+		if dt.stop_running_in_same_group {
+			// before we start it, get a list of applications that we will need to stop if this deployment is successful
+			var stop_apps []*deployTransaction_StopRequest
+			for _, dr := range dt.start_requests {
+				da := common.FindByAppDef(dr.AppDef())
+				for _, ade := range da {
+					dst := &deployTransaction_StopRequest{
+						deployer: ade.Deployer(),
+						deplapp:  ade.DeployedApp(),
+					}
+					stop_apps = append(stop_apps, dst)
+				}
+			}
+
+		}
+
 		// now start it everywhere
 		err = dt.StartEverywhere()
 		if err != nil {

@@ -370,10 +370,19 @@ func listDeployments() {
 	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
 	utils.Bail("Failed to get deployments from cache", err)
 	fmt.Printf("Current Deployments:\n")
+	t := utils.Table{}
+	t.AddHeaders("ID", "Instances", "RepoID", "ArtefactID", "Binary", "DeployID")
 	for _, d := range depls.Deployments {
 		fmt.Printf("%10s: ", d.Host)
 		for _, group := range d.Apps {
 			for _, app := range group.Applications {
+				t.AddUint64(app.ID)
+				t.AddUint32(app.Instances)
+				t.AddUint64(app.RepositoryID)
+				t.AddUint64(app.ArtefactID)
+				t.AddString(app.Binary)
+				t.AddString(app.DeploymentID)
+				t.NewRow()
 				fmt.Printf("  %4d x%d ns=%s group=%s repo=%d binary=%s (deploymentid=%s)\n",
 					app.ID,
 					app.Instances,
@@ -386,6 +395,7 @@ func listDeployments() {
 			}
 		}
 	}
+	fmt.Println(t.ToPrettyString())
 }
 
 func listDeployers() {

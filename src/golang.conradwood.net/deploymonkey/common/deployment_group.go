@@ -2,6 +2,7 @@ package common
 
 import (
 	ad "golang.conradwood.net/apis/autodeployer"
+	//	pb "golang.conradwood.net/apis/deploymonkey"
 	"sync"
 	"time"
 )

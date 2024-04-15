@@ -39,6 +39,17 @@ type Deployer struct {
 	currently_refreshing       bool
 }
 
+func DeployerByIP(ip string) *Deployer {
+	deplock.Lock()
+	defer deplock.Unlock()
+	for k, d := range deployers {
+		if k == ip {
+			return d
+		}
+	}
+	return nil
+}
+
 // log a failed deployment. Eventually a deployer will be excluded if it continues to fail
 func (d *Deployer) DeploymentFailed() {
 	d.lock.Lock()

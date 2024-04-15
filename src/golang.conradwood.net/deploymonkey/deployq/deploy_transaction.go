@@ -23,6 +23,11 @@ var (
 	}
 )
 
+type deployTransaction_StopRequest struct {
+	deployer *common.Deployer
+	deplapp  *ad.DeployedApp
+}
+
 type deployTransaction struct {
 	scheduled                  bool // true if it is being sent to the worker for processing
 	start_requests             []*dp.DeployRequest
@@ -32,6 +37,7 @@ type deployTransaction struct {
 	stop_running_in_same_group bool        // if true, after successful deployment, undeploy versions in the same group other than the ones just started
 	started                    bool        // true if stuff has been successfully started (and is expected to now be monitored until older versions can be shut down)
 	started_time               time.Time
+	stop_these                 []*deployTransaction_StopRequest
 }
 
 func (dt *deployTransaction) String() string {
