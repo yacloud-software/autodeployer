@@ -29,6 +29,10 @@ func (f *fixMissing) Run() {
 		if !ai.App.AlwaysOn {
 			continue
 		}
+		if ai.App.InstancesMeansPerAutodeployer {
+			// TODO: monitor per-instance count apps
+			continue
+		}
 		actual := CountInstances(f.suggestion.ProjectedDeployments(), ai.App)
 		wanted := int(ai.App.Instances)
 		if actual == wanted {

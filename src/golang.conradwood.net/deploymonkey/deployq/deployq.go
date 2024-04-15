@@ -18,6 +18,7 @@ package deployq
 import (
 	"flag"
 	"fmt"
+	"sort"
 	//	ad "golang.conradwood.net/apis/autodeployer"
 	"golang.conradwood.net/deploymonkey/common"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
@@ -220,7 +221,15 @@ func (q *DeployQueue) work_handler() {
 		}
 		q.Unlock()
 
-		dt.sendUpdate(EVENT_CACHE)
+		// create deploymentids for each request
+		for _, dr := range dt.start_requests {
+			appdef := dr.AppDef()
+			if appdef.DeploymentID == "" {
+				appdef.DeploymentID = common.CreateDeploymentID(appdef)
+
+			}
+		}
+
 		// now cache it everywhere
 		err = dt.CacheEverywhere()
 		if err != nil {
@@ -232,19 +241,7 @@ func (q *DeployQueue) work_handler() {
 		dt.sendUpdate(EVENT_START)
 
 		if dt.stop_running_in_same_group {
-			// before we start it, get a list of applications that we will need to stop if this deployment is successful
-			var stop_apps []*deployTransaction_StopRequest
-			for _, dr := range dt.start_requests {
-				da := common.FindByAppDef(dr.AppDef())
-				for _, ade := range da {
-					dst := &deployTransaction_StopRequest{
-						deployer: ade.Deployer(),
-						deplapp:  ade.DeployedApp(),
-					}
-					stop_apps = append(stop_apps, dst)
-				}
-			}
-
+			dt.find_stoppers()
 		}
 
 		// now start it everywhere
@@ -268,4 +265,44 @@ func debugf(format string, args ...interface{}) {
 	}
 	s := fmt.Sprintf(format, args...)
 	fmt.Printf("[deployq] %s\n", s)
+}
+
+// find apps that need stopping if this transaction is successful
+// stores them in dt_stop_these variable
+func (dt *deployTransaction) find_stoppers() {
+	// before we start it, get a list of applications that we will need to stop if this deployment is successful
+	var stop_apps []*deployTransaction_StopRequest
+	for _, dr := range dt.start_requests {
+		da := common.FindByAppDef(dr.AppDef())
+		for _, ade := range da {
+			found := false
+			for _, st := range stop_apps {
+				if st.deployer.Host() != ade.Deployer().Host() {
+					continue
+				}
+				if st.deplapp.ID != ade.DeployedApp().ID {
+					continue
+				}
+				found = true
+				break
+			}
+			if found {
+				continue
+			}
+			dst := &deployTransaction_StopRequest{
+				deployer: ade.Deployer(),
+				deplapp:  ade.DeployedApp(),
+			}
+			stop_apps = append(stop_apps, dst)
+		}
+	}
+	dt.stop_these = stop_apps
+	fmt.Printf("%s - if transaction is succesful, stop %d prior apps\n", dt.String(), len(dt.stop_these))
+	sort.Slice(dt.stop_these, func(i, j int) bool {
+		return dt.stop_these[i].deplapp.DeployRequest.DeploymentID < dt.stop_these[j].deplapp.DeployRequest.DeploymentID
+	})
+	for _, st := range dt.stop_these {
+		fmt.Printf("   %s: %s %s\n", dt.String(), st.deplapp.DeployRequest.DeploymentID, st.deplapp.DeployRequest.AppReference.AppDef.Binary)
+	}
+
 }

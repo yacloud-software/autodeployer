@@ -31,9 +31,12 @@ func (q *DeployQueue) work_monitoring() {
 				failed_transactions = append(failed_transactions, t)
 				continue
 			}
-			if !t.deployment_processed {
-				new_transactions = append(new_transactions, t)
+			if t.deployment_processed {
+				fmt.Printf("%s processed. removing from queue\n", t.String())
+				continue
 			}
+			new_transactions = append(new_transactions, t)
+
 			if t.started {
 				transactions = append(transactions, t)
 			}
@@ -50,6 +53,7 @@ func (q *DeployQueue) work_monitoring() {
 		}
 		// deal with the failed transactions (without lock held)
 		for _, dt := range failed_transactions {
+			fmt.Printf("Failed: %s\n", dt.String())
 			// stop the ones that were deployed already
 			for _, dd := range dt.deployed_ids {
 				err := stop_app(dd.Deployer(), dd.ID)
@@ -104,11 +108,11 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 	}
 	ago := time.Since(latest_ready)
 	if ago < GRACE_PERIOD_BEFORE_SHUT_DOWN {
-		fmt.Printf("DT %s started %0.1f seconds ago - no action yet\n", dt.String(), ago.Seconds())
+		fmt.Printf("DT %s became ready %0.1f seconds ago - no action yet\n", dt.String(), ago.Seconds())
 		return nil
 	}
 	// TODO: proceed to next step, shutting down previous instances
-	fmt.Printf("DT %s is now good (ready since %0.1f seconds ago)\n", dt.String(), ago.Seconds())
+	fmt.Printf("DT %s is now good (ready since %0.1f seconds ago) - running %d stop requests\n", dt.String(), ago.Seconds(), len(dt.stop_these))
 	var err error
 	for _, dt_stop := range dt.stop_these {
 		xerr := stop_app(dt_stop.deployer, dt_stop.deplapp.ID)
