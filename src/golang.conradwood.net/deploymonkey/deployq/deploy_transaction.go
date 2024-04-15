@@ -38,6 +38,7 @@ type deployTransaction struct {
 	started                    bool        // true if stuff has been successfully started (and is expected to now be monitored until older versions can be shut down)
 	started_time               time.Time
 	stop_these                 []*deployTransaction_StopRequest
+	deployment_processed       bool // if true, nothing further to do
 }
 
 func (dt *deployTransaction) String() string {

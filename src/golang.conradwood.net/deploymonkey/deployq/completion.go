@@ -31,7 +31,9 @@ func (q *DeployQueue) work_monitoring() {
 				failed_transactions = append(failed_transactions, t)
 				continue
 			}
-			new_transactions = append(new_transactions, t)
+			if !t.deployment_processed {
+				new_transactions = append(new_transactions, t)
+			}
 			if t.started {
 				transactions = append(transactions, t)
 			}
@@ -111,10 +113,13 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 		xerr := stop_app(dt_stop.deployer, dt_stop.deplapp.ID)
 		if xerr != nil {
 			err = xerr
+		} else {
+			fmt.Printf("Stopped %s on deployer \"%s\"\n", dt_stop.deployer.Host(), dt_stop.deplapp.ID)
 		}
 	}
 	if err != nil {
 		fmt.Printf("failed to stop app: %s\n", err)
 	}
+	dt.deployment_processed = true
 	return err
 }
