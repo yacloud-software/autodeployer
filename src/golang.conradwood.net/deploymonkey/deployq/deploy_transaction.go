@@ -131,6 +131,11 @@ type deployed struct {
 	deployer   *common.Deployer
 	ready_time time.Time
 	ready      bool
+	running    bool // true if autodeployer reports this at least once
+}
+
+func (dd *deployed) Deployer() *common.Deployer {
+	return dd.deployer
 }
 
 // assuming it is cached everywhere, this will start the appdef
@@ -152,7 +157,8 @@ func (dt *deployTransaction) StartEverywhere() error {
 				return
 			}
 			depl_lock.Lock()
-			dt.deployed_ids = append(dt.deployed_ids, &deployed{deployer: r.Deployer(), req: r, ID: dr.ID})
+			dd := &deployed{deployer: r.Deployer(), req: r, ID: dr.ID}
+			dt.deployed_ids = append(dt.deployed_ids, dd)
 			depl_lock.Unlock()
 			fmt.Printf("deployed %s on %s (ID=%s)\n", r.URL(), r.AutodeployerHost(), dr.ID)
 		}(req)

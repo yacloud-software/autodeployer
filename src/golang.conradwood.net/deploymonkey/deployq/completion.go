@@ -22,12 +22,21 @@ func (q *DeployQueue) work_monitoring() {
 
 		// find the transactions (with lock held)
 		var transactions []*deployTransaction
+		var failed_transactions []*deployTransaction
+		var new_transactions []*deployTransaction
 		q.Lock()
 		for _, t := range q.requests {
+			if t.err != nil {
+				// skipping transactions that failed already
+				failed_transactions = append(failed_transactions, t)
+				continue
+			}
+			new_transactions = append(new_transactions, t)
 			if t.started {
 				transactions = append(transactions, t)
 			}
 		}
+		q.requests = new_transactions //remove failed transactions from queue
 		q.Unlock()
 
 		// deal with the transactions (without lock held)
@@ -35,6 +44,16 @@ func (q *DeployQueue) work_monitoring() {
 			err := q.check_monitored(t)
 			if err != nil {
 				fmt.Printf("monitoring failed: %s\n", err)
+			}
+		}
+		// deal with the failed transactions (without lock held)
+		for _, dt := range failed_transactions {
+			// stop the ones that were deployed already
+			for _, dd := range dt.deployed_ids {
+				err := stop_app(dd.Deployer(), dd.ID)
+				if err != nil {
+					fmt.Printf("monitoring failed: %s\n", err)
+				}
 			}
 		}
 	}
@@ -45,12 +64,21 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 	for _, did := range dt.deployed_ids {
 		app := did.deployer.AppByID(did.ID)
 		if app == nil {
-			// transaction failed
-			// TODO: cleanup
-			dt.SetError(fmt.Errorf("new version failed unexpectedly on deployer %s", did.deployer.String()))
-			dt.sendUpdate(EVENT_FINISHED)
-			return nil
+			if did.running {
+				// it was running, but stopped running
+				dt.SetError(fmt.Errorf("new version failed unexpectedly on deployer %s", did.deployer.String()))
+				dt.sendUpdate(EVENT_FINISHED)
+				return nil
+			}
+			// it has never been running yet. (autodeployer.Deploy() is async!)
+			if time.Since(dt.started_time) > time.Duration(60)*time.Second {
+				dt.SetError(fmt.Errorf("new version failed to start on deployer %s", did.deployer.String()))
+				dt.sendUpdate(EVENT_FINISHED)
+				return nil
+			}
 		}
+		did.running = true // it is running, mark as such
+
 		if app.Status == ad.DeploymentStatus_EXECUSER && app.Health == common.Health_READY {
 			if !did.ready {
 				did.ready = true
@@ -79,7 +107,7 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 	fmt.Printf("DT %s is now good\n", dt.String())
 	var err error
 	for _, dt_stop := range dt.stop_these {
-		xerr := stop_app(dt_stop)
+		xerr := stop_app(dt_stop.deployer, dt_stop.deplapp.ID)
 		if xerr != nil {
 			err = xerr
 		}

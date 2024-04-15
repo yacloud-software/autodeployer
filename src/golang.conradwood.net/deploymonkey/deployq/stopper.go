@@ -3,13 +3,13 @@ package deployq
 import (
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
-	//	"golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/go-easyops/authremote"
 )
 
-func stop_app(st *deployTransaction_StopRequest) error {
-	depl := st.deployer
-	appid := st.deplapp.ID
+func stop_app(deployer *common.Deployer, id string) error {
+	depl := deployer
+	appid := id
 	ctx := authremote.Context()
 	ur := &ad.UndeployRequest{Block: true, ID: appid}
 	_, err := depl.GetClient().Undeploy(ctx, ur)
