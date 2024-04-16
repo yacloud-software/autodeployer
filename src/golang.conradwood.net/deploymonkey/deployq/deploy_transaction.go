@@ -38,6 +38,7 @@ type deployTransaction struct {
 	started                    bool        // true if stuff has been successfully started (and is expected to now be monitored until older versions can be shut down)
 	started_time               time.Time
 	stop_these                 []*deployTransaction_StopRequest
+	stopping_these             bool // true if stop prior apps is already in progress
 	deployment_processed       bool // if true, nothing further to do
 }
 

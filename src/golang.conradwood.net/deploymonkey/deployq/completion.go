@@ -4,6 +4,7 @@ import (
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
 	"golang.conradwood.net/apis/common"
+	"sync"
 	"time"
 )
 
@@ -112,19 +113,34 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 		return nil
 	}
 	// TODO: proceed to next step, shutting down previous instances
-	fmt.Printf("DT %s is now good (ready since %0.1f seconds ago) - running %d stop requests\n", dt.String(), ago.Seconds(), len(dt.stop_these))
-	var err error
-	for _, dt_stop := range dt.stop_these {
-		xerr := stop_app(dt_stop.deployer, dt_stop.deplapp.ID)
-		if xerr != nil {
-			err = xerr
-		} else {
-			fmt.Printf("%s Stopped %s on deployer \"%s\"\n", dt.String(), dt_stop.deployer.Host(), dt_stop.deplapp.ID)
-		}
+	fmt.Printf("DT %s is now good (ready since %0.1f seconds ago)\n", dt.String(), ago.Seconds())
+	// below just needs to be async
+	go completion_stopall(dt)
+	return nil
+}
+func completion_stopall(dt *deployTransaction) {
+	if dt.stopping_these {
+		return
 	}
+	dt.stopping_these = true
+	fmt.Printf("DT %s: running %d stop requests\n", dt.String(), len(dt.stop_these))
+	var err error
+	var stopping_group *sync.WaitGroup
+	for _, dt_stop := range dt.stop_these {
+		stopping_group.Add(1)
+		go func(dts *deployTransaction_StopRequest) {
+			defer stopping_group.Done()
+			xerr := stop_app(dts.deployer, dts.deplapp.ID)
+			if xerr != nil {
+				err = xerr
+			} else {
+				fmt.Printf("%s Stopped %s on deployer \"%s\"\n", dt.String(), dts.deployer.Host(), dts.deplapp.ID)
+			}
+		}(dt_stop)
+	}
+	stopping_group.Wait()
 	if err != nil {
 		fmt.Printf("%s failed to stop app: %s\n", dt.String(), err)
 	}
 	dt.deployment_processed = true
-	return err
 }

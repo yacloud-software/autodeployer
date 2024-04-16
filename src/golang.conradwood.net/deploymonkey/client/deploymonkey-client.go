@@ -300,12 +300,18 @@ func updateApp() {
 
 func listSuggestions() {
 	ctx := authremote.Context()
+	started := time.Now()
 	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
 	utils.Bail("Failed to get deployments from cache", err)
+	fmt.Printf("Got deployments from deploymonkey in %0.1f seconds\n", time.Since(started).Seconds())
+	started = time.Now()
 	cfg, err := config.GetConfig(depl)
 	utils.Bail("Could not get config", err)
+	fmt.Printf("Got config from package in %0.1f seconds\n", time.Since(started).Seconds())
+	started = time.Now()
 	s, err := suggest.Analyse(cfg, depls)
 	utils.Bail("Suggestion failed", err)
+	fmt.Printf("Got suggestions from package in %0.1f seconds\n", time.Since(started).Seconds())
 	fmt.Println(s.String())
 	if len(s.Starts) != 0 || len(s.Stops) != 0 {
 		os.Exit(1)
