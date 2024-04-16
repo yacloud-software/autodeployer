@@ -146,8 +146,9 @@ func completion_stopall(dt *deployTransaction) {
 			xerr := stop_app(dts.deployer, dts.deplapp.ID)
 			if xerr != nil {
 				err = xerr
+				fmt.Printf("%s %s failed to stop %s on deployer \"%s\"\n", dt.String(), dts.String(), dts.deployer.Host(), dts.deplapp.ID)
 			} else {
-				fmt.Printf("%s Stopped %s on deployer \"%s\"\n", dt.String(), dts.deployer.Host(), dts.deplapp.ID)
+				fmt.Printf("%s %s Stopped %s on deployer \"%s\"\n", dt.String(), dts.String(), dts.deployer.Host(), dts.deplapp.ID)
 				dts.stopped = true
 			}
 		}(dt_stop)
