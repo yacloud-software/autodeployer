@@ -24,8 +24,15 @@ var (
 )
 
 type deployTransaction_StopRequest struct {
-	deployer *common.Deployer
-	deplapp  *ad.DeployedApp
+	deployer       *common.Deployer
+	deplapp        *ad.DeployedApp
+	stopping       bool
+	stopping_since time.Time
+	stopped        bool
+}
+
+func (dts *deployTransaction_StopRequest) String() string {
+	return fmt.Sprintf("%s %s on %s", dts.deplapp.ID, dts.deplapp.DeployRequest.Binary, dts.deployer.String())
 }
 
 type deployTransaction struct {

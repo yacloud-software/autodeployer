@@ -69,8 +69,14 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 	if dt.stopping_these {
 		// already stopping the old ones, nothing to do...
 		fmt.Printf("DT %s is stopping..\n", dt.String())
+		for _, dt_stop := range dt.stop_these {
+			if !dt_stop.stopped {
+				fmt.Printf("   Waiting for %s to stop since %0.1fs\n", dt_stop.String(), time.Since(dt_stop.stopping_since).Seconds())
+			}
+		}
 		return nil
 	}
+
 	var latest_ready time.Time
 	all_ready := true
 	for _, did := range dt.deployed_ids {
@@ -135,11 +141,14 @@ func completion_stopall(dt *deployTransaction) {
 		stopping_group.Add(1)
 		go func(dts *deployTransaction_StopRequest) {
 			defer stopping_group.Done()
+			dts.stopping = true
+			dts.stopping_since = time.Now()
 			xerr := stop_app(dts.deployer, dts.deplapp.ID)
 			if xerr != nil {
 				err = xerr
 			} else {
 				fmt.Printf("%s Stopped %s on deployer \"%s\"\n", dt.String(), dts.deployer.Host(), dts.deplapp.ID)
+				dts.stopped = true
 			}
 		}(dt_stop)
 	}
