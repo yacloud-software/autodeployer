@@ -125,7 +125,7 @@ func completion_stopall(dt *deployTransaction) {
 	dt.stopping_these = true
 	fmt.Printf("DT %s: running %d stop requests\n", dt.String(), len(dt.stop_these))
 	var err error
-	var stopping_group *sync.WaitGroup
+	stopping_group := &sync.WaitGroup{}
 	for _, dt_stop := range dt.stop_these {
 		stopping_group.Add(1)
 		go func(dts *deployTransaction_StopRequest) {
