@@ -66,6 +66,11 @@ func (q *DeployQueue) work_monitoring() {
 	}
 }
 func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
+	if dt.stopping_these {
+		// already stopping the old ones, nothing to do...
+		fmt.Printf("DT %s is stopping..\n", dt.String())
+		return nil
+	}
 	var latest_ready time.Time
 	all_ready := true
 	for _, did := range dt.deployed_ids {
