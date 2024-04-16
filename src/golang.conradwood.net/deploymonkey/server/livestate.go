@@ -37,7 +37,7 @@ const (
 )
 
 var (
-	use_new_style = flag.Int("use_new_deploy_style", 1, "a new experimental deployment style (0=never, 1=for instancesperautodeployer only, 2=always")
+	use_new_style = flag.Int("use_new_deploy_style", 2, "a new experimental deployment style (0=never, 1=for instancesperautodeployer only, 2=always")
 	cacheGauge    = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "deploymonkey_precache_status",
