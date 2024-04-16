@@ -78,7 +78,7 @@ func MakeItSo(ads []*pb.ApplicationDefinition, version int) error {
 			return fmt.Errorf("Refusing to deploy application %s with buildid #0", ad.Binary)
 		}
 	}
-	fmt.Printf("Request to upgrade \n")
+	fmt.Printf("Request to upgrade %d apps to version %d\n", len(ads), version)
 	m := miso{ads: ads, version: version}
 	asyncMaker <- m
 	return nil
