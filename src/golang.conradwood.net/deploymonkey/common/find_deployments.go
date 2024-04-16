@@ -50,9 +50,11 @@ func FindByAppDef(appdef *pb.ApplicationDefinition) []*ActualDeployment {
 			if appd.Binary != appdef.Binary {
 				continue
 			}
-			if appd.DeploymentID != appdef.DeploymentID {
-				continue
-			}
+			/*
+				if appd.DeploymentID != appdef.DeploymentID {
+					continue
+				}
+			*/
 			ade := &ActualDeployment{app: deployedapp, deployer: d}
 			apps = append(apps, ade)
 		}
