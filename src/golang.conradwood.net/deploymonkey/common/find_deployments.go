@@ -18,7 +18,7 @@ func FindByAppDef(appdef *pb.ApplicationDefinition) []*ActualDeployment {
 	deplock.Lock()
 	defer deplock.Unlock()
 	var apps []*ActualDeployment
-	fmt.Printf("Finding other deployments for app repo=%d, artefact=%d, binary=%s, deploymentid=%s\n", appdef.RepositoryID, appdef.ArtefactID, appdef.Binary, appdef.DeploymentID)
+	fmt.Printf("Finding other deployments for app repo=%d, artefact=%d, binary=%s\n", appdef.RepositoryID, appdef.ArtefactID, appdef.Binary)
 	if appdef.DeploymentID == "" {
 		panic("findbyappdef with no deploymentid is not supported")
 	}
