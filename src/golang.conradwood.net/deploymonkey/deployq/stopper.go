@@ -5,12 +5,13 @@ import (
 	ad "golang.conradwood.net/apis/autodeployer"
 	"golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/go-easyops/authremote"
+	"time"
 )
 
 func stop_app(deployer *common.Deployer, id string) error {
 	depl := deployer
 	appid := id
-	ctx := authremote.Context()
+	ctx := authremote.ContextWithTimeout(time.Duration(10) * time.Minute)
 	ur := &ad.UndeployRequest{Block: true, ID: appid}
 	_, err := depl.GetClient().Undeploy(ctx, ur)
 	if err == nil {
