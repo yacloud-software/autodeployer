@@ -45,6 +45,7 @@ var (
 	undeploy_app      = flag.Int("undeploy_version", 0, "undeploy applications of a given version (expects `versionid`)")
 	print_sample      = flag.Bool("print_sample", false, "print a sample deploy.yaml")
 	depl              pb.DeployMonkeyClient
+	deploy_timeout    = flag.Duration("deploy_timeout", time.Duration(30)*time.Second, "deployrequests timeout")
 )
 
 func main() {
@@ -349,7 +350,7 @@ func try_suggestions(s *suggest.Suggestion) error {
 	var err error
 	fmt.Printf("Executing %d start requests...\n", len(s.Starts))
 	for _, start := range s.Starts {
-		ctx := authremote.Context()
+		ctx := authremote.ContextWithTimeout(*deploy_timeout)
 		fmt.Printf("Deploying %s...\n", start.String())
 		d := start.DeployRequest()
 		_, err = depl.DeployAppOnTarget(ctx, d)
@@ -361,7 +362,7 @@ func try_suggestions(s *suggest.Suggestion) error {
 	fmt.Printf("Executing %d stop requests...\n", len(s.Stops))
 	for _, stop := range s.Stops {
 		d := stop.UndeployRequest()
-		ctx := authremote.Context()
+		ctx := authremote.ContextWithTimeout(*deploy_timeout)
 		fmt.Printf("Undeploying %s...\n", stop.String())
 		_, err = depl.UndeployAppOnTarget(ctx, d)
 		if err != nil {

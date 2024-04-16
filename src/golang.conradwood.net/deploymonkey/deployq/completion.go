@@ -157,5 +157,6 @@ func completion_stopall(dt *deployTransaction) {
 	if err != nil {
 		fmt.Printf("%s failed to stop app: %s\n", dt.String(), err)
 	}
+	fmt.Printf("%s processing complete\n", dt.String())
 	dt.deployment_processed = true
 }
