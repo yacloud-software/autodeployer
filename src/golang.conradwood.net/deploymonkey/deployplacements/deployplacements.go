@@ -17,7 +17,7 @@ type Group interface {
 }
 
 func (dr *DeployRequest) String() string {
-	return fmt.Sprintf("%s on %s", dr.appdef.Binary, dr.sa.String())
+	return fmt.Sprintf("%s,vers=%d on %s", dr.appdef.Binary, dr.appdef.BuildID, dr.sa.String())
 }
 func (dr *DeployRequest) GetAutodeployerClient() ad.AutoDeployerClient {
 	return dr.sa.GetClient()

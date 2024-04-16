@@ -51,10 +51,12 @@ type deployTransaction struct {
 
 func (dt *deployTransaction) String() string {
 	x := ""
+	v := uint64(0)
 	if len(dt.start_requests) > 0 {
 		x = dt.start_requests[0].AppDef().Binary
+		v = dt.start_requests[0].AppDef().BuildID
 	}
-	return fmt.Sprintf("deploytransaction %d deployrequests, first binary: \"%s\"", len(dt.start_requests), x)
+	return fmt.Sprintf("deploytransaction %d deployrequests, first binary: \"%s\" (Version=%d)", len(dt.start_requests), x, v)
 }
 
 func (dt *deployTransaction) Close() {
@@ -162,14 +164,14 @@ func (dt *deployTransaction) StartEverywhere() error {
 			dreq := common.CreateDeployRequest(nil, r.AppDef())
 			dr, err := cl.Deploy(ctx, dreq)
 			if err != nil {
-				xerr = fmt.Errorf("(deploying %s): failed to cache on %s: %s", r.URL(), r.AutodeployerHost(), err)
+				xerr = fmt.Errorf("(deploying %s): failed to cache on %s: %s", r.String(), r.AutodeployerHost(), err)
 				return
 			}
 			depl_lock.Lock()
 			dd := &deployed{deployer: r.Deployer(), req: r, ID: dr.ID}
 			dt.deployed_ids = append(dt.deployed_ids, dd)
 			depl_lock.Unlock()
-			fmt.Printf("deployed %s on %s (ID=%s)\n", r.URL(), r.AutodeployerHost(), dr.ID)
+			fmt.Printf("deployed %s on %s (ID=%s)\n", r.String(), r.AutodeployerHost(), dr.ID)
 		}(req)
 	}
 	wg.Wait()
