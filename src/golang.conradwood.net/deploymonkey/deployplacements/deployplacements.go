@@ -63,6 +63,9 @@ func Create_requests_for_app(group Group, app *pb.ApplicationDefinition, sas []*
 	}
 
 	for len(res) < int(app.Instances) {
+		if app.Machines == "" {
+			app.Machines = "worker"
+		}
 		for _, s := range ag.FilterByMachine(app.Machines).Deployers() {
 			dr := &DeployRequest{
 				appdef: app,
