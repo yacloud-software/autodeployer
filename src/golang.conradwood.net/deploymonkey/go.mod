@@ -14,7 +14,7 @@ require (
 	golang.conradwood.net/apis/grafanadata v1.1.2905
 	golang.conradwood.net/apis/registry v1.1.2905
 	golang.conradwood.net/apis/slackgateway v1.1.2905
-	golang.conradwood.net/go-easyops v0.1.27845
+	golang.conradwood.net/go-easyops v0.1.27983
 	google.golang.org/grpc v1.63.2
 	gopkg.in/yaml.v2 v2.4.0
 )

@@ -57,8 +57,8 @@ golang.conradwood.net/apis/registry v1.1.2905 h1:H3ieNrhuwTrdOvIxFNOi0fK8xmz7ZeZ
 golang.conradwood.net/apis/registry v1.1.2905/go.mod h1:Gf7fjGt/vc8wX6rFGXz5MWOnIgAoPEAD7gwSk/zorWY=
 golang.conradwood.net/apis/slackgateway v1.1.2905 h1:u0oiXv+xch1iW8fJxhmueMTJRjK70NXtSrh6jJrXv6g=
 golang.conradwood.net/apis/slackgateway v1.1.2905/go.mod h1:WyhaFs9gc22r4Mx9WYzEHP/ANV7b17LUECBhf+M5y4U=
-golang.conradwood.net/go-easyops v0.1.27845 h1:FCPeph2mXnJSYz8JVcr8FfzzFy8uBI67CVAhopLzwbg=
-golang.conradwood.net/go-easyops v0.1.27845/go.mod h1:02KmReDa6G8sTKCcP6Wc8mhh4FVVDgDVNqDBDzvEtn4=
+golang.conradwood.net/go-easyops v0.1.27983 h1:OxIo0pKKM5NBMlGARaGZtBR4iAxXyF6QF4o/seC0sEI=
+golang.conradwood.net/go-easyops v0.1.27983/go.mod h1:02KmReDa6G8sTKCcP6Wc8mhh4FVVDgDVNqDBDzvEtn4=
 golang.org/x/net v0.25.0 h1:d/OCCoBEUq33pjydKrGQhw7IlUPI2Oylr+8qLx49kac=
 golang.org/x/net v0.25.0/go.mod h1:JkAGAh7GEvH74S6FOH42FLoXpXbE/aqXSrIQjXgsiwM=
 golang.org/x/sys v0.20.0 h1:Od9JTbYCk261bKm4M/mw7AklTlFYIa0bIp9BgSm1S8Y=
