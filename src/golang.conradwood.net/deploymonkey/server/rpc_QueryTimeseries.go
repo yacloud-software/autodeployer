@@ -7,6 +7,7 @@ import (
 	"golang.conradwood.net/apis/grafanadata"
 	"golang.conradwood.net/deploymonkey/db"
 	"golang.conradwood.net/go-easyops/errors"
+	"path/filepath"
 )
 
 func (e *DeployMonkey) QueryTimeseries(req *grafanadata.QueryRequest, srv pb.DeployMonkey_QueryTimeseriesServer) error {
@@ -72,7 +73,7 @@ func query_deployment_history(ctx context.Context, req *grafanadata.QueryRequest
 			dp := &grafanadata.DataPoint{
 				FieldName:   "text",
 				Timestamp:   log.Started,
-				StringValue: fmt.Sprintf("%s Build #%d", log.Binary, log.BuildID),
+				StringValue: fmt.Sprintf("%s #%d", shortBinary(log.Binary), log.BuildID),
 				//Labels:      map[string]string{"build": fmt.Sprintf("%d", app.BuildID)},
 			}
 			res = append(res, dp)
@@ -83,7 +84,7 @@ func query_deployment_history(ctx context.Context, req *grafanadata.QueryRequest
 				FieldName: "version",
 				Timestamp: log.Started,
 				Value:     float64(log.BuildID),
-				Labels:    map[string]string{"binary": log.Binary},
+				Labels:    map[string]string{"binary": shortBinary(log.Binary)},
 			}
 			res = append(res, dp)
 		}
@@ -112,7 +113,7 @@ func query_version_history(ctx context.Context, req *grafanadata.QueryRequest) (
 			dp := &grafanadata.DataPoint{
 				FieldName:   "text",
 				Timestamp:   app.Created,
-				StringValue: fmt.Sprintf("%s Build #%d", app.Binary, app.BuildID),
+				StringValue: fmt.Sprintf("%s Build #%d", shortBinary(app.Binary), app.BuildID),
 				//Labels:      map[string]string{"build": fmt.Sprintf("%d", app.BuildID)},
 			}
 			res = append(res, dp)
@@ -123,10 +124,15 @@ func query_version_history(ctx context.Context, req *grafanadata.QueryRequest) (
 				FieldName: "version",
 				Timestamp: app.Created,
 				Value:     float64(app.ID),
-				Labels:    map[string]string{"binary": app.Binary},
+				Labels:    map[string]string{"binary": shortBinary(app.Binary)},
 			}
 			res = append(res, dp)
 		}
 	}
 	return res, nil
+}
+
+func shortBinary(binary string) string {
+	res := filepath.Base(binary)
+	return res
 }
