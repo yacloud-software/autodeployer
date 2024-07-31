@@ -1,10 +1,12 @@
 package deployq
 
 import (
+	"context"
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/deploymonkey/db"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
 	"golang.conradwood.net/go-easyops/authremote"
 	"strings"
@@ -47,8 +49,12 @@ type deployTransaction struct {
 	stop_these                 []*deployTransaction_StopRequest
 	stopping_these             bool // true if stop prior apps is already in progress
 	deployment_processed       bool // if true, nothing further to do
+	logs                       []*pb.DeploymentLog
 }
 
+func (dt *deployTransaction) AddLog(dl *pb.DeploymentLog) {
+	dt.logs = append(dt.logs, dl)
+}
 func (dt *deployTransaction) String() string {
 	x := ""
 	v := uint64(0)
@@ -107,6 +113,7 @@ func (dt *deployTransaction) SetSuccess() {
 	//TODO: do something here, like tell the user
 }
 func (dt *deployTransaction) SetError(err error) {
+	dt.deploylogs_set_error(err)
 	dt.err = err
 	// TODO: send on a channel to notify listeners
 	fmt.Printf("error on deployment: %s\n", err)
@@ -177,6 +184,7 @@ func (dt *deployTransaction) StartEverywhere() error {
 	wg.Wait()
 
 	if xerr != nil {
+		dt.deploylogs_set_error(xerr)
 		// got failure, cleanup all those which were deployed already. Best-effort, ignoring errors
 		for _, depl := range dt.deployed_ids {
 			ctx := authremote.ContextWithTimeout(time.Duration(20) * time.Second)
@@ -199,4 +207,12 @@ func (dt *deployTransaction) sendUpdate(ev EVENT) {
 		err:   dt.err,
 	}
 	dt.result_chan <- du
+}
+
+func (dt *deployTransaction) deploylogs_set_error(err error) {
+	ctx := context.Background()
+	for _, dl := range dt.logs {
+		dl.Message = fmt.Sprintf("%s", err)
+		db.DefaultDBDeploymentLog().Update(ctx, dl)
+	}
 }

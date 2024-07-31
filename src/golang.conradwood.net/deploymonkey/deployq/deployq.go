@@ -113,6 +113,7 @@ func (q *DeployQueue) work_distributor() {
 					Started:          uint32(time.Now().Unix()),
 				}
 				db.DefaultDBDeploymentLog().Save(ctx, dl)
+				dt.AddLog(dl)
 			}
 		}
 
