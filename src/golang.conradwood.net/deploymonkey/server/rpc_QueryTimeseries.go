@@ -59,7 +59,7 @@ func query_deployment_history(ctx context.Context, req *grafanadata.QueryRequest
 			return nil, errors.Errorf("cannot yet handle multiple values")
 		}
 		bin := "%" + vb.Values[0] + "%"
-		logs, err = db.DefaultDBDeploymentLog().FromQuery(ctx, "started >= $1 and r_binary ilike ", req.Start, bin)
+		logs, err = db.DefaultDBDeploymentLog().FromQuery(ctx, "started >= $1 and r_binary ilike $2", req.Start, bin)
 	} else {
 		logs, err = db.DefaultDBDeploymentLog().FromQuery(ctx, "started >= $1", req.Start)
 	}
