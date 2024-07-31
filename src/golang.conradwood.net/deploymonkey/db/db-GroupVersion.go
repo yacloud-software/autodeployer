@@ -259,10 +259,12 @@ func (a *DBGroupVersion) ByLikeCreatedTimestamp(ctx context.Context, p uint32) (
 * The field getters
 **********************************************************************/
 
+// getter for field "ID" (ID) [uint64]
 func (a *DBGroupVersion) get_ID(p *savepb.GroupVersion) uint64 {
-	return p.ID
+	return uint64(p.ID)
 }
 
+// getter for reference "GroupID"
 func (a *DBGroupVersion) get_GroupID_ID(p *savepb.GroupVersion) uint64 {
 	if p.GroupID == nil {
 		panic("field GroupID must not be nil")
@@ -270,8 +272,9 @@ func (a *DBGroupVersion) get_GroupID_ID(p *savepb.GroupVersion) uint64 {
 	return p.GroupID.ID
 }
 
+// getter for field "CreatedTimestamp" (CreatedTimestamp) [uint32]
 func (a *DBGroupVersion) get_CreatedTimestamp(p *savepb.GroupVersion) uint32 {
-	return p.CreatedTimestamp
+	return uint32(p.CreatedTimestamp)
 }
 
 /**********************************************************************

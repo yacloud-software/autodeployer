@@ -16,12 +16,14 @@ each transaction is processed by one of the workers until either it encounters a
 package deployq
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"sort"
-	//	ad "golang.conradwood.net/apis/autodeployer"
+	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/deploymonkey/db"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
+	"sort"
 	"sync"
 	"time"
 )
@@ -97,6 +99,23 @@ type DeployQueue struct {
 func (q *DeployQueue) work_distributor() {
 	for {
 		<-q.work_distributor_chan
+
+		//save them to database
+		ctx := context.Background()
+		for _, dt := range q.requests {
+			for _, sr := range dt.start_requests {
+				dl := &pb.DeploymentLog{
+					BuildID:          sr.AppDef().BuildID,
+					AppDef:           sr.AppDef(),
+					Binary:           sr.AppDef().Binary,
+					DeployAlgorithm:  2,
+					AutoDeployerHost: sr.Deployer().String(),
+					Started:          uint32(time.Now().Unix()),
+				}
+				db.DefaultDBDeploymentLog().Save(ctx, dl)
+			}
+		}
+
 		for {
 			q.Lock()
 			var next *deployTransaction

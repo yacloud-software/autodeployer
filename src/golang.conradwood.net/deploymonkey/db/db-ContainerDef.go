@@ -259,16 +259,19 @@ func (a *DBContainerDef) ByLikeUseOverlayFS(ctx context.Context, p bool) ([]*sav
 * The field getters
 **********************************************************************/
 
+// getter for field "ID" (ID) [uint64]
 func (a *DBContainerDef) get_ID(p *savepb.ContainerDef) uint64 {
-	return p.ID
+	return uint64(p.ID)
 }
 
+// getter for field "URL" (URL) [string]
 func (a *DBContainerDef) get_URL(p *savepb.ContainerDef) string {
-	return p.URL
+	return string(p.URL)
 }
 
+// getter for field "UseOverlayFS" (UseOverlayFS) [bool]
 func (a *DBContainerDef) get_UseOverlayFS(p *savepb.ContainerDef) bool {
-	return p.UseOverlayFS
+	return bool(p.UseOverlayFS)
 }
 
 /**********************************************************************

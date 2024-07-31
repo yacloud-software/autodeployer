@@ -848,74 +848,92 @@ func (a *DBApplicationDefinition) ByLikeInstancesMeansPerAutodeployer(ctx contex
 * The field getters
 **********************************************************************/
 
+// getter for field "ID" (ID) [uint64]
 func (a *DBApplicationDefinition) get_ID(p *savepb.ApplicationDefinition) uint64 {
-	return p.ID
+	return uint64(p.ID)
 }
 
+// getter for field "DownloadURL" (DownloadURL) [string]
 func (a *DBApplicationDefinition) get_DownloadURL(p *savepb.ApplicationDefinition) string {
-	return p.DownloadURL
+	return string(p.DownloadURL)
 }
 
+// getter for field "DownloadUser" (DownloadUser) [string]
 func (a *DBApplicationDefinition) get_DownloadUser(p *savepb.ApplicationDefinition) string {
-	return p.DownloadUser
+	return string(p.DownloadUser)
 }
 
+// getter for field "DownloadPassword" (DownloadPassword) [string]
 func (a *DBApplicationDefinition) get_DownloadPassword(p *savepb.ApplicationDefinition) string {
-	return p.DownloadPassword
+	return string(p.DownloadPassword)
 }
 
+// getter for field "Binary" (Binary) [string]
 func (a *DBApplicationDefinition) get_Binary(p *savepb.ApplicationDefinition) string {
-	return p.Binary
+	return string(p.Binary)
 }
 
+// getter for field "BuildID" (BuildID) [uint64]
 func (a *DBApplicationDefinition) get_BuildID(p *savepb.ApplicationDefinition) uint64 {
-	return p.BuildID
+	return uint64(p.BuildID)
 }
 
+// getter for field "Instances" (Instances) [uint32]
 func (a *DBApplicationDefinition) get_Instances(p *savepb.ApplicationDefinition) uint32 {
-	return p.Instances
+	return uint32(p.Instances)
 }
 
+// getter for field "DeploymentID" (DeploymentID) [string]
 func (a *DBApplicationDefinition) get_DeploymentID(p *savepb.ApplicationDefinition) string {
-	return p.DeploymentID
+	return string(p.DeploymentID)
 }
 
+// getter for field "Machines" (Machines) [string]
 func (a *DBApplicationDefinition) get_Machines(p *savepb.ApplicationDefinition) string {
-	return p.Machines
+	return string(p.Machines)
 }
 
+// getter for field "DeployType" (DeployType) [string]
 func (a *DBApplicationDefinition) get_DeployType(p *savepb.ApplicationDefinition) string {
-	return p.DeployType
+	return string(p.DeployType)
 }
 
+// getter for field "Critical" (Critical) [bool]
 func (a *DBApplicationDefinition) get_Critical(p *savepb.ApplicationDefinition) bool {
-	return p.Critical
+	return bool(p.Critical)
 }
 
+// getter for field "AlwaysOn" (AlwaysOn) [bool]
 func (a *DBApplicationDefinition) get_AlwaysOn(p *savepb.ApplicationDefinition) bool {
-	return p.AlwaysOn
+	return bool(p.AlwaysOn)
 }
 
+// getter for field "StaticTargetDir" (StaticTargetDir) [string]
 func (a *DBApplicationDefinition) get_StaticTargetDir(p *savepb.ApplicationDefinition) string {
-	return p.StaticTargetDir
+	return string(p.StaticTargetDir)
 }
 
+// getter for field "Public" (Public) [bool]
 func (a *DBApplicationDefinition) get_Public(p *savepb.ApplicationDefinition) bool {
-	return p.Public
+	return bool(p.Public)
 }
 
+// getter for field "Java" (Java) [bool]
 func (a *DBApplicationDefinition) get_Java(p *savepb.ApplicationDefinition) bool {
-	return p.Java
+	return bool(p.Java)
 }
 
+// getter for field "RepositoryID" (RepositoryID) [uint64]
 func (a *DBApplicationDefinition) get_RepositoryID(p *savepb.ApplicationDefinition) uint64 {
-	return p.RepositoryID
+	return uint64(p.RepositoryID)
 }
 
+// getter for field "AsRoot" (AsRoot) [bool]
 func (a *DBApplicationDefinition) get_AsRoot(p *savepb.ApplicationDefinition) bool {
-	return p.AsRoot
+	return bool(p.AsRoot)
 }
 
+// getter for reference "Container"
 func (a *DBApplicationDefinition) get_Container_ID(p *savepb.ApplicationDefinition) gosql.NullInt64 {
 	if p.Container == nil {
 		return gosql.NullInt64{Valid: false}
@@ -923,20 +941,24 @@ func (a *DBApplicationDefinition) get_Container_ID(p *savepb.ApplicationDefiniti
 	return gosql.NullInt64{Valid: true, Int64: int64(p.Container.ID)}
 }
 
+// getter for field "DiscardLog" (DiscardLog) [bool]
 func (a *DBApplicationDefinition) get_DiscardLog(p *savepb.ApplicationDefinition) bool {
-	return p.DiscardLog
+	return bool(p.DiscardLog)
 }
 
+// getter for field "ArtefactID" (ArtefactID) [uint64]
 func (a *DBApplicationDefinition) get_ArtefactID(p *savepb.ApplicationDefinition) uint64 {
-	return p.ArtefactID
+	return uint64(p.ArtefactID)
 }
 
+// getter for field "Created" (Created) [uint32]
 func (a *DBApplicationDefinition) get_Created(p *savepb.ApplicationDefinition) uint32 {
-	return p.Created
+	return uint32(p.Created)
 }
 
+// getter for field "InstancesMeansPerAutodeployer" (InstancesMeansPerAutodeployer) [bool]
 func (a *DBApplicationDefinition) get_InstancesMeansPerAutodeployer(p *savepb.ApplicationDefinition) bool {
-	return p.InstancesMeansPerAutodeployer
+	return bool(p.InstancesMeansPerAutodeployer)
 }
 
 /**********************************************************************

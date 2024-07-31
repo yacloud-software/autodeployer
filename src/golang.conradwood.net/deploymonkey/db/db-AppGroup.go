@@ -321,24 +321,29 @@ func (a *DBAppGroup) ByLikePendingVersion(ctx context.Context, p uint32) ([]*sav
 * The field getters
 **********************************************************************/
 
+// getter for field "ID" (ID) [uint64]
 func (a *DBAppGroup) get_ID(p *savepb.AppGroup) uint64 {
-	return p.ID
+	return uint64(p.ID)
 }
 
+// getter for field "Namespace" (Namespace) [string]
 func (a *DBAppGroup) get_Namespace(p *savepb.AppGroup) string {
-	return p.Namespace
+	return string(p.Namespace)
 }
 
+// getter for field "Groupname" (Groupname) [string]
 func (a *DBAppGroup) get_Groupname(p *savepb.AppGroup) string {
-	return p.Groupname
+	return string(p.Groupname)
 }
 
+// getter for field "DeployedVersion" (DeployedVersion) [uint32]
 func (a *DBAppGroup) get_DeployedVersion(p *savepb.AppGroup) uint32 {
-	return p.DeployedVersion
+	return uint32(p.DeployedVersion)
 }
 
+// getter for field "PendingVersion" (PendingVersion) [uint32]
 func (a *DBAppGroup) get_PendingVersion(p *savepb.AppGroup) uint32 {
-	return p.PendingVersion
+	return uint32(p.PendingVersion)
 }
 
 /**********************************************************************

@@ -259,10 +259,12 @@ func (a *DBLinkAppGroup) ByLikeApp(ctx context.Context, p uint64) ([]*savepb.Lin
 * The field getters
 **********************************************************************/
 
+// getter for field "ID" (ID) [uint64]
 func (a *DBLinkAppGroup) get_ID(p *savepb.LinkAppGroup) uint64 {
-	return p.ID
+	return uint64(p.ID)
 }
 
+// getter for reference "GroupVersion"
 func (a *DBLinkAppGroup) get_GroupVersion_ID(p *savepb.LinkAppGroup) uint64 {
 	if p.GroupVersion == nil {
 		panic("field GroupVersion must not be nil")
@@ -270,6 +272,7 @@ func (a *DBLinkAppGroup) get_GroupVersion_ID(p *savepb.LinkAppGroup) uint64 {
 	return p.GroupVersion.ID
 }
 
+// getter for reference "App"
 func (a *DBLinkAppGroup) get_App_ID(p *savepb.LinkAppGroup) uint64 {
 	if p.App == nil {
 		panic("field App must not be nil")

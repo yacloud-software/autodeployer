@@ -20,6 +20,7 @@ import (
 	pb "golang.conradwood.net/apis/deploymonkey"
 	rpb "golang.conradwood.net/apis/registry"
 	dc "golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/deploymonkey/db"
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/cmdline"
@@ -132,6 +133,17 @@ func MakeItSoAsync(m miso) error {
 	var group *pb.AppGroup
 	ctx := context.Background()
 	for _, app := range old_path {
+
+		dl := &pb.DeploymentLog{
+			BuildID:          app.BuildID,
+			AppDef:           app,
+			Binary:           app.Binary,
+			DeployAlgorithm:  1,
+			AutoDeployerHost: "",
+			Started:          uint32(time.Now().Unix()),
+		}
+		db.DefaultDBDeploymentLog().Save(ctx, dl)
+
 		g, err := groupHandler.GetGroupForApp(ctx, app)
 		if err != nil {
 			return err
