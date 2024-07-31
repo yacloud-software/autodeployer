@@ -11,6 +11,18 @@ option java_package = "net.conradwood.golang.apis.deploymonkey";
 import "golang.conradwood.net/apis/common/common.proto";
 import "golang.conradwood.net/apis/grafanadata/grafanadata.proto";
 
+message DeploymentLog {
+  uint64 ID=1;
+  string Binary=3;
+  ApplicationDefinition AppDef=4  [(common.sql_name)="app_id",(common.sql_type)="uint64",(common.sql_reference)="applicationdefinition.id"];
+  uint64 BuildID=5;
+  string AutoDeployerHost=6;
+  uint32 Started=7;
+  uint32 Finished=8;
+  string Message=9;
+  uint32 DeployAlgorithm=10; // 1==old, 2==new via deployq
+}
+
 /*
  this is stored with the applicaton and thus may be retrieved on
  the deploylist. it may also be retrieved by the application itself on the startup proto
