@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
+	"golang.conradwood.net/go-easyops/errors"
 )
 
 func ConvertOldApp(ctx context.Context, id uint64) (*pb.ApplicationDefinition, error) {
@@ -14,14 +15,14 @@ func ConvertOldApp(ctx context.Context, id uint64) (*pb.ApplicationDefinition, e
 	}
 	defer rows.Close()
 	if !rows.Next() {
-		return nil, fmt.Errorf("oldapp no app with id %d", id)
+		return nil, errors.Errorf("oldapp no app with id %d", id)
 	}
 	res := &pb.ApplicationDefinition{}
 
 	err = rows.Scan(&res.ID, &res.DownloadURL, &res.DownloadUser, &res.DownloadPassword,
 		&res.Binary, &res.BuildID, &res.Instances, &res.Machines, &res.DeployType, &res.Critical, &res.AlwaysOn, &res.StaticTargetDir, &res.Public, &res.Java)
 	if err != nil {
-		return nil, fmt.Errorf("oldapp (%s)", err)
+		return nil, errors.Errorf("oldapp (%s)", err)
 	}
 
 	return res, nil

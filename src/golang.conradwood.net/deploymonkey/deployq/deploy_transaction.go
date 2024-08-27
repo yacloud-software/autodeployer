@@ -9,6 +9,7 @@ import (
 	"golang.conradwood.net/deploymonkey/db"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
 	"golang.conradwood.net/go-easyops/authremote"
+	"golang.conradwood.net/go-easyops/errors"
 	"strings"
 	"sync"
 	"time"
@@ -133,7 +134,7 @@ func (dt *deployTransaction) CacheEverywhere() error {
 			cl := r.GetAutodeployerClient()
 			_, err := cl.CacheURL(ctx, &ad.URLRequest{URL: r.DownloadURL()})
 			if err != nil {
-				xerr = fmt.Errorf("(caching %s): failed to cache on %s: %s", r.DownloadURL(), r.AutodeployerHost(), err)
+				xerr = errors.Errorf("(caching %s): failed to cache on %s: %s", r.DownloadURL(), r.AutodeployerHost(), err)
 				return
 			}
 			fmt.Printf("Cached %s on %s\n", r.DownloadURL(), r.AutodeployerHost())
@@ -171,7 +172,7 @@ func (dt *deployTransaction) StartEverywhere() error {
 			dreq := common.CreateDeployRequest(nil, r.AppDef())
 			dr, err := cl.Deploy(ctx, dreq)
 			if err != nil {
-				xerr = fmt.Errorf("(deploying %s): failed to cache on %s: %s", r.String(), r.AutodeployerHost(), err)
+				xerr = errors.Errorf("(deploying %s): failed to cache on %s: %s", r.String(), r.AutodeployerHost(), err)
 				return
 			}
 			depl_lock.Lock()

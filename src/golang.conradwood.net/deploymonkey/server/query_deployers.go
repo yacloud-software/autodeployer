@@ -12,6 +12,7 @@ import (
 	"golang.conradwood.net/deploymonkey/suggest"
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
+	"golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/prometheus"
 	"strings"
 	"sync"
@@ -248,7 +249,7 @@ func (sc *scanner) ScanAutodeployer(sa *rpb.ServiceAddress) error {
 			fmt.Println(s)
 		}
 		incFailure(sa.Host, sa.Port)
-		return fmt.Errorf("%s", s)
+		return errors.Errorf("%s", s)
 	}
 	adc := ad.NewAutoDeployerClient(conn)
 	req := &ad.MachineInfoRequest{}
@@ -260,7 +261,7 @@ func (sc *scanner) ScanAutodeployer(sa *rpb.ServiceAddress) error {
 		fmt.Println(s)
 		incFailure(sa.Host, sa.Port)
 		conn.Close()
-		return fmt.Errorf("%s", s)
+		return errors.Errorf("%s", s)
 	}
 	ad_time := time.Unix(int64(mir.CurrentTime), 0)
 	diff := now.Sub(ad_time)
@@ -269,7 +270,7 @@ func (sc *scanner) ScanAutodeployer(sa *rpb.ServiceAddress) error {
 	if err != nil {
 		incFailure(sa.Host, sa.Port)
 		conn.Close()
-		return fmt.Errorf("Failed to get deployment info on %s: %s\n", sa.Host, err)
+		return errors.Errorf("Failed to get deployment info on %s: %s\n", sa.Host, err)
 	}
 	conn.Close()
 	nt.queryFailures = 0

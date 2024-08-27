@@ -1,10 +1,11 @@
 package common
 
 import (
-	"errors"
+	//	"errors"
 	"flag"
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
+	"golang.conradwood.net/go-easyops/errors"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )
@@ -115,18 +116,18 @@ func AppLimits(app *pb.ApplicationDefinition) *pb.Limits {
 func CheckAppComplete(app *pb.ApplicationDefinition) error {
 	if app.ArtefactID == 0 {
 		if app.RepositoryID == 0 {
-			return fmt.Errorf("Missing RepositoryID and ArtefactID")
+			return errors.Errorf("Missing RepositoryID and ArtefactID")
 		}
 	}
 	if (app.Critical) && (!app.AlwaysOn) {
-		return fmt.Errorf("Invalid combination of flags: Cannot have critical app which is not always on")
+		return errors.Errorf("Invalid combination of flags: Cannot have critical app which is not always on")
 	}
 	if (app.DeployType == "staticfiles") && (app.StaticTargetDir == "") {
-		return fmt.Errorf("A staticfiles package REQUIRES StaticTargetDir and it is missing")
+		return errors.Errorf("A staticfiles package REQUIRES StaticTargetDir and it is missing")
 	}
 	s := fmt.Sprintf("%d-%s", app.RepositoryID, app.DeploymentID)
 	if app.DownloadURL == "" {
-		return errors.New(fmt.Sprintf("%s is invalid: Missing DownloadURL", s))
+		return errors.Errorf("%s is invalid: Missing DownloadURL", s)
 	}
 	return nil
 }

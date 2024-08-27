@@ -24,7 +24,7 @@ func (e *DeployMonkey) QueryTimeseries(req *grafanadata.QueryRequest, srv pb.Dep
 	} else if req.Query == "deployments" {
 		dps, err = query_deployment_history(ctx, req)
 	} else {
-		return fmt.Errorf("deploymonkey does not implement query \"%s\"", req.Query)
+		return errors.Errorf("deploymonkey does not implement query \"%s\"", req.Query)
 	}
 	if err != nil {
 		return err

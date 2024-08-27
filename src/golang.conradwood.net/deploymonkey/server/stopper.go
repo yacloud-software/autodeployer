@@ -9,6 +9,7 @@ import (
 	rg "golang.conradwood.net/apis/registry"
 	dc "golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/go-easyops/authremote"
+	"golang.conradwood.net/go-easyops/errors"
 	"sync"
 	"time"
 )
@@ -205,7 +206,7 @@ func stopExecute(sr *stopRequest) error {
 	fmt.Printf("Shutting down: %s (%s) on %s\n", sr.id, s, sr.autodeployer.Host)
 	conn, err := DialService(sr.autodeployer)
 	if err != nil {
-		return fmt.Errorf("Failed to connect to autodeployer %v", sr.autodeployer)
+		return errors.Errorf("Failed to connect to autodeployer %v", sr.autodeployer)
 	}
 	defer conn.Close()
 	adc := ad.NewAutoDeployerClient(conn)
@@ -214,7 +215,7 @@ func stopExecute(sr *stopRequest) error {
 	ures, err := adc.Undeploy(authremote.Context(), &ud)
 	if err != nil {
 		fmt.Printf("Failed to shutdown %s @ %s: %s\n", sr.id, sr.autodeployer.Host, err)
-		return fmt.Errorf("Failed to shutdown %s @ %s: %s\n", sr.id, sr.autodeployer.Host, err)
+		return errors.Errorf("Failed to shutdown %s @ %s: %s\n", sr.id, sr.autodeployer.Host, err)
 	}
 	fmt.Printf("Undeployed request sent, confirmed ID %s\n", ures.ID)
 	return nil
@@ -368,7 +369,7 @@ func GetDeployments(host string) (*ad.InfoResponse, error) {
 	port := 4000
 	conn, err := DialService(&rg.ServiceAddress{Host: host, Port: int32(port)})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to service %s:%d", host, port)
+		return nil, errors.Errorf("Failed to connect to service %s:%d", host, port)
 	}
 	defer conn.Close()
 	adc := ad.NewAutoDeployerClient(conn)

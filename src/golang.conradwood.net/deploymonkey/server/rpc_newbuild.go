@@ -6,12 +6,13 @@ import (
 	"golang.conradwood.net/apis/common"
 	dm "golang.conradwood.net/apis/deploymonkey"
 	dc "golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/go-easyops/errors"
 )
 
 func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuildAvailableRequest) (*common.Void, error) {
 	fd, err := dc.ParseConfig(req.DeployYaml, 0)
 	if err != nil {
-		return nil, fmt.Errorf("parser failed: %w", err)
+		return nil, errors.Errorf("parser failed: %w", err)
 	}
 	for _, group := range fd.Groups {
 		// add stuff to group (which isn't in deploy.yaml, but in metadata instead

@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"errors"
+	"golang.conradwood.net/go-easyops/errors"
+	//	"errors"
 	"fmt"
 	common "golang.conradwood.net/apis/common"
 	pb "golang.conradwood.net/apis/deploymonkey"
@@ -28,14 +29,14 @@ func (depl *DeployMonkey) GetConfig(ctx context.Context, cr *common.Void) (*pb.C
 	for _, n := range ns.NameSpaces {
 		gns, err := depl.GetGroups(ctx, &pb.GetGroupsRequest{NameSpace: n})
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get groups: %s", err)
+			return nil, errors.Errorf("Failed to get groups: %s", err)
 		}
 		for _, gs := range gns.Groups {
 			gc := &pb.GroupConfig{Group: gs}
 			gar := pb.GetAppsRequest{NameSpace: gs.NameSpace, GroupName: gs.GroupID}
 			gapps, err := depl.GetApplications(ctx, &gar)
 			if err != nil {
-				return nil, fmt.Errorf("Failed to get applications: %s", err)
+				return nil, errors.Errorf("Failed to get applications: %s", err)
 			}
 			gc.Applications = gapps.Applications
 			res.GroupConfigs = append(res.GroupConfigs, gc)
@@ -47,7 +48,7 @@ func (depl *DeployMonkey) GetConfig(ctx context.Context, cr *common.Void) (*pb.C
 
 func (s *DeployMonkey) GetGroups(ctx context.Context, cr *pb.GetGroupsRequest) (*pb.GetGroupsResponse, error) {
 	if cr.NameSpace == "" {
-		return nil, errors.New("Namespace required")
+		return nil, errors.Errorf("Namespace required")
 	}
 	resp := pb.GetGroupsResponse{}
 
@@ -93,13 +94,13 @@ func (s *DeployMonkey) GetApplications(ctx context.Context, cr *pb.GetAppsReques
 	if err != nil {
 		s := fmt.Sprintf("No such group: (%s,%s)\n", cr.NameSpace, cr.GroupName)
 		fmt.Println(s)
-		return nil, errors.New(s)
+		return nil, errors.Errorf("%s", s)
 	}
 	ad, err := loadAppGroupVersion(ctx, dbg.GetDeployedVersion())
 	if err != nil {
 		s := fmt.Sprintf("GetApplications(): No applications for version %d (%s,%s)", dbg.GetDeployedVersion(), cr.NameSpace, cr.GroupName)
 		fmt.Printf("%s: %s\n", s, err)
-		return nil, fmt.Errorf("%s [%s]", s, err)
+		return nil, errors.Errorf("%s [%s]", s, err)
 	}
 	resp := pb.GetAppsResponse{}
 	resp.Applications = ad

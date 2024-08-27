@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
+	//	"errors"
 	"flag"
 	"fmt"
 	_ "github.com/lib/pq"
@@ -15,6 +15,7 @@ import (
 	"golang.conradwood.net/deploymonkey/db"
 	"golang.conradwood.net/deploymonkey/scheduler"
 	"golang.conradwood.net/go-easyops/authremote"
+	"golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/server"
 	gesql "golang.conradwood.net/go-easyops/sql"
 	"golang.conradwood.net/go-easyops/utils"
@@ -181,24 +182,24 @@ func saveApp(app *pb.ApplicationDefinition) (uint64, error) {
 	app.Created = uint32(time.Now().Unix())
 	id, err := appdef_store.Save(TEMPCONTEXT(), app)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("Failed to insert application: %s", err))
+		return 0, errors.Errorf("Failed to insert application: %s", err)
 	}
 
 	for _, arg := range app.Args {
 		_, err = dbcon.ExecContext(TEMPCONTEXT(), "insertargs", "INSERT INTO args (argument,app_id) values ($1,$2)", arg, id)
 		if err != nil {
-			return 0, errors.New(fmt.Sprintf("Failed to insert tag for app %d: %s", id, err))
+			return 0, errors.Errorf("Failed to insert tag for app %d: %s", id, err)
 		}
 	}
 	for _, ar := range app.AutoRegs {
 		_, err = dbcon.ExecContext(TEMPCONTEXT(), "foo", "INSERT INTO autoreg (portdef,servicename,apitypes,app_id) values ($1,$2,$3,$4)", ar.Portdef, ar.ServiceName, ar.ApiTypes, id)
 		if err != nil {
-			return 0, errors.New(fmt.Sprintf("Failed to insert autoreg for app %d: %s", id, err))
+			return 0, errors.Errorf("Failed to insert autoreg for app %d: %s", id, err)
 		}
 	}
 	_, err = dbcon.ExecContext(TEMPCONTEXT(), "foo", "INSERT into applimits (app_id,maxmemory,priority) values ($1,$2,$3)", id, app.Limits.MaxMemory, app.Limits.Priority)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("Failed to insert limits for app %d: %s", id, err))
+		return 0, errors.Errorf("Failed to insert limits for app %d: %s", id, err)
 	}
 	return id, nil
 }
@@ -236,7 +237,7 @@ func loadAppGroupVersion(ctx context.Context, version uint32) ([]*pb.Application
 	rows, err := dbcon.QueryContext(ctx, "loadappgroupversion", "SELECT lnk_app_grp.app_id from lnk_app_grp where lnk_app_grp.group_version_id = $1", version)
 	if err != nil {
 		fmt.Printf("Failed to get apps for version %d:%s\n", version, err)
-		return nil, fmt.Errorf("loadAppGroupVersion(): query failed with %s", err)
+		return nil, errors.Errorf("loadAppGroupVersion(): query failed with %s", err)
 	}
 	var ids []uint64
 	for rows.Next() {
@@ -276,7 +277,7 @@ func loadApp(ctx context.Context, id uint64) (*pb.ApplicationDefinition, error) 
 		fmt.Printf("loadApp(): APPDEF store error: %s\n", err)
 		//		res, err = ConvertOldApp(ctx, id)
 		//		if err != nil {
-		return nil, fmt.Errorf("loading app #%d caused error: %s", id, err)
+		return nil, errors.Errorf("loading app #%d caused error: %s", id, err)
 		//		}
 	}
 	if res.Container == nil || res.Container.ID == 0 {
@@ -332,14 +333,14 @@ func loadAppArgs(id uint64) ([]string, error) {
 	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "loadappargs", "SELECT argument from args where app_id = $1", id)
 	if err != nil {
 		s := fmt.Sprintf("Failed to get tags for app %d:%s\n", id, err)
-		return nil, errors.New(s)
+		return nil, errors.Errorf("%s", s)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		err = rows.Scan(&s)
 		if err != nil {
 			s := fmt.Sprintf("Failed to get tag for app %d:%s\n", id, err)
-			return nil, errors.New(s)
+			return nil, errors.Errorf("%s", s)
 		}
 		res = append(res, s)
 	}
@@ -355,7 +356,7 @@ func loadAutoReg(id uint64) ([]*pb.AutoRegistration, error) {
 	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "loadautoreg", "SELECT portdef,servicename,apitypes from autoreg where app_id = $1", id)
 	if err != nil {
 		s := fmt.Sprintf("Failed to get autoregs for app %d:%s\n", id, err)
-		return nil, errors.New(s)
+		return nil, errors.Errorf("%s", s)
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -363,7 +364,7 @@ func loadAutoReg(id uint64) ([]*pb.AutoRegistration, error) {
 		err = rows.Scan(&ar.Portdef, &ar.ServiceName, &ar.ApiTypes)
 		if err != nil {
 			s := fmt.Sprintf("Failed to get autoreg for app %d:%s\n", id, err)
-			return nil, errors.New(s)
+			return nil, errors.Errorf("%s", s)
 		}
 		res = append(res, ar)
 	}
@@ -384,11 +385,11 @@ func getGroupIDFromVersion(v int) (*groupVersion, error) {
 func updateDeployedVersionNumber(v int) error {
 	gid, err := getGroupIDFromVersion(v)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Invalid Group-Version: \"%d\": %s", v, err))
+		return errors.Errorf("Invalid Group-Version: \"%d\": %s", v, err)
 	}
 	_, err = dbcon.ExecContext(TEMPCONTEXT(), "fooexec", "update appgroup set deployedversion = $1 where id = $2", v, gid.GroupID)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Unable to update group: %s", err))
+		return errors.Errorf("Unable to update group: %s", err)
 	}
 	fmt.Printf("Updated deployedversion to %d\n", v)
 	return nil
@@ -412,21 +413,21 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 	// so if it fails for some reason, we know what to replay
 	gid, err := getGroupIDFromVersion(curApply.version)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Invalid Group-Version: \"%d\": %s", curApply.version, err))
+		return errors.Errorf("Invalid Group-Version: \"%d\": %s", curApply.version, err)
 	}
 	_, err = dbcon.ExecContext(TEMPCONTEXT(), "fooexec", "update appgroup set pendingversion = $1 where id = $2", curApply.version, gid.GroupID)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Unable to update group: %s", err))
+		return errors.Errorf("Unable to update group: %s", err)
 	}
 	var ns, gn string
 	err = dbcon.QueryRowContext(TEMPCONTEXT(), "rowfoo", "SELECT namespace,groupname from appgroup where id = $1", gid.GroupID).Scan(&ns, &gn)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Unable to get groupnames: %s", err))
+		return errors.Errorf("Unable to get groupnames: %s", err)
 	}
 
 	apps, err := loadAppGroupVersion(ctx, uint32(curApply.version))
 	if err != nil {
-		return errors.New(fmt.Sprintf("error loading apps for version %d: %s", curApply.version, err))
+		return errors.Errorf("error loading apps for version %d: %s", curApply.version, err)
 	}
 	var f_apps []*pb.ApplicationDefinition
 	for _, a := range apps {
@@ -439,7 +440,7 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 	fmt.Printf("Makeitso (%d)...\n", curApply.version)
 	err = MakeItSo(f_apps, curApply.version)
 	if err != nil {
-		return errors.New(fmt.Sprintf("error applyings apps for version %d: %s", curApply.version, err))
+		return errors.Errorf("error applyings apps for version %d: %s", curApply.version, err)
 	}
 	go NotifyPeopleAboutDeploy(apps, curApply.version)
 	return nil
@@ -453,11 +454,11 @@ type DeployMonkey struct{}
 // given a Version# -> Take it online ("Make it so")
 func (s *DeployMonkey) DeployVersion(ctx context.Context, cr *pb.DeployRequest) (*pb.DeployResponse, error) {
 	if cr.VersionID == "" {
-		return nil, errors.New("VersionID required for deployment")
+		return nil, errors.Errorf("%s", "VersionID required for deployment")
 	}
 	version, err := strconv.Atoi(cr.VersionID)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Invalid VersionID: \"%s\": %s", cr.VersionID, err))
+		return nil, errors.Errorf("Invalid VersionID: \"%s\": %s", cr.VersionID, err)
 	}
 	applyVersion(version)
 	updateDeployedVersionNumber(version)
@@ -554,14 +555,14 @@ func (s *DeployMonkey) DeleteApplication(ctx context.Context, dar *pb.DeleteAppl
 	if err != nil {
 		msg := fmt.Sprintf("Error attempting to delete app from appdef with ID=%d %s\n", dar.ID, err)
 		fmt.Println(msg)
-		return nil, errors.New(msg)
+		return nil, errors.Errorf("%s",msg)
 	}
 
 	_, err = dbcon.Exec(TEMPCONTEXT(),"fooexec","DELETE from lnk_app_grp where app_id=$1", dar.ID)
 	if err != nil {
 		msg := fmt.Sprintf("Error attempting to delete app from appdef with ID=%d %s\n", dar.ID, err)
 		fmt.Println(msg)
-		return nil, errors.New(msg)
+		return nil, errors.Errorf("%s",msg)
 	}
 
 	return &pb.EmptyMessage{}, nil
@@ -575,7 +576,7 @@ func (s *DeployMonkey) UndeployApplication(ctx context.Context, uar *pb.Undeploy
 	if err != nil {
 		msg := fmt.Sprintf("Error getting group for ID=%d %s\n", uar.ID, err)
 		fmt.Println(msg)
-		return nil, errors.New(msg)
+		return nil, errors.Errorf("%s", msg)
 	}
 	for _, pb := range pbs {
 		res.App = pb
@@ -584,7 +585,7 @@ func (s *DeployMonkey) UndeployApplication(ctx context.Context, uar *pb.Undeploy
 		if err != nil {
 			msg := fmt.Sprintf("Error attempting to stop app with ID=%d %s\n", uar.ID, err)
 			fmt.Println(msg)
-			return nil, errors.New(msg)
+			return nil, errors.Errorf("%s", msg)
 		}
 		for _, x := range sng {
 			res.Host = append(res.Host, x)
@@ -596,9 +597,9 @@ func (s *DeployMonkey) UndeployApplication(ctx context.Context, uar *pb.Undeploy
 /*
 	func (s *DeployMonkey) SetMachineStatus(ctx context.Context, req *pb.SetMachineStatusRequest) (*pb.EmptyMessage, error) {
 		if req.Status == nil {
-			return nil, fmt.Errorf("No status specified (ip=%s)", req.Ip)
+			return nil, errors.Errorf("No status specified (ip=%s)", req.Ip)
 		}
-		err := fmt.Errorf("SetMachineStatus not implemented")
+		err := errors.Errorf("SetMachineStatus not implemented")
 		if err != nil {
 			return nil, err
 		}
@@ -610,7 +611,7 @@ func (s *DeployMonkey) GetDeploymentsFromCache(ctx context.Context, req *common.
 }
 func INT_GetDeploymentsFromCache(ctx context.Context) (*pb.DeploymentList, error) {
 	if !*enableScanner {
-		return nil, fmt.Errorf("Scanner not enabled")
+		return nil, errors.Errorf("Scanner not enabled")
 	}
 	dls := GetAllDeployersFromCache()
 	res := &pb.DeploymentList{}
@@ -648,7 +649,7 @@ func INT_GetDeploymentsFromCache(ctx context.Context) (*pb.DeploymentList, error
 func convertDeployedToGroupDef(ctx context.Context, app *apb.DeployedApp) (*pb.GroupDefinitionRequest, error) {
 	d := app.Deployment
 	if d.DeploymentID == "" {
-		return nil, fmt.Errorf("missing deploymentid unable to convert app %s to groupdef", d.Binary)
+		return nil, errors.Errorf("missing deploymentid unable to convert app %s to groupdef", d.Binary)
 	}
 	groupid, _, appdefid := DecodeDeploymentID(d.DeploymentID)
 	group, err := groupHandler.GroupByID(ctx, uint64(groupid))
@@ -656,7 +657,7 @@ func convertDeployedToGroupDef(ctx context.Context, app *apb.DeployedApp) (*pb.G
 		return nil, err
 	}
 	if group == nil {
-		return nil, fmt.Errorf("No group with id %d\n", groupid)
+		return nil, errors.Errorf("No group with id %d\n", groupid)
 	}
 
 	res := &pb.GroupDefinitionRequest{}
@@ -704,7 +705,7 @@ func convertDeployedToGroupDef(ctx context.Context, app *apb.DeployedApp) (*pb.G
 func (depl *DeployMonkey) DeployAppOnTarget(ctx context.Context, dr *pb.DeployAppRequest) (*common.Void, error) {
 	app, err := loadAppByID(ctx, dr.AppID)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to load app #%d: %s", dr.AppID, err)
+		return nil, errors.Errorf("Failed to load app #%d: %s", dr.AppID, err)
 	}
 
 	sa := &rpb.ServiceAddress{Host: dr.Host, Port: 4000}
@@ -722,7 +723,7 @@ func (depl *DeployMonkey) UndeployAppOnTarget(ctx context.Context, dr *pb.Undepl
 	match := dr.DeploymentID
 	fmt.Printf("Undeploying app \"%s\" on host %s\n", match, dr.Host)
 	if match == "" {
-		return nil, fmt.Errorf("No app to undeploy specified")
+		return nil, errors.Errorf("No app to undeploy specified")
 	}
 	conn, err := DialService(&rpb.ServiceAddress{Host: dr.Host, Port: 4000})
 	if err != nil {
@@ -732,7 +733,7 @@ func (depl *DeployMonkey) UndeployAppOnTarget(ctx context.Context, dr *pb.Undepl
 	defer conn.Close()
 	ir, err := getDeploymentsOnHost(ctx, conn)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to get deployments on host %s: %s\n", dr.Host, err)
+		return nil, errors.Errorf("Unable to get deployments on host %s: %s\n", dr.Host, err)
 	}
 	fmt.Printf("to be stopped ID: \"%s\"\n", match)
 	var app *apb.DeployedApp
@@ -752,7 +753,7 @@ func (depl *DeployMonkey) UndeployAppOnTarget(ctx context.Context, dr *pb.Undepl
 		app = app2
 	}
 	if app == nil {
-		return nil, fmt.Errorf("Found no app \"%s\" on host %s\n", match, dr.Host)
+		return nil, errors.Errorf("Found no app \"%s\" on host %s\n", match, dr.Host)
 	}
 	fmt.Printf("host %s: Undeploying app ID \"%s\"\n", dr.Host, app.ID)
 

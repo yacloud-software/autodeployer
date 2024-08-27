@@ -68,7 +68,7 @@ order by group_version_id desc
 // the query must return (in that order) applicationdefinition.id, lnk_app_grp.group_version_id, group_version,created
 func listVersions(ctx context.Context, q string) ([]*appVersionDef, error) {
 	if dbcon == nil {
-		return nil, fmt.Errorf("database not open")
+		return nil, errors.Errorf("database not open")
 	}
 	fmt.Printf("Getting versions\n")
 	// this query gives us the version in lnk_app_grp.group_version_id

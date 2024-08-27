@@ -4,6 +4,7 @@ import (
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
 	"golang.conradwood.net/apis/common"
+	"golang.conradwood.net/go-easyops/errors"
 	"sync"
 	"time"
 )
@@ -84,13 +85,13 @@ func (q *DeployQueue) check_monitored(dt *deployTransaction) error {
 		if app == nil {
 			if did.running {
 				// it was running, but stopped running
-				dt.SetError(fmt.Errorf("new version failed unexpectedly on deployer %s", did.deployer.String()))
+				dt.SetError(errors.Errorf("new version failed unexpectedly on deployer %s", did.deployer.String()))
 				dt.sendUpdate(EVENT_FINISHED)
 				return nil
 			}
 			// it has never been running yet. (autodeployer.Deploy() is async!)
 			if time.Since(dt.started_time) > time.Duration(60)*time.Second {
-				dt.SetError(fmt.Errorf("new version failed to start on deployer %s", did.deployer.String()))
+				dt.SetError(errors.Errorf("new version failed to start on deployer %s", did.deployer.String()))
 				dt.sendUpdate(EVENT_FINISHED)
 				return nil
 			}

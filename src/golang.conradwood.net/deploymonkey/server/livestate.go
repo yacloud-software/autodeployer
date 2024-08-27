@@ -13,7 +13,7 @@ package main
 
 import (
 	"context"
-	"errors"
+	//	"errors"
 	"flag"
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
@@ -24,6 +24,7 @@ import (
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/cmdline"
+	"golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/prometheus"
 	"golang.conradwood.net/go-easyops/utils"
 	"google.golang.org/grpc"
@@ -76,7 +77,7 @@ func MakeItSo(ads []*pb.ApplicationDefinition, version int) error {
 	// brief sanity check for common stuff...
 	for _, ad := range ads {
 		if ad.BuildID == 0 {
-			return fmt.Errorf("Refusing to deploy application %s with buildid #0", ad.Binary)
+			return errors.Errorf("Refusing to deploy application %s with buildid #0", ad.Binary)
 		}
 	}
 	fmt.Printf("Request to upgrade %d apps to version %d\n", len(ads), version)
@@ -154,12 +155,12 @@ func MakeItSoAsync(m miso) error {
 			if group.ID != g.ID {
 				s := fmt.Sprintf("ERROR: Different groups to deploy (%d and %d)", group.ID, g.ID)
 				fmt.Println(s)
-				return fmt.Errorf("%s", s)
+				return errors.Errorf("%s", s)
 			}
 		}
 	}
 	if group == nil {
-		return fmt.Errorf("no group. no apps?\n")
+		return errors.Errorf("no group. no apps?\n")
 	}
 	groupid := group.ID
 	// deploymentid is "PREFIX-GroupID-BuildID"
@@ -167,7 +168,7 @@ func MakeItSoAsync(m miso) error {
 	stopPrefix := fmt.Sprintf("%s-%d-", DEPLOY_PREFIX, groupid)
 	trans, err := stop(stopPrefix)
 	if err != nil {
-		return fmt.Errorf("Failed to stop current instances: %s\n", err)
+		return errors.Errorf("Failed to stop current instances: %s\n", err)
 	}
 	// starting stuff
 	// also, this should start them up multi-threaded... and bla
@@ -186,7 +187,7 @@ func MakeItSoAsync(m miso) error {
 			fmt.Println(s)
 			user_messages = append(user_messages, s)
 			cancelStop(trans, user_messages, s)
-			return errors.New(s)
+			return errors.Errorf("%s", s)
 		}
 		workers := len(fsas)
 		fmt.Printf("Got %d hosts to deploy on\n", workers)
@@ -199,7 +200,7 @@ func MakeItSoAsync(m miso) error {
 				s := fmt.Sprintf("Wanted to deploy %d instances of %s, but only deployed %d on %s", app.Instances, AppToString(app), instances, app.Machines)
 				fmt.Println(s)
 				user_messages = append(user_messages, s)
-				res_err = errors.New(s)
+				res_err = errors.Errorf("%s", s)
 				break
 			}
 			workeridx++
@@ -304,7 +305,7 @@ func deployOn(sa *rpb.ServiceAddress, app *pb.ApplicationDefinition) (string, st
 	if !dres.Success {
 		s := fmt.Sprintf("failed to startup app %v (%s)\n", app, dres.Message)
 		fmt.Println(s)
-		return "", s, errors.New(s)
+		return "", s, errors.Errorf("%s", s)
 	}
 	s := fmt.Sprintf("Successfully deployed %v on %s as %s [%s]\n", AppToString(app), sa.Host, deplid, dres.ID)
 	fmt.Print(s)
@@ -336,7 +337,7 @@ func waitForCacheStatus(adc ad.AutoDeployerClient, dr *ad.DeployRequest, host st
 			}
 			if time.Since(lastResponseReceived) > time.Duration(*max_download_no_progress)*time.Second {
 				setPreCacheGauge(host, 0, 0)
-				return fmt.Errorf("no query responsese for %0.1f seconds on %s (host %s) (last error: %s)", time.Since(lastChanged).Seconds(), ureq.URL, host, utils.ErrorString(err))
+				return errors.Errorf("no query responsese for %0.1f seconds on %s (host %s) (last error: %s)", time.Since(lastChanged).Seconds(), ureq.URL, host, utils.ErrorString(err))
 			}
 			time.Sleep(time.Duration(2) * time.Second)
 			continue
@@ -355,7 +356,7 @@ func waitForCacheStatus(adc ad.AutoDeployerClient, dr *ad.DeployRequest, host st
 		}
 		if time.Since(lastChanged) > time.Duration(*max_download_no_progress)*time.Second {
 			setPreCacheGauge(host, 0, 0)
-			return fmt.Errorf("no download update for %0.1f seconds on %s (host %s)", time.Since(lastChanged).Seconds(), ureq.URL, host)
+			return errors.Errorf("no download update for %0.1f seconds on %s (host %s)", time.Since(lastChanged).Seconds(), ureq.URL, host)
 		}
 		time.Sleep(time.Duration(2) * time.Second)
 	}
@@ -441,7 +442,7 @@ func GetDeployers() ([]*rpb.ServiceAddress, error) {
 	lr.NameMatch = "autodeployer.AutoDeployer"
 	resp, err := rcl.ListRegistrations(ctx, &lr)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Error getting services: %s", err))
+		return nil, errors.Errorf("%s", fmt.Sprintf("Error getting services: %s", err))
 	}
 	var res []*rpb.ServiceAddress
 	for _, r := range resp.Registrations {
@@ -468,7 +469,7 @@ func stopSingleApp(stop *StopRequest) ([]string, error) {
 	var res []string
 	sas, err := GetDeployers()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to get deployers: %s", err)
+		return nil, errors.Errorf("Unable to get deployers: %s", err)
 	}
 	//stopPrefix := fmt.Sprintf("%s-%d-", DEPLOY_PREFIX, group.id)
 	for _, sa := range sas {
@@ -485,7 +486,7 @@ func stopSingleApp(stop *StopRequest) ([]string, error) {
 
 		if err != nil {
 			conn.Close()
-			return nil, errors.New(fmt.Sprintf("Unable to get deployments from %v: %s", sa, err))
+			return nil, errors.Errorf("%s", fmt.Sprintf("Unable to get deployments from %v: %s", sa, err))
 		}
 		for _, ap := range apps {
 			a := ap.Deployment

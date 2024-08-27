@@ -23,6 +23,7 @@ import (
 	"golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/deploymonkey/db"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
+	"golang.conradwood.net/go-easyops/errors"
 	"sort"
 	"sync"
 	"time"
@@ -52,7 +53,7 @@ var (
 // add a bunch of requests, treat them somewhat as one transaction
 func Add(dr []*dp.DeployRequest) (chan *DeployUpdate, error) {
 	if len(dr) == 0 {
-		return nil, fmt.Errorf("0 deployrequests received")
+		return nil, errors.Errorf("0 deployrequests received")
 	}
 	// start worker if necessary
 	starterlock.Lock()
@@ -172,7 +173,7 @@ func (q *DeployQueue) lockAutodeployers(dt *deployTransaction) error {
 	for _, host := range dt.AutodeployerHosts() {
 		b := q.autodeployer_locks[host]
 		if b {
-			return fmt.Errorf("autodeployer %s locked already", host)
+			return errors.Errorf("autodeployer %s locked already", host)
 		}
 		q.autodeployer_locks[host] = true
 
@@ -234,7 +235,7 @@ func (q *DeployQueue) work_handler() {
 		q.Lock()
 		err := q.lockTransaction(dt)
 		if err != nil {
-			dt.SetError(fmt.Errorf("failed to lock transaction (%w)", err))
+			dt.SetError(errors.Errorf("failed to lock transaction (%w)", err))
 			q.Unlock()
 			dt.sendUpdate(EVENT_FINISHED)
 			continue

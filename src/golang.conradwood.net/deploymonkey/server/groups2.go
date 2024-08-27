@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/db"
+	"golang.conradwood.net/go-easyops/errors"
 	"sync"
 	"time"
 )
@@ -136,7 +137,7 @@ func (g *Group2Handler) GetGroupForApp(ctx context.Context, app *pb.ApplicationD
 		return nil, err
 	}
 	if len(lgroups) == 0 {
-		return nil, fmt.Errorf("no group for app %d", app.ID)
+		return nil, errors.Errorf("no group for app %d", app.ID)
 	}
 	lgr := lgroups[0]
 
