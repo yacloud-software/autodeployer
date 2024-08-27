@@ -1,3 +1,0 @@
-.PHONY: server
-server:
-	cd server && go install deployminator-server.go `ls -1 *.go deployminator-server.go"
