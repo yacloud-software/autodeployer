@@ -10,7 +10,6 @@ import (
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/errors"
-	"golang.conradwood.net/go-easyops/utils"
 	"strings"
 	"sync"
 	"time"
@@ -118,7 +117,7 @@ func (dt *deployTransaction) SetError(err error) {
 	dt.deploylogs_set_error(err)
 	dt.err = err
 	// TODO: send on a channel to notify listeners
-	fmt.Printf("error on deployment: %s\n", utils.ErrorString(err))
+	fmt.Printf("error on deployment: %s\n", errors.ErrorStringWithStackTrace(err))
 }
 
 // caches it on every autodeployer. returns when done
