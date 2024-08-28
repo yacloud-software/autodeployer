@@ -2,6 +2,7 @@ package deployq
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	ad "golang.conradwood.net/apis/autodeployer"
 	pb "golang.conradwood.net/apis/deploymonkey"
@@ -16,6 +17,7 @@ import (
 )
 
 var (
+	deploy_timeout = flag.Duration("deploy_timeout", time.Duration(40)*time.Second, "timeout after which to cancel a deployrequest")
 	// if deployed with "per instance", +1 will be added to the score
 	bin_score_match = map[string]int{
 		"secureargs-server":  20,
@@ -167,19 +169,21 @@ func (dt *deployTransaction) StartEverywhere() error {
 		go func(r *dp.DeployRequest) {
 			defer wg.Done()
 			fmt.Printf("Deploying %s on %s\n", r.URL(), r.AutodeployerHost())
-			ctx := authremote.ContextWithTimeout(time.Duration(20) * time.Second)
+			started := time.Now()
+			ctx := authremote.ContextWithTimeout(*deploy_timeout)
 			cl := r.GetAutodeployerClient()
 			dreq := common.CreateDeployRequest(nil, r.AppDef())
 			dr, err := cl.Deploy(ctx, dreq)
+			dur := time.Since(started)
 			if err != nil {
-				xerr = errors.Errorf("(deploying %s): failed to cache on %s: %s", r.String(), r.AutodeployerHost(), err)
+				xerr = errors.Errorf("(deploying %s): failed to deploy on %s: %s", r.String(), r.AutodeployerHost(), err)
 				return
 			}
 			depl_lock.Lock()
 			dd := &deployed{deployer: r.Deployer(), req: r, ID: dr.ID}
 			dt.deployed_ids = append(dt.deployed_ids, dd)
 			depl_lock.Unlock()
-			fmt.Printf("deployed %s on %s (ID=%s)\n", r.String(), r.AutodeployerHost(), dr.ID)
+			fmt.Printf("deployed %s on %s (ID=%s), took %0.1fs\n", r.String(), r.AutodeployerHost(), dr.ID, dur.Seconds())
 		}(req)
 	}
 	wg.Wait()
