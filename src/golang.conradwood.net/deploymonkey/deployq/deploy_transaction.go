@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	deploy_timeout = flag.Duration("deploy_timeout", time.Duration(40)*time.Second, "timeout after which to cancel a deployrequest")
+	deploy_timeout = flag.Duration("deploy_timeout", time.Duration(60)*time.Second, "timeout after which to cancel a deployrequest")
 	// if deployed with "per instance", +1 will be added to the score
 	bin_score_match = map[string]int{
 		"secureargs-server":  20,
