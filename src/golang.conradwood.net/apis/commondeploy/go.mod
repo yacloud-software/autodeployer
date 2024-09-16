@@ -6,7 +6,7 @@ toolchain go1.22.2
 
 require (
 	github.com/golang/protobuf v1.5.4
-	golang.conradwood.net/apis/common v1.1.3073
+	golang.conradwood.net/apis/common v1.1.3074
 )
 
 require (
