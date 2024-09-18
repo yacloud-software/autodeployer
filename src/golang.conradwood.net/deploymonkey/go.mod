@@ -11,12 +11,12 @@ replace golang.conradwood.net/apis/commondeploy => ../apis/commondeploy
 require (
 	github.com/lib/pq v1.10.9
 	golang.conradwood.net/apis/autodeployer v1.1.3071
-	golang.conradwood.net/apis/common v1.1.3081
+	golang.conradwood.net/apis/common v1.1.3174
 	golang.conradwood.net/apis/deploymonkey v1.1.3071
 	golang.conradwood.net/apis/grafanadata v1.1.3071
 	golang.conradwood.net/apis/registry v1.1.3071
 	golang.conradwood.net/apis/slackgateway v1.1.2905
-	golang.conradwood.net/go-easyops v0.1.29674
+	golang.conradwood.net/go-easyops v0.1.29912
 	google.golang.org/grpc v1.66.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -34,11 +34,11 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	golang.conradwood.net/apis/auth v1.1.3081 // indirect
+	golang.conradwood.net/apis/auth v1.1.3174 // indirect
 	golang.conradwood.net/apis/echoservice v1.1.3057 // indirect
 	golang.conradwood.net/apis/errorlogger v1.1.3057 // indirect
 	golang.conradwood.net/apis/framework v1.1.3057 // indirect
-	golang.conradwood.net/apis/goeasyops v1.1.3081 // indirect
+	golang.conradwood.net/apis/goeasyops v1.1.3174 // indirect
 	golang.conradwood.net/apis/h2gproxy v1.1.2905 // indirect
 	golang.conradwood.net/apis/objectstore v1.1.3057 // indirect
 	golang.org/x/net v0.29.0 // indirect
@@ -46,7 +46,7 @@ require (
 	golang.org/x/text v0.18.0 // indirect
 	golang.yacloud.eu/apis/autodeployer2 v1.1.3057 // indirect
 	golang.yacloud.eu/apis/fscache v1.1.3071 // indirect
-	golang.yacloud.eu/apis/session v1.1.3081 // indirect
+	golang.yacloud.eu/apis/session v1.1.3174 // indirect
 	golang.yacloud.eu/apis/unixipc v1.1.3057 // indirect
 	golang.yacloud.eu/apis/urlcacher v1.1.3057 // indirect
 	golang.yacloud.eu/unixipc v0.1.26852 // indirect
