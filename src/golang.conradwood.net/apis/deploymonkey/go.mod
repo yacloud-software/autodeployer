@@ -1,13 +1,11 @@
 module golang.conradwood.net/apis/deploymonkey
 
-go 1.21.1
-
-toolchain go1.22.2
+go 1.22.2
 
 require (
 	github.com/golang/protobuf v1.5.4
-	golang.conradwood.net/apis/common v1.1.3203
-	golang.conradwood.net/apis/grafanadata v1.1.3196
+	golang.conradwood.net/apis/common v1.1.3232
+	golang.conradwood.net/apis/grafanadata v1.1.3229
 	golang.org/x/net v0.29.0
 	google.golang.org/grpc v1.66.0
 )
