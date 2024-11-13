@@ -1,10 +1,12 @@
 module golang.conradwood.net/apis/commondeploy
 
-go 1.22.2
+go 1.22.7
+
+toolchain go1.23.3
 
 require (
 	github.com/golang/protobuf v1.5.4
-	golang.conradwood.net/apis/common v1.1.3395
+	golang.conradwood.net/apis/common v1.1.3460
 )
 
 require (
