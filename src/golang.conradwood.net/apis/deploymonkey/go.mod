@@ -1,8 +1,6 @@
 module golang.conradwood.net/apis/deploymonkey
 
-go 1.22.7
-
-toolchain go1.23.3
+go 1.22.2
 
 require (
 	github.com/golang/protobuf v1.5.4
