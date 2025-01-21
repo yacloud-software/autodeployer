@@ -5,7 +5,9 @@ package suggest
 import (
 	"flag"
 	"fmt"
+
 	pb "golang.conradwood.net/apis/deploymonkey"
+	"golang.conradwood.net/deploymonkey/useroverride"
 )
 
 var (
@@ -27,6 +29,9 @@ func (f *fixMissing) Run() {
 	}
 	for _, ai := range iter {
 		if !ai.App.AlwaysOn {
+			continue
+		}
+		if useroverride.GetMetaData(ai.App).UserDisabled() {
 			continue
 		}
 		if ai.App.InstancesMeansPerAutodeployer {

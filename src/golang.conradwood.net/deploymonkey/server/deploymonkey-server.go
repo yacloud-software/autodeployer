@@ -3,9 +3,15 @@ package main
 import (
 	"context"
 	"database/sql"
+
 	//	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+
 	_ "github.com/lib/pq"
 	apb "golang.conradwood.net/apis/autodeployer"
 	common "golang.conradwood.net/apis/common"
@@ -14,16 +20,13 @@ import (
 	dc "golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/deploymonkey/db"
 	"golang.conradwood.net/deploymonkey/scheduler"
+	"golang.conradwood.net/deploymonkey/useroverride"
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/server"
 	gesql "golang.conradwood.net/go-easyops/sql"
 	"golang.conradwood.net/go-easyops/utils"
 	"google.golang.org/grpc"
-	"os"
-	"strconv"
-	"sync"
-	"time"
 )
 
 // static variables for flag parser
@@ -431,6 +434,7 @@ func applyVersionWithInfo(ctx context.Context, curApply *applyingInfo) error {
 	}
 	var f_apps []*pb.ApplicationDefinition
 	for _, a := range apps {
+		useroverride.MarkAsDeployed(a)
 		app, err := loadAppByID(ctx, a.ID)
 		if err != nil {
 			return err
@@ -580,6 +584,7 @@ func (s *DeployMonkey) UndeployApplication(ctx context.Context, uar *pb.Undeploy
 	}
 	for _, pb := range pbs {
 		res.App = pb
+		useroverride.MarkAsUndeployed(pb)
 		fmt.Printf("Undeploying: %d/%s (%d)\n", pb.RepositoryID, pb.Binary, pb.ID)
 		sng, err := stopSingleApp(&StopRequest{RepositoryID: pb.RepositoryID, Binary: pb.Binary})
 		if err != nil {
