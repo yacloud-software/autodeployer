@@ -2,7 +2,7 @@ package db
 
 /*
  This file was created by mkdb-client.
- The intention is not to modify thils file, but you may extend the struct DBApplicationDefinition
+ The intention is not to modify this file, but you may extend the struct DBApplicationDefinition
  in a seperate file (so that you can regenerate this one from time to time)
 */
 
@@ -52,8 +52,10 @@ import (
 	gosql "database/sql"
 	"fmt"
 	savepb "golang.conradwood.net/apis/deploymonkey"
+	"golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/sql"
 	"os"
+	"sync"
 )
 
 var (
@@ -61,9 +63,11 @@ var (
 )
 
 type DBApplicationDefinition struct {
-	DB                  *sql.DB
-	SQLTablename        string
-	SQLArchivetablename string
+	DB                   *sql.DB
+	SQLTablename         string
+	SQLArchivetablename  string
+	customColumnHandlers []CustomColumnHandler
+	lock                 sync.Mutex
 }
 
 func DefaultDBApplicationDefinition() *DBApplicationDefinition {
@@ -92,6 +96,15 @@ func NewDBApplicationDefinition(db *sql.DB) *DBApplicationDefinition {
 	return &foo
 }
 
+func (a *DBApplicationDefinition) GetCustomColumnHandlers() []CustomColumnHandler {
+	return a.customColumnHandlers
+}
+func (a *DBApplicationDefinition) AddCustomColumnHandler(w CustomColumnHandler) {
+	a.lock.Lock()
+	a.customColumnHandlers = append(a.customColumnHandlers, w)
+	a.lock.Unlock()
+}
+
 // archive. It is NOT transactionally save.
 func (a *DBApplicationDefinition) Archive(ctx context.Context, id uint64) error {
 
@@ -112,31 +125,99 @@ func (a *DBApplicationDefinition) Archive(ctx context.Context, id uint64) error 
 	return nil
 }
 
-// Save (and use database default ID generation)
+// return a map with columnname -> value_from_proto
+func (a *DBApplicationDefinition) buildSaveMap(ctx context.Context, p *savepb.ApplicationDefinition) (map[string]interface{}, error) {
+	extra, err := extraFieldsToStore(ctx, a, p)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]interface{})
+	res["id"] = a.get_col_from_proto(p, "id")
+	res["downloadurl"] = a.get_col_from_proto(p, "downloadurl")
+	res["downloaduser"] = a.get_col_from_proto(p, "downloaduser")
+	res["downloadpassword"] = a.get_col_from_proto(p, "downloadpassword")
+	res["r_binary"] = a.get_col_from_proto(p, "r_binary")
+	res["buildid"] = a.get_col_from_proto(p, "buildid")
+	res["instances"] = a.get_col_from_proto(p, "instances")
+	res["deploymentid"] = a.get_col_from_proto(p, "deploymentid")
+	res["machines"] = a.get_col_from_proto(p, "machines")
+	res["deploytype"] = a.get_col_from_proto(p, "deploytype")
+	res["critical"] = a.get_col_from_proto(p, "critical")
+	res["alwayson"] = a.get_col_from_proto(p, "alwayson")
+	res["statictargetdir"] = a.get_col_from_proto(p, "statictargetdir")
+	res["r_public"] = a.get_col_from_proto(p, "r_public")
+	res["java"] = a.get_col_from_proto(p, "java")
+	res["repositoryid"] = a.get_col_from_proto(p, "repositoryid")
+	res["asroot"] = a.get_col_from_proto(p, "asroot")
+	res["container"] = a.get_col_from_proto(p, "container")
+	res["discardlog"] = a.get_col_from_proto(p, "discardlog")
+	res["artefactid"] = a.get_col_from_proto(p, "artefactid")
+	res["created"] = a.get_col_from_proto(p, "created")
+	res["instancesmeansperautodeployer"] = a.get_col_from_proto(p, "instancesmeansperautodeployer")
+	if extra != nil {
+		for k, v := range extra {
+			res[k] = v
+		}
+	}
+	return res, nil
+}
+
 func (a *DBApplicationDefinition) Save(ctx context.Context, p *savepb.ApplicationDefinition) (uint64, error) {
-	qn := "DBApplicationDefinition_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) returning id", a.get_DownloadURL(p), a.get_DownloadUser(p), a.get_DownloadPassword(p), a.get_Binary(p), a.get_BuildID(p), a.get_Instances(p), a.get_DeploymentID(p), a.get_Machines(p), a.get_DeployType(p), a.get_Critical(p), a.get_AlwaysOn(p), a.get_StaticTargetDir(p), a.get_Public(p), a.get_Java(p), a.get_RepositoryID(p), a.get_AsRoot(p), a.get_Container_ID(p), a.get_DiscardLog(p), a.get_ArtefactID(p), a.get_Created(p), a.get_InstancesMeansPerAutodeployer(p))
-	if e != nil {
-		return 0, a.Error(ctx, qn, e)
+	qn := "save_DBApplicationDefinition"
+	smap, err := a.buildSaveMap(ctx, p)
+	if err != nil {
+		return 0, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
-		return 0, a.Error(ctx, qn, fmt.Errorf("No rows after insert"))
-	}
-	var id uint64
-	e = rows.Scan(&id)
-	if e != nil {
-		return 0, a.Error(ctx, qn, fmt.Errorf("failed to scan id after insert: %s", e))
-	}
-	p.ID = id
-	return id, nil
+	delete(smap, "id") // save without id
+	return a.saveMap(ctx, qn, smap, p)
 }
 
 // Save using the ID specified
 func (a *DBApplicationDefinition) SaveWithID(ctx context.Context, p *savepb.ApplicationDefinition) error {
 	qn := "insert_DBApplicationDefinition"
-	_, e := a.DB.ExecContext(ctx, qn, "insert into "+a.SQLTablename+" (id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer) values ($1,$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) ", p.ID, p.DownloadURL, p.DownloadUser, p.DownloadPassword, p.Binary, p.BuildID, p.Instances, p.DeploymentID, p.Machines, p.DeployType, p.Critical, p.AlwaysOn, p.StaticTargetDir, p.Public, p.Java, p.RepositoryID, p.AsRoot, p.Container.ID, p.DiscardLog, p.ArtefactID, p.Created, p.InstancesMeansPerAutodeployer)
-	return a.Error(ctx, qn, e)
+	smap, err := a.buildSaveMap(ctx, p)
+	if err != nil {
+		return err
+	}
+	_, err = a.saveMap(ctx, qn, smap, p)
+	return err
+}
+
+// use a hashmap of columnname->values to store to database (see buildSaveMap())
+func (a *DBApplicationDefinition) saveMap(ctx context.Context, queryname string, smap map[string]interface{}, p *savepb.ApplicationDefinition) (uint64, error) {
+	// Save (and use database default ID generation)
+
+	var rows *gosql.Rows
+	var e error
+
+	q_cols := ""
+	q_valnames := ""
+	q_vals := make([]interface{}, 0)
+	deli := ""
+	i := 0
+	// build the 2 parts of the query (column names and value names) as well as the values themselves
+	for colname, val := range smap {
+		q_cols = q_cols + deli + colname
+		i++
+		q_valnames = q_valnames + deli + fmt.Sprintf("$%d", i)
+		q_vals = append(q_vals, val)
+		deli = ","
+	}
+	rows, e = a.DB.QueryContext(ctx, queryname, "insert into "+a.SQLTablename+" ("+q_cols+") values ("+q_valnames+") returning id", q_vals...)
+	if e != nil {
+		return 0, a.Error(ctx, queryname, e)
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return 0, a.Error(ctx, queryname, errors.Errorf("No rows after insert"))
+	}
+	var id uint64
+	e = rows.Scan(&id)
+	if e != nil {
+		return 0, a.Error(ctx, queryname, errors.Errorf("failed to scan id after insert: %s", e))
+	}
+	p.ID = id
+	return id, nil
 }
 
 func (a *DBApplicationDefinition) Update(ctx context.Context, p *savepb.ApplicationDefinition) error {
@@ -156,20 +237,15 @@ func (a *DBApplicationDefinition) DeleteByID(ctx context.Context, p uint64) erro
 // get it by primary id
 func (a *DBApplicationDefinition) ByID(ctx context.Context, p uint64) (*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where id = $1", p)
+	l, e := a.fromQuery(ctx, qn, "id = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByID: error scanning (%s)", e))
 	}
 	if len(l) == 0 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("No ApplicationDefinition with id %v", p))
+		return nil, a.Error(ctx, qn, errors.Errorf("No ApplicationDefinition with id %v", p))
 	}
 	if len(l) != 1 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) ApplicationDefinition with id %v", len(l), p))
+		return nil, a.Error(ctx, qn, errors.Errorf("Multiple (%d) ApplicationDefinition with id %v", len(l), p))
 	}
 	return l[0], nil
 }
@@ -177,35 +253,35 @@ func (a *DBApplicationDefinition) ByID(ctx context.Context, p uint64) (*savepb.A
 // get it by primary id (nil if no such ID row, but no error either)
 func (a *DBApplicationDefinition) TryByID(ctx context.Context, p uint64) (*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_TryByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where id = $1", p)
+	l, e := a.fromQuery(ctx, qn, "id = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("TryByID: error scanning (%s)", e))
 	}
 	if len(l) == 0 {
 		return nil, nil
 	}
 	if len(l) != 1 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) ApplicationDefinition with id %v", len(l), p))
+		return nil, a.Error(ctx, qn, errors.Errorf("Multiple (%d) ApplicationDefinition with id %v", len(l), p))
 	}
 	return l[0], nil
+}
+
+// get it by multiple primary ids
+func (a *DBApplicationDefinition) ByIDs(ctx context.Context, p []uint64) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByIDs"
+	l, e := a.fromQuery(ctx, qn, "id in $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, errors.Errorf("TryByID: error scanning (%s)", e))
+	}
+	return l, nil
 }
 
 // get all rows
 func (a *DBApplicationDefinition) All(ctx context.Context) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_all"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" order by id")
+	l, e := a.fromQuery(ctx, qn, "true")
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("All: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, fmt.Errorf("All: error scanning (%s)", e)
+		return nil, errors.Errorf("All: error scanning (%s)", e)
 	}
 	return l, nil
 }
@@ -217,14 +293,19 @@ func (a *DBApplicationDefinition) All(ctx context.Context) ([]*savepb.Applicatio
 // get all "DBApplicationDefinition" rows with matching DownloadURL
 func (a *DBApplicationDefinition) ByDownloadURL(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByDownloadURL"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where downloadurl = $1", p)
+	l, e := a.fromQuery(ctx, qn, "downloadurl = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadURL: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadURL: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching DownloadURL
+func (a *DBApplicationDefinition) ByMultiDownloadURL(ctx context.Context, p []string) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByDownloadURL"
+	l, e := a.fromQuery(ctx, qn, "downloadurl in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadURL: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadURL: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -232,14 +313,9 @@ func (a *DBApplicationDefinition) ByDownloadURL(ctx context.Context, p string) (
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeDownloadURL(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeDownloadURL"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where downloadurl ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "downloadurl ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadURL: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadURL: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadURL: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -247,14 +323,19 @@ func (a *DBApplicationDefinition) ByLikeDownloadURL(ctx context.Context, p strin
 // get all "DBApplicationDefinition" rows with matching DownloadUser
 func (a *DBApplicationDefinition) ByDownloadUser(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByDownloadUser"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where downloaduser = $1", p)
+	l, e := a.fromQuery(ctx, qn, "downloaduser = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadUser: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadUser: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching DownloadUser
+func (a *DBApplicationDefinition) ByMultiDownloadUser(ctx context.Context, p []string) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByDownloadUser"
+	l, e := a.fromQuery(ctx, qn, "downloaduser in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadUser: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadUser: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -262,14 +343,9 @@ func (a *DBApplicationDefinition) ByDownloadUser(ctx context.Context, p string) 
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeDownloadUser(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeDownloadUser"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where downloaduser ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "downloaduser ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadUser: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadUser: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadUser: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -277,14 +353,19 @@ func (a *DBApplicationDefinition) ByLikeDownloadUser(ctx context.Context, p stri
 // get all "DBApplicationDefinition" rows with matching DownloadPassword
 func (a *DBApplicationDefinition) ByDownloadPassword(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByDownloadPassword"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where downloadpassword = $1", p)
+	l, e := a.fromQuery(ctx, qn, "downloadpassword = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadPassword: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadPassword: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching DownloadPassword
+func (a *DBApplicationDefinition) ByMultiDownloadPassword(ctx context.Context, p []string) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByDownloadPassword"
+	l, e := a.fromQuery(ctx, qn, "downloadpassword in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadPassword: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadPassword: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -292,14 +373,9 @@ func (a *DBApplicationDefinition) ByDownloadPassword(ctx context.Context, p stri
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeDownloadPassword(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeDownloadPassword"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where downloadpassword ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "downloadpassword ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadPassword: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDownloadPassword: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDownloadPassword: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -307,14 +383,19 @@ func (a *DBApplicationDefinition) ByLikeDownloadPassword(ctx context.Context, p 
 // get all "DBApplicationDefinition" rows with matching Binary
 func (a *DBApplicationDefinition) ByBinary(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByBinary"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where r_binary = $1", p)
+	l, e := a.fromQuery(ctx, qn, "r_binary = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByBinary: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByBinary: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching Binary
+func (a *DBApplicationDefinition) ByMultiBinary(ctx context.Context, p []string) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByBinary"
+	l, e := a.fromQuery(ctx, qn, "r_binary in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByBinary: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByBinary: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -322,14 +403,9 @@ func (a *DBApplicationDefinition) ByBinary(ctx context.Context, p string) ([]*sa
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeBinary(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeBinary"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where r_binary ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "r_binary ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByBinary: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByBinary: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByBinary: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -337,14 +413,19 @@ func (a *DBApplicationDefinition) ByLikeBinary(ctx context.Context, p string) ([
 // get all "DBApplicationDefinition" rows with matching BuildID
 func (a *DBApplicationDefinition) ByBuildID(ctx context.Context, p uint64) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByBuildID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where buildid = $1", p)
+	l, e := a.fromQuery(ctx, qn, "buildid = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByBuildID: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByBuildID: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching BuildID
+func (a *DBApplicationDefinition) ByMultiBuildID(ctx context.Context, p []uint64) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByBuildID"
+	l, e := a.fromQuery(ctx, qn, "buildid in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByBuildID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByBuildID: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -352,14 +433,9 @@ func (a *DBApplicationDefinition) ByBuildID(ctx context.Context, p uint64) ([]*s
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeBuildID(ctx context.Context, p uint64) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeBuildID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where buildid ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "buildid ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByBuildID: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByBuildID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByBuildID: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -367,14 +443,19 @@ func (a *DBApplicationDefinition) ByLikeBuildID(ctx context.Context, p uint64) (
 // get all "DBApplicationDefinition" rows with matching Instances
 func (a *DBApplicationDefinition) ByInstances(ctx context.Context, p uint32) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByInstances"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where instances = $1", p)
+	l, e := a.fromQuery(ctx, qn, "instances = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstances: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByInstances: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching Instances
+func (a *DBApplicationDefinition) ByMultiInstances(ctx context.Context, p []uint32) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByInstances"
+	l, e := a.fromQuery(ctx, qn, "instances in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstances: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByInstances: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -382,14 +463,9 @@ func (a *DBApplicationDefinition) ByInstances(ctx context.Context, p uint32) ([]
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeInstances(ctx context.Context, p uint32) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeInstances"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where instances ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "instances ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstances: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstances: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByInstances: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -397,14 +473,19 @@ func (a *DBApplicationDefinition) ByLikeInstances(ctx context.Context, p uint32)
 // get all "DBApplicationDefinition" rows with matching DeploymentID
 func (a *DBApplicationDefinition) ByDeploymentID(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByDeploymentID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where deploymentid = $1", p)
+	l, e := a.fromQuery(ctx, qn, "deploymentid = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeploymentID: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeploymentID: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching DeploymentID
+func (a *DBApplicationDefinition) ByMultiDeploymentID(ctx context.Context, p []string) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByDeploymentID"
+	l, e := a.fromQuery(ctx, qn, "deploymentid in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeploymentID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeploymentID: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -412,14 +493,9 @@ func (a *DBApplicationDefinition) ByDeploymentID(ctx context.Context, p string) 
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeDeploymentID(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeDeploymentID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where deploymentid ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "deploymentid ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeploymentID: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeploymentID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeploymentID: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -427,14 +503,19 @@ func (a *DBApplicationDefinition) ByLikeDeploymentID(ctx context.Context, p stri
 // get all "DBApplicationDefinition" rows with matching Machines
 func (a *DBApplicationDefinition) ByMachines(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByMachines"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where machines = $1", p)
+	l, e := a.fromQuery(ctx, qn, "machines = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByMachines: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByMachines: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching Machines
+func (a *DBApplicationDefinition) ByMultiMachines(ctx context.Context, p []string) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByMachines"
+	l, e := a.fromQuery(ctx, qn, "machines in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByMachines: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByMachines: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -442,14 +523,9 @@ func (a *DBApplicationDefinition) ByMachines(ctx context.Context, p string) ([]*
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeMachines(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeMachines"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where machines ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "machines ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByMachines: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByMachines: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByMachines: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -457,14 +533,19 @@ func (a *DBApplicationDefinition) ByLikeMachines(ctx context.Context, p string) 
 // get all "DBApplicationDefinition" rows with matching DeployType
 func (a *DBApplicationDefinition) ByDeployType(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByDeployType"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where deploytype = $1", p)
+	l, e := a.fromQuery(ctx, qn, "deploytype = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeployType: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeployType: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching DeployType
+func (a *DBApplicationDefinition) ByMultiDeployType(ctx context.Context, p []string) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByDeployType"
+	l, e := a.fromQuery(ctx, qn, "deploytype in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeployType: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeployType: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -472,14 +553,9 @@ func (a *DBApplicationDefinition) ByDeployType(ctx context.Context, p string) ([
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeDeployType(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeDeployType"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where deploytype ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "deploytype ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeployType: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeployType: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeployType: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -487,14 +563,19 @@ func (a *DBApplicationDefinition) ByLikeDeployType(ctx context.Context, p string
 // get all "DBApplicationDefinition" rows with matching Critical
 func (a *DBApplicationDefinition) ByCritical(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByCritical"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where critical = $1", p)
+	l, e := a.fromQuery(ctx, qn, "critical = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByCritical: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByCritical: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching Critical
+func (a *DBApplicationDefinition) ByMultiCritical(ctx context.Context, p []bool) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByCritical"
+	l, e := a.fromQuery(ctx, qn, "critical in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByCritical: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByCritical: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -502,14 +583,9 @@ func (a *DBApplicationDefinition) ByCritical(ctx context.Context, p bool) ([]*sa
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeCritical(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeCritical"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where critical ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "critical ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByCritical: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByCritical: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByCritical: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -517,14 +593,19 @@ func (a *DBApplicationDefinition) ByLikeCritical(ctx context.Context, p bool) ([
 // get all "DBApplicationDefinition" rows with matching AlwaysOn
 func (a *DBApplicationDefinition) ByAlwaysOn(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByAlwaysOn"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where alwayson = $1", p)
+	l, e := a.fromQuery(ctx, qn, "alwayson = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByAlwaysOn: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByAlwaysOn: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching AlwaysOn
+func (a *DBApplicationDefinition) ByMultiAlwaysOn(ctx context.Context, p []bool) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByAlwaysOn"
+	l, e := a.fromQuery(ctx, qn, "alwayson in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByAlwaysOn: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByAlwaysOn: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -532,14 +613,9 @@ func (a *DBApplicationDefinition) ByAlwaysOn(ctx context.Context, p bool) ([]*sa
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeAlwaysOn(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeAlwaysOn"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where alwayson ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "alwayson ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByAlwaysOn: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByAlwaysOn: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByAlwaysOn: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -547,14 +623,19 @@ func (a *DBApplicationDefinition) ByLikeAlwaysOn(ctx context.Context, p bool) ([
 // get all "DBApplicationDefinition" rows with matching StaticTargetDir
 func (a *DBApplicationDefinition) ByStaticTargetDir(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByStaticTargetDir"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where statictargetdir = $1", p)
+	l, e := a.fromQuery(ctx, qn, "statictargetdir = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByStaticTargetDir: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByStaticTargetDir: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching StaticTargetDir
+func (a *DBApplicationDefinition) ByMultiStaticTargetDir(ctx context.Context, p []string) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByStaticTargetDir"
+	l, e := a.fromQuery(ctx, qn, "statictargetdir in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByStaticTargetDir: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByStaticTargetDir: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -562,14 +643,9 @@ func (a *DBApplicationDefinition) ByStaticTargetDir(ctx context.Context, p strin
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeStaticTargetDir(ctx context.Context, p string) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeStaticTargetDir"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where statictargetdir ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "statictargetdir ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByStaticTargetDir: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByStaticTargetDir: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByStaticTargetDir: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -577,14 +653,19 @@ func (a *DBApplicationDefinition) ByLikeStaticTargetDir(ctx context.Context, p s
 // get all "DBApplicationDefinition" rows with matching Public
 func (a *DBApplicationDefinition) ByPublic(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByPublic"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where r_public = $1", p)
+	l, e := a.fromQuery(ctx, qn, "r_public = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByPublic: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByPublic: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching Public
+func (a *DBApplicationDefinition) ByMultiPublic(ctx context.Context, p []bool) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByPublic"
+	l, e := a.fromQuery(ctx, qn, "r_public in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByPublic: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByPublic: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -592,14 +673,9 @@ func (a *DBApplicationDefinition) ByPublic(ctx context.Context, p bool) ([]*save
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikePublic(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikePublic"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where r_public ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "r_public ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByPublic: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByPublic: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByPublic: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -607,14 +683,19 @@ func (a *DBApplicationDefinition) ByLikePublic(ctx context.Context, p bool) ([]*
 // get all "DBApplicationDefinition" rows with matching Java
 func (a *DBApplicationDefinition) ByJava(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByJava"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where java = $1", p)
+	l, e := a.fromQuery(ctx, qn, "java = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByJava: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByJava: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching Java
+func (a *DBApplicationDefinition) ByMultiJava(ctx context.Context, p []bool) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByJava"
+	l, e := a.fromQuery(ctx, qn, "java in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByJava: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByJava: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -622,14 +703,9 @@ func (a *DBApplicationDefinition) ByJava(ctx context.Context, p bool) ([]*savepb
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeJava(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeJava"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where java ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "java ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByJava: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByJava: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByJava: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -637,14 +713,19 @@ func (a *DBApplicationDefinition) ByLikeJava(ctx context.Context, p bool) ([]*sa
 // get all "DBApplicationDefinition" rows with matching RepositoryID
 func (a *DBApplicationDefinition) ByRepositoryID(ctx context.Context, p uint64) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByRepositoryID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where repositoryid = $1", p)
+	l, e := a.fromQuery(ctx, qn, "repositoryid = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByRepositoryID: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByRepositoryID: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching RepositoryID
+func (a *DBApplicationDefinition) ByMultiRepositoryID(ctx context.Context, p []uint64) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByRepositoryID"
+	l, e := a.fromQuery(ctx, qn, "repositoryid in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByRepositoryID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByRepositoryID: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -652,14 +733,9 @@ func (a *DBApplicationDefinition) ByRepositoryID(ctx context.Context, p uint64) 
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeRepositoryID(ctx context.Context, p uint64) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeRepositoryID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where repositoryid ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "repositoryid ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByRepositoryID: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByRepositoryID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByRepositoryID: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -667,14 +743,19 @@ func (a *DBApplicationDefinition) ByLikeRepositoryID(ctx context.Context, p uint
 // get all "DBApplicationDefinition" rows with matching AsRoot
 func (a *DBApplicationDefinition) ByAsRoot(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByAsRoot"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where asroot = $1", p)
+	l, e := a.fromQuery(ctx, qn, "asroot = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByAsRoot: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByAsRoot: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching AsRoot
+func (a *DBApplicationDefinition) ByMultiAsRoot(ctx context.Context, p []bool) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByAsRoot"
+	l, e := a.fromQuery(ctx, qn, "asroot in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByAsRoot: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByAsRoot: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -682,14 +763,9 @@ func (a *DBApplicationDefinition) ByAsRoot(ctx context.Context, p bool) ([]*save
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeAsRoot(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeAsRoot"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where asroot ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "asroot ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByAsRoot: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByAsRoot: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByAsRoot: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -697,14 +773,19 @@ func (a *DBApplicationDefinition) ByLikeAsRoot(ctx context.Context, p bool) ([]*
 // get all "DBApplicationDefinition" rows with matching Container
 func (a *DBApplicationDefinition) ByContainer(ctx context.Context, p uint64) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByContainer"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where container = $1", p)
+	l, e := a.fromQuery(ctx, qn, "container = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByContainer: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByContainer: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching Container
+func (a *DBApplicationDefinition) ByMultiContainer(ctx context.Context, p []uint64) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByContainer"
+	l, e := a.fromQuery(ctx, qn, "container in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByContainer: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByContainer: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -712,14 +793,9 @@ func (a *DBApplicationDefinition) ByContainer(ctx context.Context, p uint64) ([]
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeContainer(ctx context.Context, p uint64) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeContainer"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where container ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "container ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByContainer: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByContainer: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByContainer: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -727,14 +803,19 @@ func (a *DBApplicationDefinition) ByLikeContainer(ctx context.Context, p uint64)
 // get all "DBApplicationDefinition" rows with matching DiscardLog
 func (a *DBApplicationDefinition) ByDiscardLog(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByDiscardLog"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where discardlog = $1", p)
+	l, e := a.fromQuery(ctx, qn, "discardlog = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDiscardLog: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDiscardLog: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching DiscardLog
+func (a *DBApplicationDefinition) ByMultiDiscardLog(ctx context.Context, p []bool) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByDiscardLog"
+	l, e := a.fromQuery(ctx, qn, "discardlog in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDiscardLog: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDiscardLog: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -742,14 +823,9 @@ func (a *DBApplicationDefinition) ByDiscardLog(ctx context.Context, p bool) ([]*
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeDiscardLog(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeDiscardLog"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where discardlog ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "discardlog ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDiscardLog: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDiscardLog: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDiscardLog: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -757,14 +833,19 @@ func (a *DBApplicationDefinition) ByLikeDiscardLog(ctx context.Context, p bool) 
 // get all "DBApplicationDefinition" rows with matching ArtefactID
 func (a *DBApplicationDefinition) ByArtefactID(ctx context.Context, p uint64) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByArtefactID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where artefactid = $1", p)
+	l, e := a.fromQuery(ctx, qn, "artefactid = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByArtefactID: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByArtefactID: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching ArtefactID
+func (a *DBApplicationDefinition) ByMultiArtefactID(ctx context.Context, p []uint64) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByArtefactID"
+	l, e := a.fromQuery(ctx, qn, "artefactid in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByArtefactID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByArtefactID: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -772,14 +853,9 @@ func (a *DBApplicationDefinition) ByArtefactID(ctx context.Context, p uint64) ([
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeArtefactID(ctx context.Context, p uint64) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeArtefactID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where artefactid ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "artefactid ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByArtefactID: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByArtefactID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByArtefactID: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -787,14 +863,19 @@ func (a *DBApplicationDefinition) ByLikeArtefactID(ctx context.Context, p uint64
 // get all "DBApplicationDefinition" rows with matching Created
 func (a *DBApplicationDefinition) ByCreated(ctx context.Context, p uint32) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByCreated"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where created = $1", p)
+	l, e := a.fromQuery(ctx, qn, "created = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByCreated: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByCreated: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching Created
+func (a *DBApplicationDefinition) ByMultiCreated(ctx context.Context, p []uint32) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByCreated"
+	l, e := a.fromQuery(ctx, qn, "created in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByCreated: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByCreated: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -802,14 +883,9 @@ func (a *DBApplicationDefinition) ByCreated(ctx context.Context, p uint32) ([]*s
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeCreated(ctx context.Context, p uint32) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeCreated"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where created ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "created ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByCreated: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByCreated: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByCreated: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -817,14 +893,19 @@ func (a *DBApplicationDefinition) ByLikeCreated(ctx context.Context, p uint32) (
 // get all "DBApplicationDefinition" rows with matching InstancesMeansPerAutodeployer
 func (a *DBApplicationDefinition) ByInstancesMeansPerAutodeployer(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByInstancesMeansPerAutodeployer"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where instancesmeansperautodeployer = $1", p)
+	l, e := a.fromQuery(ctx, qn, "instancesmeansperautodeployer = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstancesMeansPerAutodeployer: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByInstancesMeansPerAutodeployer: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBApplicationDefinition" rows with multiple matching InstancesMeansPerAutodeployer
+func (a *DBApplicationDefinition) ByMultiInstancesMeansPerAutodeployer(ctx context.Context, p []bool) ([]*savepb.ApplicationDefinition, error) {
+	qn := "DBApplicationDefinition_ByInstancesMeansPerAutodeployer"
+	l, e := a.fromQuery(ctx, qn, "instancesmeansperautodeployer in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstancesMeansPerAutodeployer: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByInstancesMeansPerAutodeployer: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -832,14 +913,9 @@ func (a *DBApplicationDefinition) ByInstancesMeansPerAutodeployer(ctx context.Co
 // the 'like' lookup
 func (a *DBApplicationDefinition) ByLikeInstancesMeansPerAutodeployer(ctx context.Context, p bool) ([]*savepb.ApplicationDefinition, error) {
 	qn := "DBApplicationDefinition_ByLikeInstancesMeansPerAutodeployer"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,downloadurl, downloaduser, downloadpassword, r_binary, buildid, instances, deploymentid, machines, deploytype, critical, alwayson, statictargetdir, r_public, java, repositoryid, asroot, container, discardlog, artefactid, created, instancesmeansperautodeployer from "+a.SQLTablename+" where instancesmeansperautodeployer ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "instancesmeansperautodeployer ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstancesMeansPerAutodeployer: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByInstancesMeansPerAutodeployer: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByInstancesMeansPerAutodeployer: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -966,17 +1042,121 @@ func (a *DBApplicationDefinition) get_InstancesMeansPerAutodeployer(p *savepb.Ap
 **********************************************************************/
 
 // from a query snippet (the part after WHERE)
-func (a *DBApplicationDefinition) FromQuery(ctx context.Context, query_where string, args ...interface{}) ([]*savepb.ApplicationDefinition, error) {
-	rows, err := a.DB.QueryContext(ctx, "custom_query_"+a.Tablename(), "select "+a.SelectCols()+" from "+a.Tablename()+" where "+query_where, args...)
+func (a *DBApplicationDefinition) ByDBQuery(ctx context.Context, query *Query) ([]*savepb.ApplicationDefinition, error) {
+	extra_fields, err := extraFieldsToQuery(ctx, a)
 	if err != nil {
 		return nil, err
 	}
-	return a.FromRows(ctx, rows)
+	i := 0
+	for col_name, value := range extra_fields {
+		i++
+		efname := fmt.Sprintf("EXTRA_FIELD_%d", i)
+		query.Add(col_name+" = "+efname, QP{efname: value})
+	}
+
+	gw, paras := query.ToPostgres()
+	queryname := "custom_dbquery"
+	rows, err := a.DB.QueryContext(ctx, queryname, "select "+a.SelectCols()+" from "+a.Tablename()+" where "+gw, paras...)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.FromRows(ctx, rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+
+}
+
+func (a *DBApplicationDefinition) FromQuery(ctx context.Context, query_where string, args ...interface{}) ([]*savepb.ApplicationDefinition, error) {
+	return a.fromQuery(ctx, "custom_query_"+a.Tablename(), query_where, args...)
+}
+
+// from a query snippet (the part after WHERE)
+func (a *DBApplicationDefinition) fromQuery(ctx context.Context, queryname string, query_where string, args ...interface{}) ([]*savepb.ApplicationDefinition, error) {
+	extra_fields, err := extraFieldsToQuery(ctx, a)
+	if err != nil {
+		return nil, err
+	}
+	eq := ""
+	if extra_fields != nil && len(extra_fields) > 0 {
+		eq = " AND ("
+		// build the extraquery "eq"
+		i := len(args)
+		deli := ""
+		for col_name, value := range extra_fields {
+			i++
+			eq = eq + deli + col_name + fmt.Sprintf(" = $%d", i)
+			deli = " AND "
+			args = append(args, value)
+		}
+		eq = eq + ")"
+	}
+	rows, err := a.DB.QueryContext(ctx, queryname, "select "+a.SelectCols()+" from "+a.Tablename()+" where ( "+query_where+") "+eq, args...)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.FromRows(ctx, rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 /**********************************************************************
 * Helper to convert from an SQL Row to struct
 **********************************************************************/
+func (a *DBApplicationDefinition) get_col_from_proto(p *savepb.ApplicationDefinition, colname string) interface{} {
+	if colname == "id" {
+		return a.get_ID(p)
+	} else if colname == "downloadurl" {
+		return a.get_DownloadURL(p)
+	} else if colname == "downloaduser" {
+		return a.get_DownloadUser(p)
+	} else if colname == "downloadpassword" {
+		return a.get_DownloadPassword(p)
+	} else if colname == "r_binary" {
+		return a.get_Binary(p)
+	} else if colname == "buildid" {
+		return a.get_BuildID(p)
+	} else if colname == "instances" {
+		return a.get_Instances(p)
+	} else if colname == "deploymentid" {
+		return a.get_DeploymentID(p)
+	} else if colname == "machines" {
+		return a.get_Machines(p)
+	} else if colname == "deploytype" {
+		return a.get_DeployType(p)
+	} else if colname == "critical" {
+		return a.get_Critical(p)
+	} else if colname == "alwayson" {
+		return a.get_AlwaysOn(p)
+	} else if colname == "statictargetdir" {
+		return a.get_StaticTargetDir(p)
+	} else if colname == "r_public" {
+		return a.get_Public(p)
+	} else if colname == "java" {
+		return a.get_Java(p)
+	} else if colname == "repositoryid" {
+		return a.get_RepositoryID(p)
+	} else if colname == "asroot" {
+		return a.get_AsRoot(p)
+	} else if colname == "container" {
+		return a.get_Container_ID(p)
+	} else if colname == "discardlog" {
+		return a.get_DiscardLog(p)
+	} else if colname == "artefactid" {
+		return a.get_ArtefactID(p)
+	} else if colname == "created" {
+		return a.get_Created(p)
+	} else if colname == "instancesmeansperautodeployer" {
+		return a.get_InstancesMeansPerAutodeployer(p)
+	}
+	panic(fmt.Sprintf("in table \"%s\", column \"%s\" cannot be resolved to proto field name", a.Tablename(), colname))
+}
+
 func (a *DBApplicationDefinition) Tablename() string {
 	return a.SQLTablename
 }
@@ -988,18 +1168,6 @@ func (a *DBApplicationDefinition) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".downloadurl, " + a.SQLTablename + ".downloaduser, " + a.SQLTablename + ".downloadpassword, " + a.SQLTablename + ".r_binary, " + a.SQLTablename + ".buildid, " + a.SQLTablename + ".instances, " + a.SQLTablename + ".deploymentid, " + a.SQLTablename + ".machines, " + a.SQLTablename + ".deploytype, " + a.SQLTablename + ".critical, " + a.SQLTablename + ".alwayson, " + a.SQLTablename + ".statictargetdir, " + a.SQLTablename + ".r_public, " + a.SQLTablename + ".java, " + a.SQLTablename + ".repositoryid, " + a.SQLTablename + ".asroot, " + a.SQLTablename + ".container, " + a.SQLTablename + ".discardlog, " + a.SQLTablename + ".artefactid, " + a.SQLTablename + ".created, " + a.SQLTablename + ".instancesmeansperautodeployer"
 }
 
-func (a *DBApplicationDefinition) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.ApplicationDefinition, error) {
-	var res []*savepb.ApplicationDefinition
-	for rows.Next() {
-		foo := savepb.ApplicationDefinition{Limits: &savepb.Limits{}, Container: &savepb.ContainerDef{}}
-		err := rows.Scan(&foo.ID, &foo.DownloadURL, &foo.DownloadUser, &foo.DownloadPassword, &foo.Binary, &foo.BuildID, &foo.Instances, &foo.DeploymentID, &foo.Machines, &foo.DeployType, &foo.Critical, &foo.AlwaysOn, &foo.StaticTargetDir, &foo.Public, &foo.Java, &foo.RepositoryID, &foo.AsRoot, &foo.Container.ID, &foo.DiscardLog, &foo.ArtefactID, &foo.Created, &foo.InstancesMeansPerAutodeployer)
-		if err != nil {
-			return nil, a.Error(ctx, "fromrow-scan", err)
-		}
-		res = append(res, &foo)
-	}
-	return res, nil
-}
 func (a *DBApplicationDefinition) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.ApplicationDefinition, error) {
 	var res []*savepb.ApplicationDefinition
 	for rows.Next() {
@@ -1131,6 +1299,6 @@ func (a *DBApplicationDefinition) Error(ctx context.Context, q string, e error) 
 	if e == nil {
 		return nil
 	}
-	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
+	return errors.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
 

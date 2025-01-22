@@ -5,7 +5,9 @@ import pb "golang.conradwood.net/apis/deploymonkey"
 // user requested this to be undeployed (do not restart it automatically)
 func MarkAsUndeployed(appdef *pb.ApplicationDefinition) {
 	md := GetOrCreateMetaData(appdef)
-	md.user_requested_stop = true
+	md.Modify(func(m *MetaData) {
+		m.appmeta.UserRequestedStop = true
+	})
 }
 
 // user requested this to be undeployed (do not restart it automatically)
@@ -14,5 +16,7 @@ func MarkAsDeployed(appdef *pb.ApplicationDefinition) {
 	if md == nil {
 		return
 	}
-	md.user_requested_stop = false
+	md.Modify(func(m *MetaData) {
+		m.appmeta.UserRequestedStop = false
+	})
 }

@@ -4,7 +4,7 @@
 */
 
 /* geninfo:
-   filename  : protos/golang.conradwood.net/apis/deployminator/deployminator.proto
+   filename  : golang.conradwood.net/apis/deployminator/deployminator.proto
    gopackage : golang.conradwood.net/apis/deployminator
    importname: ai_0
    clientfunc: GetDeployminator

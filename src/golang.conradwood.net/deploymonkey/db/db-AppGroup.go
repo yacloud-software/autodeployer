@@ -2,7 +2,7 @@ package db
 
 /*
  This file was created by mkdb-client.
- The intention is not to modify thils file, but you may extend the struct DBAppGroup
+ The intention is not to modify this file, but you may extend the struct DBAppGroup
  in a seperate file (so that you can regenerate this one from time to time)
 */
 
@@ -35,8 +35,10 @@ import (
 	gosql "database/sql"
 	"fmt"
 	savepb "golang.conradwood.net/apis/deploymonkey"
+	"golang.conradwood.net/go-easyops/errors"
 	"golang.conradwood.net/go-easyops/sql"
 	"os"
+	"sync"
 )
 
 var (
@@ -44,9 +46,11 @@ var (
 )
 
 type DBAppGroup struct {
-	DB                  *sql.DB
-	SQLTablename        string
-	SQLArchivetablename string
+	DB                   *sql.DB
+	SQLTablename         string
+	SQLArchivetablename  string
+	customColumnHandlers []CustomColumnHandler
+	lock                 sync.Mutex
 }
 
 func DefaultDBAppGroup() *DBAppGroup {
@@ -75,6 +79,15 @@ func NewDBAppGroup(db *sql.DB) *DBAppGroup {
 	return &foo
 }
 
+func (a *DBAppGroup) GetCustomColumnHandlers() []CustomColumnHandler {
+	return a.customColumnHandlers
+}
+func (a *DBAppGroup) AddCustomColumnHandler(w CustomColumnHandler) {
+	a.lock.Lock()
+	a.customColumnHandlers = append(a.customColumnHandlers, w)
+	a.lock.Unlock()
+}
+
 // archive. It is NOT transactionally save.
 func (a *DBAppGroup) Archive(ctx context.Context, id uint64) error {
 
@@ -95,31 +108,82 @@ func (a *DBAppGroup) Archive(ctx context.Context, id uint64) error {
 	return nil
 }
 
-// Save (and use database default ID generation)
+// return a map with columnname -> value_from_proto
+func (a *DBAppGroup) buildSaveMap(ctx context.Context, p *savepb.AppGroup) (map[string]interface{}, error) {
+	extra, err := extraFieldsToStore(ctx, a, p)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]interface{})
+	res["id"] = a.get_col_from_proto(p, "id")
+	res["namespace"] = a.get_col_from_proto(p, "namespace")
+	res["groupname"] = a.get_col_from_proto(p, "groupname")
+	res["deployedversion"] = a.get_col_from_proto(p, "deployedversion")
+	res["pendingversion"] = a.get_col_from_proto(p, "pendingversion")
+	if extra != nil {
+		for k, v := range extra {
+			res[k] = v
+		}
+	}
+	return res, nil
+}
+
 func (a *DBAppGroup) Save(ctx context.Context, p *savepb.AppGroup) (uint64, error) {
-	qn := "DBAppGroup_Save"
-	rows, e := a.DB.QueryContext(ctx, qn, "insert into "+a.SQLTablename+" (namespace, groupname, deployedversion, pendingversion) values ($1, $2, $3, $4) returning id", a.get_Namespace(p), a.get_Groupname(p), a.get_DeployedVersion(p), a.get_PendingVersion(p))
-	if e != nil {
-		return 0, a.Error(ctx, qn, e)
+	qn := "save_DBAppGroup"
+	smap, err := a.buildSaveMap(ctx, p)
+	if err != nil {
+		return 0, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
-		return 0, a.Error(ctx, qn, fmt.Errorf("No rows after insert"))
-	}
-	var id uint64
-	e = rows.Scan(&id)
-	if e != nil {
-		return 0, a.Error(ctx, qn, fmt.Errorf("failed to scan id after insert: %s", e))
-	}
-	p.ID = id
-	return id, nil
+	delete(smap, "id") // save without id
+	return a.saveMap(ctx, qn, smap, p)
 }
 
 // Save using the ID specified
 func (a *DBAppGroup) SaveWithID(ctx context.Context, p *savepb.AppGroup) error {
 	qn := "insert_DBAppGroup"
-	_, e := a.DB.ExecContext(ctx, qn, "insert into "+a.SQLTablename+" (id,namespace, groupname, deployedversion, pendingversion) values ($1,$2, $3, $4, $5) ", p.ID, p.Namespace, p.Groupname, p.DeployedVersion, p.PendingVersion)
-	return a.Error(ctx, qn, e)
+	smap, err := a.buildSaveMap(ctx, p)
+	if err != nil {
+		return err
+	}
+	_, err = a.saveMap(ctx, qn, smap, p)
+	return err
+}
+
+// use a hashmap of columnname->values to store to database (see buildSaveMap())
+func (a *DBAppGroup) saveMap(ctx context.Context, queryname string, smap map[string]interface{}, p *savepb.AppGroup) (uint64, error) {
+	// Save (and use database default ID generation)
+
+	var rows *gosql.Rows
+	var e error
+
+	q_cols := ""
+	q_valnames := ""
+	q_vals := make([]interface{}, 0)
+	deli := ""
+	i := 0
+	// build the 2 parts of the query (column names and value names) as well as the values themselves
+	for colname, val := range smap {
+		q_cols = q_cols + deli + colname
+		i++
+		q_valnames = q_valnames + deli + fmt.Sprintf("$%d", i)
+		q_vals = append(q_vals, val)
+		deli = ","
+	}
+	rows, e = a.DB.QueryContext(ctx, queryname, "insert into "+a.SQLTablename+" ("+q_cols+") values ("+q_valnames+") returning id", q_vals...)
+	if e != nil {
+		return 0, a.Error(ctx, queryname, e)
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return 0, a.Error(ctx, queryname, errors.Errorf("No rows after insert"))
+	}
+	var id uint64
+	e = rows.Scan(&id)
+	if e != nil {
+		return 0, a.Error(ctx, queryname, errors.Errorf("failed to scan id after insert: %s", e))
+	}
+	p.ID = id
+	return id, nil
 }
 
 func (a *DBAppGroup) Update(ctx context.Context, p *savepb.AppGroup) error {
@@ -139,20 +203,15 @@ func (a *DBAppGroup) DeleteByID(ctx context.Context, p uint64) error {
 // get it by primary id
 func (a *DBAppGroup) ByID(ctx context.Context, p uint64) (*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where id = $1", p)
+	l, e := a.fromQuery(ctx, qn, "id = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByID: error scanning (%s)", e))
 	}
 	if len(l) == 0 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("No AppGroup with id %v", p))
+		return nil, a.Error(ctx, qn, errors.Errorf("No AppGroup with id %v", p))
 	}
 	if len(l) != 1 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) AppGroup with id %v", len(l), p))
+		return nil, a.Error(ctx, qn, errors.Errorf("Multiple (%d) AppGroup with id %v", len(l), p))
 	}
 	return l[0], nil
 }
@@ -160,35 +219,35 @@ func (a *DBAppGroup) ByID(ctx context.Context, p uint64) (*savepb.AppGroup, erro
 // get it by primary id (nil if no such ID row, but no error either)
 func (a *DBAppGroup) TryByID(ctx context.Context, p uint64) (*savepb.AppGroup, error) {
 	qn := "DBAppGroup_TryByID"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where id = $1", p)
+	l, e := a.fromQuery(ctx, qn, "id = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("TryByID: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("TryByID: error scanning (%s)", e))
 	}
 	if len(l) == 0 {
 		return nil, nil
 	}
 	if len(l) != 1 {
-		return nil, a.Error(ctx, qn, fmt.Errorf("Multiple (%d) AppGroup with id %v", len(l), p))
+		return nil, a.Error(ctx, qn, errors.Errorf("Multiple (%d) AppGroup with id %v", len(l), p))
 	}
 	return l[0], nil
+}
+
+// get it by multiple primary ids
+func (a *DBAppGroup) ByIDs(ctx context.Context, p []uint64) ([]*savepb.AppGroup, error) {
+	qn := "DBAppGroup_ByIDs"
+	l, e := a.fromQuery(ctx, qn, "id in $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, errors.Errorf("TryByID: error scanning (%s)", e))
+	}
+	return l, nil
 }
 
 // get all rows
 func (a *DBAppGroup) All(ctx context.Context) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_all"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" order by id")
+	l, e := a.fromQuery(ctx, qn, "true")
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("All: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, fmt.Errorf("All: error scanning (%s)", e)
+		return nil, errors.Errorf("All: error scanning (%s)", e)
 	}
 	return l, nil
 }
@@ -200,14 +259,19 @@ func (a *DBAppGroup) All(ctx context.Context) ([]*savepb.AppGroup, error) {
 // get all "DBAppGroup" rows with matching Namespace
 func (a *DBAppGroup) ByNamespace(ctx context.Context, p string) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByNamespace"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where namespace = $1", p)
+	l, e := a.fromQuery(ctx, qn, "namespace = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByNamespace: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByNamespace: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBAppGroup" rows with multiple matching Namespace
+func (a *DBAppGroup) ByMultiNamespace(ctx context.Context, p []string) ([]*savepb.AppGroup, error) {
+	qn := "DBAppGroup_ByNamespace"
+	l, e := a.fromQuery(ctx, qn, "namespace in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByNamespace: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByNamespace: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -215,14 +279,9 @@ func (a *DBAppGroup) ByNamespace(ctx context.Context, p string) ([]*savepb.AppGr
 // the 'like' lookup
 func (a *DBAppGroup) ByLikeNamespace(ctx context.Context, p string) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByLikeNamespace"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where namespace ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "namespace ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByNamespace: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByNamespace: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByNamespace: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -230,14 +289,19 @@ func (a *DBAppGroup) ByLikeNamespace(ctx context.Context, p string) ([]*savepb.A
 // get all "DBAppGroup" rows with matching Groupname
 func (a *DBAppGroup) ByGroupname(ctx context.Context, p string) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByGroupname"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where groupname = $1", p)
+	l, e := a.fromQuery(ctx, qn, "groupname = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByGroupname: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByGroupname: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBAppGroup" rows with multiple matching Groupname
+func (a *DBAppGroup) ByMultiGroupname(ctx context.Context, p []string) ([]*savepb.AppGroup, error) {
+	qn := "DBAppGroup_ByGroupname"
+	l, e := a.fromQuery(ctx, qn, "groupname in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByGroupname: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByGroupname: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -245,14 +309,9 @@ func (a *DBAppGroup) ByGroupname(ctx context.Context, p string) ([]*savepb.AppGr
 // the 'like' lookup
 func (a *DBAppGroup) ByLikeGroupname(ctx context.Context, p string) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByLikeGroupname"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where groupname ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "groupname ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByGroupname: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByGroupname: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByGroupname: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -260,14 +319,19 @@ func (a *DBAppGroup) ByLikeGroupname(ctx context.Context, p string) ([]*savepb.A
 // get all "DBAppGroup" rows with matching DeployedVersion
 func (a *DBAppGroup) ByDeployedVersion(ctx context.Context, p uint32) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByDeployedVersion"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where deployedversion = $1", p)
+	l, e := a.fromQuery(ctx, qn, "deployedversion = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeployedVersion: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeployedVersion: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBAppGroup" rows with multiple matching DeployedVersion
+func (a *DBAppGroup) ByMultiDeployedVersion(ctx context.Context, p []uint32) ([]*savepb.AppGroup, error) {
+	qn := "DBAppGroup_ByDeployedVersion"
+	l, e := a.fromQuery(ctx, qn, "deployedversion in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeployedVersion: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeployedVersion: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -275,14 +339,9 @@ func (a *DBAppGroup) ByDeployedVersion(ctx context.Context, p uint32) ([]*savepb
 // the 'like' lookup
 func (a *DBAppGroup) ByLikeDeployedVersion(ctx context.Context, p uint32) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByLikeDeployedVersion"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where deployedversion ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "deployedversion ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeployedVersion: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByDeployedVersion: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByDeployedVersion: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -290,14 +349,19 @@ func (a *DBAppGroup) ByLikeDeployedVersion(ctx context.Context, p uint32) ([]*sa
 // get all "DBAppGroup" rows with matching PendingVersion
 func (a *DBAppGroup) ByPendingVersion(ctx context.Context, p uint32) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByPendingVersion"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where pendingversion = $1", p)
+	l, e := a.fromQuery(ctx, qn, "pendingversion = $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByPendingVersion: error querying (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByPendingVersion: error scanning (%s)", e))
 	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
+	return l, nil
+}
+
+// get all "DBAppGroup" rows with multiple matching PendingVersion
+func (a *DBAppGroup) ByMultiPendingVersion(ctx context.Context, p []uint32) ([]*savepb.AppGroup, error) {
+	qn := "DBAppGroup_ByPendingVersion"
+	l, e := a.fromQuery(ctx, qn, "pendingversion in $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByPendingVersion: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByPendingVersion: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -305,14 +369,9 @@ func (a *DBAppGroup) ByPendingVersion(ctx context.Context, p uint32) ([]*savepb.
 // the 'like' lookup
 func (a *DBAppGroup) ByLikePendingVersion(ctx context.Context, p uint32) ([]*savepb.AppGroup, error) {
 	qn := "DBAppGroup_ByLikePendingVersion"
-	rows, e := a.DB.QueryContext(ctx, qn, "select id,namespace, groupname, deployedversion, pendingversion from "+a.SQLTablename+" where pendingversion ilike $1", p)
+	l, e := a.fromQuery(ctx, qn, "pendingversion ilike $1", p)
 	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByPendingVersion: error querying (%s)", e))
-	}
-	defer rows.Close()
-	l, e := a.FromRows(ctx, rows)
-	if e != nil {
-		return nil, a.Error(ctx, qn, fmt.Errorf("ByPendingVersion: error scanning (%s)", e))
+		return nil, a.Error(ctx, qn, errors.Errorf("ByPendingVersion: error scanning (%s)", e))
 	}
 	return l, nil
 }
@@ -351,17 +410,87 @@ func (a *DBAppGroup) get_PendingVersion(p *savepb.AppGroup) uint32 {
 **********************************************************************/
 
 // from a query snippet (the part after WHERE)
-func (a *DBAppGroup) FromQuery(ctx context.Context, query_where string, args ...interface{}) ([]*savepb.AppGroup, error) {
-	rows, err := a.DB.QueryContext(ctx, "custom_query_"+a.Tablename(), "select "+a.SelectCols()+" from "+a.Tablename()+" where "+query_where, args...)
+func (a *DBAppGroup) ByDBQuery(ctx context.Context, query *Query) ([]*savepb.AppGroup, error) {
+	extra_fields, err := extraFieldsToQuery(ctx, a)
 	if err != nil {
 		return nil, err
 	}
-	return a.FromRows(ctx, rows)
+	i := 0
+	for col_name, value := range extra_fields {
+		i++
+		efname := fmt.Sprintf("EXTRA_FIELD_%d", i)
+		query.Add(col_name+" = "+efname, QP{efname: value})
+	}
+
+	gw, paras := query.ToPostgres()
+	queryname := "custom_dbquery"
+	rows, err := a.DB.QueryContext(ctx, queryname, "select "+a.SelectCols()+" from "+a.Tablename()+" where "+gw, paras...)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.FromRows(ctx, rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+
+}
+
+func (a *DBAppGroup) FromQuery(ctx context.Context, query_where string, args ...interface{}) ([]*savepb.AppGroup, error) {
+	return a.fromQuery(ctx, "custom_query_"+a.Tablename(), query_where, args...)
+}
+
+// from a query snippet (the part after WHERE)
+func (a *DBAppGroup) fromQuery(ctx context.Context, queryname string, query_where string, args ...interface{}) ([]*savepb.AppGroup, error) {
+	extra_fields, err := extraFieldsToQuery(ctx, a)
+	if err != nil {
+		return nil, err
+	}
+	eq := ""
+	if extra_fields != nil && len(extra_fields) > 0 {
+		eq = " AND ("
+		// build the extraquery "eq"
+		i := len(args)
+		deli := ""
+		for col_name, value := range extra_fields {
+			i++
+			eq = eq + deli + col_name + fmt.Sprintf(" = $%d", i)
+			deli = " AND "
+			args = append(args, value)
+		}
+		eq = eq + ")"
+	}
+	rows, err := a.DB.QueryContext(ctx, queryname, "select "+a.SelectCols()+" from "+a.Tablename()+" where ( "+query_where+") "+eq, args...)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.FromRows(ctx, rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 /**********************************************************************
 * Helper to convert from an SQL Row to struct
 **********************************************************************/
+func (a *DBAppGroup) get_col_from_proto(p *savepb.AppGroup, colname string) interface{} {
+	if colname == "id" {
+		return a.get_ID(p)
+	} else if colname == "namespace" {
+		return a.get_Namespace(p)
+	} else if colname == "groupname" {
+		return a.get_Groupname(p)
+	} else if colname == "deployedversion" {
+		return a.get_DeployedVersion(p)
+	} else if colname == "pendingversion" {
+		return a.get_PendingVersion(p)
+	}
+	panic(fmt.Sprintf("in table \"%s\", column \"%s\" cannot be resolved to proto field name", a.Tablename(), colname))
+}
+
 func (a *DBAppGroup) Tablename() string {
 	return a.SQLTablename
 }
@@ -373,18 +502,6 @@ func (a *DBAppGroup) SelectColsQualified() string {
 	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".namespace, " + a.SQLTablename + ".groupname, " + a.SQLTablename + ".deployedversion, " + a.SQLTablename + ".pendingversion"
 }
 
-func (a *DBAppGroup) FromRowsOld(ctx context.Context, rows *gosql.Rows) ([]*savepb.AppGroup, error) {
-	var res []*savepb.AppGroup
-	for rows.Next() {
-		foo := savepb.AppGroup{}
-		err := rows.Scan(&foo.ID, &foo.Namespace, &foo.Groupname, &foo.DeployedVersion, &foo.PendingVersion)
-		if err != nil {
-			return nil, a.Error(ctx, "fromrow-scan", err)
-		}
-		res = append(res, &foo)
-	}
-	return res, nil
-}
 func (a *DBAppGroup) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.AppGroup, error) {
 	var res []*savepb.AppGroup
 	for rows.Next() {
@@ -454,6 +571,6 @@ func (a *DBAppGroup) Error(ctx context.Context, q string, e error) error {
 	if e == nil {
 		return nil
 	}
-	return fmt.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
+	return errors.Errorf("[table="+a.SQLTablename+", query=%s] Error: %s", q, e)
 }
 
