@@ -351,6 +351,14 @@ message NewBuildAvailableRequest {
   string Branch=6;
   uint64 RepositoryID=7; // backwards compatibility only. will be removed in future!
 }
+
+message AppMeta {
+  uint64 ID=1;
+  bool UserRequestedStop=2;
+  uint32 Created=3;
+  ApplicationDefinition AppDef=4  [(common.sql_name)="app_id",(common.sql_type)="uint64",(common.sql_reference)="applicationdefinition.id"];
+}
+
 /*
 the deploymonkeyservice orchestrates deployments
  */
