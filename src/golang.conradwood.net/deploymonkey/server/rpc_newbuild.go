@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+
 	"golang.conradwood.net/apis/common"
 	dm "golang.conradwood.net/apis/deploymonkey"
 	dc "golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/deploymonkey/useroverride"
 	"golang.conradwood.net/go-easyops/errors"
 )
 
@@ -22,6 +24,7 @@ func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuil
 				app.RepositoryID = req.RepositoryID
 			}
 			app.BuildID = req.BuildID
+			useroverride.MarkAsDeployed(app)
 		}
 	}
 	// check each app is complete
