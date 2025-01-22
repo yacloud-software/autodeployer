@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/db"
@@ -64,7 +65,7 @@ func (md *MetaData) UserDisabled() bool {
 func (md *MetaData) Modify(f func(md *MetaData)) error {
 	md.Lock()
 	if md.appmeta == nil {
-		md.appmeta = &pb.AppMeta{AppDef: md.appdef}
+		md.appmeta = &pb.AppMeta{Created: uint32(time.Now().Unix()), AppDef: md.appdef}
 	}
 	f(md)
 	md.Unlock()
