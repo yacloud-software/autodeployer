@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+
 	"golang.conradwood.net/apis/common"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	dc "golang.conradwood.net/deploymonkey/common"
@@ -14,6 +15,7 @@ import (
 	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/client"
 	"golang.conradwood.net/go-easyops/utils"
+
 	//	"google.golang.org/grpc"
 	"os"
 	"strings"
@@ -300,6 +302,15 @@ func updateApp() {
 }
 
 func listSuggestions() {
+	sr := &pb.SuggestRequest{}
+	ctx := authremote.Context()
+	sl, err := depl.GetSuggestions(ctx, sr)
+	utils.Bail("failed to get suggestions", err)
+	for _, sg := range sl.Suggestions {
+		fmt.Println(Suggestion2Line(sg))
+	}
+}
+func listSuggestionsOld() {
 	ctx := authremote.Context()
 	started := time.Now()
 	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
@@ -320,17 +331,15 @@ func listSuggestions() {
 }
 func applySuggestions() {
 	max_tries := 5
-	var last_suggest *suggest.Suggestion
 	for i := 0; i < max_tries; i++ {
 		ctx := authremote.Context()
-		depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
-		utils.Bail("Failed to get deployments from cache", err)
-		cfg, err := config.GetConfig(depl)
-		utils.Bail("Could not get config", err)
-		s, err := suggest.Analyse(cfg, depls)
-		utils.Bail("Suggestion failed", err)
-		last_suggest = s
-		err = try_suggestions(last_suggest)
+		sl, err := depl.GetSuggestions(ctx, &pb.SuggestRequest{})
+		utils.Bail("failed to get suggestions", err)
+		if len(sl.Suggestions) == 0 {
+			fmt.Printf("No suggestions to apply\n")
+			return
+		}
+		err = try_suggestions(sl)
 		if err == nil {
 			break
 		}
@@ -339,29 +348,33 @@ func applySuggestions() {
 			time.Sleep(time.Duration(5) * time.Second)
 		}
 	}
-	fmt.Println(last_suggest.String())
-
-	if len(last_suggest.Starts) != 0 || len(last_suggest.Stops) != 0 {
-		os.Exit(1)
-	}
-
+	os.Exit(1)
 }
-func try_suggestions(s *suggest.Suggestion) error {
+
+func try_suggestions(s *pb.SuggestionList) error {
 	var err error
-	fmt.Printf("Executing %d start requests...\n", len(s.Starts))
-	for _, start := range s.Starts {
+	fmt.Printf("Executing %d requests...\n", len(s.Suggestions))
+	for _, start := range s.Suggestions {
+		if !start.Start {
+			continue
+		}
+		fmt.Println(Suggestion2Line(start))
 		ctx := authremote.ContextWithTimeout(*deploy_timeout)
 		fmt.Printf("Deploying %s...\n", start.String())
-		d := start.DeployRequest()
+		d := ToDeployRequest(start)
 		_, err = depl.DeployAppOnTarget(ctx, d)
 		if err != nil {
 			return err
 		}
 
 	}
-	fmt.Printf("Executing %d stop requests...\n", len(s.Stops))
-	for _, stop := range s.Stops {
-		d := stop.UndeployRequest()
+	fmt.Printf("Executing stop requests...\n")
+	for _, stop := range s.Suggestions {
+		if stop.Start {
+			continue
+		}
+		fmt.Println(Suggestion2Line(stop))
+		d := ToUndeployRequest(stop)
 		ctx := authremote.ContextWithTimeout(*deploy_timeout)
 		fmt.Printf("Undeploying %s...\n", stop.String())
 		_, err = depl.UndeployAppOnTarget(ctx, d)
@@ -427,4 +440,23 @@ func delVersion() error {
 	_, err := depl.DeleteVersion(ctx, &pb.DelVersionRequest{Version: vers})
 	utils.Bail("Failed to get deployers from cache", err)
 	return nil
+}
+
+func ToDeployRequest(suggestion *pb.Suggestion) *pb.DeployAppRequest {
+	return suggestion.DeployRequest
+
+	//	res := &pb.DeployAppRequest{Host: suggestion.Host, AppID: suggestion.App.ID}
+	//	return res
+}
+func ToUndeployRequest(suggestion *pb.Suggestion) *pb.UndeployAppRequest {
+	return suggestion.UndeployRequest
+	//	res := &pb.UndeployAppRequest{Host:suggestion.Host,DeploymentID: suggestion.}
+	//	return res
+}
+func Suggestion2Line(sg *pb.Suggestion) string {
+	s := "stop"
+	if sg.Start {
+		s = "start"
+	}
+	return fmt.Sprintf("%s %s on %s", s, sg.App.Binary, sg.Host)
 }
