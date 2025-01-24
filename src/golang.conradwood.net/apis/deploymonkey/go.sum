@@ -18,8 +18,8 @@ go.opentelemetry.io/otel/sdk/metric v1.31.0 h1:i9hxxLJF/9kkvfHppyLL55aW7iIJz4Jjx
 go.opentelemetry.io/otel/sdk/metric v1.31.0/go.mod h1:CRInTMVvNhUKgSAMbKyTMxqOBC0zgyxzW55lZzX43Y8=
 go.opentelemetry.io/otel/trace v1.31.0 h1:ffjsj1aRouKewfr85U2aGagJ46+MvodynlQ1HYdmJys=
 go.opentelemetry.io/otel/trace v1.31.0/go.mod h1:TXZkRk7SM2ZQLtR6eoAWQFIHPvzQ06FJAsO1tJg480A=
-golang.conradwood.net/apis/common v1.1.3583 h1:uP++8U1LAuMTeWCK9sCOivEeeJJiJZ8OA24Fw4HU0yg=
-golang.conradwood.net/apis/common v1.1.3583/go.mod h1:zNpQOsTyzXcITBdZE0r9iIBXR410ASDRXllu2Pg2tZk=
+golang.conradwood.net/apis/common v1.1.3585 h1:9kjJJ7bl1cVR4WCJtLKfwJVb1MUd7Sk2a8KaPETuwEo=
+golang.conradwood.net/apis/common v1.1.3585/go.mod h1:2Z33Yc8KZy/Z8ig0sy6fNwf5d7fVd5qvdyLkko7WwjM=
 golang.conradwood.net/apis/grafanadata v1.1.3576 h1:I6R8PVNGG6RMIGHawuCnqLRj2otXMi9Hbnr/t1Liw9M=
 golang.conradwood.net/apis/grafanadata v1.1.3576/go.mod h1:dlg9yG3YvjwA+08BLFnSbrViL37Y7fcJHPPUJFaoRUI=
 golang.org/x/net v0.34.0 h1:Mb7Mrk043xzHgnRM88suvJFwzVrRfHEHJEl5/71CKw0=
