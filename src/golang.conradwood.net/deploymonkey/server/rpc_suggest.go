@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"golang.conradwood.net/apis/common"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/config"
@@ -11,7 +13,24 @@ import (
 	"golang.conradwood.net/go-easyops/errors"
 )
 
+var (
+	last_suggestion_list_time time.Time
+	last_suggestion_list      *pb.SuggestionList
+)
+
 func (d *DeployMonkey) GetSuggestions(ctx context.Context, req *pb.SuggestRequest) (*pb.SuggestionList, error) {
+	if last_suggestion_list != nil && time.Since(last_suggestion_list_time) < time.Duration(5)*time.Second {
+		return last_suggestion_list, nil
+	}
+	res, err := d.getSuggestions(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	last_suggestion_list = res
+	last_suggestion_list_time = time.Now()
+	return last_suggestion_list, nil
+}
+func (d *DeployMonkey) getSuggestions(ctx context.Context, req *pb.SuggestRequest) (*pb.SuggestionList, error) {
 	depl := pb.NewDeployMonkeyClient(client.Connect("deploymonkey.DeployMonkey"))
 	depls, err := d.GetDeploymentsFromCache(ctx, &common.Void{})
 	if err != nil {
