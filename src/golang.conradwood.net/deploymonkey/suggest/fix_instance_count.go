@@ -27,7 +27,9 @@ func (f *fixMissing) Run() {
 	if *debugSuggest {
 		fmt.Printf(" FixMissing(): (%d apps)\n", len(iter))
 	}
+	appids := make(map[uint64]bool) // keep a record which apps (by id) we counted instances for
 	for _, ai := range iter {
+		appids[ai.App.ID] = true
 		if !ai.App.AlwaysOn {
 			continue
 		}
@@ -40,12 +42,13 @@ func (f *fixMissing) Run() {
 		}
 		actual := CountInstances(f.suggestion.ProjectedDeployments(), ai.App)
 		wanted := int(ai.App.Instances)
+
+		if *debugSuggest {
+			fmt.Printf("   %d %s \n", ai.App.ID, ai.App.Binary)
+			fmt.Printf("      Actual: %d | Wanted: %d\n", actual, wanted)
+		}
 		if actual == wanted {
 			continue
-		}
-		if *debugSuggest {
-			fmt.Printf("   %s \n", ai.App.Binary)
-			fmt.Printf("      Actual: %d | Wanted: %d\n", actual, wanted)
 		}
 		for actual < wanted {
 			m := ai.App.Machines
@@ -102,6 +105,23 @@ func (f *fixMissing) Run() {
 		}
 	}
 
+	// it is possible that there are apps which we did not count.
+	// that is those with an app.ID which aren't in the config.
+	// these 'stray' ones should be stopped.
+	for _, dl := range f.suggestion.ProjectedDeployments().Deployments {
+		for _, gd := range dl.Apps {
+			for _, app := range gd.Applications {
+				if appids[app.ID] {
+					continue
+				}
+				f.suggestion.AddStop(&StopApp{Host: dl.Host, App: app})
+				if *debugSuggest {
+					fmt.Printf("Stray App: %d %s on %s\n", app.ID, app.Binary, dl.Host)
+				}
+			}
+
+		}
+	}
 	if *debugSuggest {
 		fmt.Printf("done fixmissing()\n")
 	}
