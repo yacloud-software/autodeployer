@@ -13,10 +13,11 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	pb "golang.conradwood.net/apis/deploymonkey"
-	"golang.conradwood.net/deploymonkey/config"
 	"path/filepath"
 	"sort"
+
+	pb "golang.conradwood.net/apis/deploymonkey"
+	"golang.conradwood.net/deploymonkey/config"
 )
 
 var (
@@ -138,8 +139,12 @@ func Analyse(conf *config.Config, dl *pb.DeploymentList) (*Suggestion, error) {
 	if *debugSuggest { // NOT A DEBUG IF CLAUSE
 		fmt.Printf("** Analysing config for suggestions **\n")
 		fmt.Printf(" Config:\n")
-		for d, ai := range conf.AppIterator() {
-			fmt.Printf(" %3d.  %s [%s]\n", d+1, ai.App.Binary, ai.App.DeploymentID)
+		api := conf.AppIterator()
+		sort.Slice(api, func(i, j int) bool {
+			return api[i].App.Binary < api[j].App.Binary
+		})
+		for d, ai := range api {
+			fmt.Printf(" %3d.  %s [%s] - want %d instances\n", d+1, ai.App.Binary, ai.App.DeploymentID, ai.App.Instances)
 		}
 		fmt.Printf(" Deployments:\n")
 		for _, d := range dl.Deployments {
