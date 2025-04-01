@@ -403,6 +403,8 @@ service DeployMonkey {
   rpc GetKnownAutodeployers(common.Void) returns (AutodeployerList);
   // get suggestions
   rpc GetSuggestions(SuggestRequest) returns (SuggestionList);
+  // apply suggestions
+  rpc ApplySuggestions(common.Void) returns (SuggestionList);
   // delete an application definition
   rpc DeleteVersion(DelVersionRequest) returns (common.Void);
   // make it queryable
