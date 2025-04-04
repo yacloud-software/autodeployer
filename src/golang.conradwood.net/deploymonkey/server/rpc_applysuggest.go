@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -17,16 +16,26 @@ const (
 )
 
 var (
+	apply_suggest_chan = make(chan *apply_suggest_event)
 	apply_suggest_lock sync.Mutex
 )
 
-func (dm *DeployMonkey) ApplySuggestions(ctx context.Context, req *common.Void) (*pb.SuggestionList, error) {
+type apply_suggest_event struct {
+	suggestion_list *pb.SuggestionList
+}
+
+func init() {
+	go apply_suggest_thread()
+}
+
+func (dm *DeployMonkey) ApplySuggestions(req *common.Void, srv pb.DeployMonkey_ApplySuggestionsServer) error {
+	ctx := srv.Context()
 	sl, err := dm.GetSuggestions(ctx, &pb.SuggestRequest{})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	dm.triggerApplySuggestions(sl)
-	return sl, nil
+	return nil
 }
 func (dm *DeployMonkey) triggerApplyAllSuggestions() {
 	ctx := authremote.ContextWithTimeout(apply_timeout)
@@ -49,18 +58,14 @@ func (dm *DeployMonkey) applySuggestions(sl *pb.SuggestionList) error {
 		fmt.Printf("No suggestions to apply\n")
 		return nil
 	}
-	err := dm.try_suggestions(sl)
-	if err != nil {
-		fmt.Printf("Failed to deploy: %s\n", err)
-		return err
-	}
-
+	apply_suggest_chan <- &apply_suggest_event{suggestion_list: sl}
 	return nil
 }
 
-func (dm *DeployMonkey) try_suggestions(s *pb.SuggestionList) error {
+func try_suggestions(s *pb.SuggestionList) error {
 	var err error
 	fmt.Printf("Executing %d requests...\n", len(s.Suggestions))
+	dm := &DeployMonkey{}
 	for _, start := range s.Suggestions {
 		if !start.Start {
 			continue
@@ -68,7 +73,7 @@ func (dm *DeployMonkey) try_suggestions(s *pb.SuggestionList) error {
 		//		fmt.Println(Suggestion2Line(start))
 		ctx := authremote.ContextWithTimeout(apply_timeout)
 		fmt.Printf("Deploying %s...\n", start.String())
-		d := dm.ToDeployRequest(start)
+		d := ToDeployRequest(start)
 		_, err = dm.DeployAppOnTarget(ctx, d)
 		if err != nil {
 			return err
@@ -81,7 +86,7 @@ func (dm *DeployMonkey) try_suggestions(s *pb.SuggestionList) error {
 			continue
 		}
 		//		fmt.Println(Suggestion2Line(stop))
-		d := dm.ToUndeployRequest(stop)
+		d := ToUndeployRequest(stop)
 		ctx := authremote.ContextWithTimeout(apply_timeout)
 		fmt.Printf("Undeploying %s...\n", stop.String())
 		_, err = dm.UndeployAppOnTarget(ctx, d)
@@ -91,9 +96,16 @@ func (dm *DeployMonkey) try_suggestions(s *pb.SuggestionList) error {
 	}
 	return nil
 }
-func (dm *DeployMonkey) ToDeployRequest(suggestion *pb.Suggestion) *pb.DeployAppRequest {
+func ToDeployRequest(suggestion *pb.Suggestion) *pb.DeployAppRequest {
 	return suggestion.DeployRequest
 }
-func (dm *DeployMonkey) ToUndeployRequest(suggestion *pb.Suggestion) *pb.UndeployAppRequest {
+func ToUndeployRequest(suggestion *pb.Suggestion) *pb.UndeployAppRequest {
 	return suggestion.UndeployRequest
+}
+
+func apply_suggest_thread() {
+	for {
+		ase := <-apply_suggest_chan
+		try_suggestions(ase.suggestion_list)
+	}
 }
