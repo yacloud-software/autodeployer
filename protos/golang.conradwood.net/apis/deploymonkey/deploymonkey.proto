@@ -359,6 +359,10 @@ message AppMeta {
   ApplicationDefinition AppDef=4  [(common.sql_name)="app_id",(common.sql_type)="uint64",(common.sql_reference)="applicationdefinition.id"];
 }
 
+message ApplyStream {
+  string StdOutLine=1;
+}
+
 /*
 the deploymonkeyservice orchestrates deployments
  */
@@ -404,7 +408,7 @@ service DeployMonkey {
   // get suggestions
   rpc GetSuggestions(SuggestRequest) returns (SuggestionList);
   // apply suggestions
-  rpc ApplySuggestions(common.Void) returns (SuggestionList);
+  rpc ApplySuggestions(common.Void) returns (stream ApplyStream);
   // delete an application definition
   rpc DeleteVersion(DelVersionRequest) returns (common.Void);
   // make it queryable
