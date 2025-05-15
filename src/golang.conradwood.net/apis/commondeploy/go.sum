@@ -2,7 +2,7 @@ github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-golang.conradwood.net/apis/common v1.1.3859 h1:UTdyk4IkwEi1Yz8RULoLnxqALfDcofHZiv7WnjgOleg=
-golang.conradwood.net/apis/common v1.1.3859/go.mod h1:2mwMpd0CgOMj5eoFZXW88JJrG1yhPsHFBKYXYCefqgo=
+golang.conradwood.net/apis/common v1.1.3860 h1:oXXtSnNmmOK8s4HZeHjCIlx1PlCT3U7nzRN+mzDkbYY=
+golang.conradwood.net/apis/common v1.1.3860/go.mod h1:CnBsiHGFgl649wUOTR4YDP17HzGuh2u0pHbrjeSYXuM=
 google.golang.org/protobuf v1.36.6 h1:z1NpPI8ku2WgiWnf+t9wTPsn6eP1L7ksHUlkfLvd9xY=
 google.golang.org/protobuf v1.36.6/go.mod h1:jduwjTPXsFjZGTmRluh+L6NjiWu7pchiJ2/5YcXBHnY=
