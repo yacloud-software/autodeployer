@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	ad "golang.conradwood.net/apis/autodeployer"
-	dc "golang.conradwood.net/deploymonkey/common"
-	"golang.conradwood.net/go-easyops/authremote"
-	"golang.conradwood.net/go-easyops/client"
-	"golang.conradwood.net/go-easyops/utils"
 	"os"
 	"path/filepath"
+
+	ad "golang.conradwood.net/apis/autodeployer"
+	dc "golang.conradwood.net/deploymonkey/common"
+	"golang.conradwood.net/go-easyops/client"
+	"golang.conradwood.net/go-easyops/utils"
 )
 
 func DeployLocal() {
@@ -27,7 +27,7 @@ func DeployLocal() {
 			deployRequest.DeploymentID = "testing"
 			deployRequest.BuildID = 123456
 			fmt.Printf("DeployRequest:\n%#v\n", deployRequest)
-			ctx := authremote.Context()
+			ctx := Context()
 			adc.Deploy(ctx, deployRequest)
 		}
 	}

@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+
 	pb "golang.conradwood.net/apis/deploymonkey"
-	"golang.conradwood.net/go-easyops/authremote"
 	"golang.conradwood.net/go-easyops/utils"
 )
 
@@ -26,7 +26,7 @@ func newbuild() error {
 		Branch:       "master",
 		RepositoryID: uint64(repoid),
 	}
-	ctx := authremote.Context()
+	ctx := Context()
 	_, err = depl.NewBuildAvailable(ctx, nbar)
 	if err != nil {
 		fmt.Printf("Failed to do newbuild: %s\n", utils.ErrorString(err))

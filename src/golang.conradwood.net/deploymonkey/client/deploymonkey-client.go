@@ -3,6 +3,7 @@ package main
 // instruct the autodeployer on a given server to download & deploy stuff
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -128,7 +129,7 @@ func bail(err error, msg string) {
 }
 
 func undeployApplication(ID int) {
-	ctx := authremote.Context()
+	ctx := Context()
 	uar := pb.UndeployApplicationRequest{ID: int64(ID)}
 	resp, err := depl.UndeployApplication(ctx, &uar)
 	if err != nil {
@@ -146,7 +147,7 @@ func undeployApplication(ID int) {
 }
 
 func callListVersions(repo string) {
-	ctx := authremote.Context()
+	ctx := Context()
 	dr := pb.ListVersionByNameRequest{Name: repo}
 	resp, err := depl.ListVersionsByName(ctx, &dr)
 	if err != nil {
@@ -174,7 +175,7 @@ func callListVersions(repo string) {
 
 func applyVersion() {
 	fmt.Printf("Applying Version...\n")
-	ctx := authremote.Context()
+	ctx := Context()
 
 	dr := pb.DeployRequest{VersionID: fmt.Sprintf("%d", *apply_version)}
 	resp, err := depl.DeployVersion(ctx, &dr)
@@ -272,7 +273,7 @@ func updateRepo() {
 		RepositoryID: *repository,
 		BuildID:      uint64(*buildid),
 	}
-	ctx := authremote.Context()
+	ctx := Context()
 	resp, err := depl.UpdateRepo(ctx, &ur)
 	bail(err, "Failed to update repo")
 	fmt.Printf("Response to updaterepo: %v\n", resp)
@@ -291,7 +292,7 @@ func updateApp() {
 		App:       &ad,
 	}
 	fmt.Printf("Updating app %s\n", *binary)
-	ctx := authremote.Context()
+	ctx := Context()
 
 	resp, err := depl.UpdateApp(ctx, &uar)
 	if err != nil {
@@ -303,7 +304,7 @@ func updateApp() {
 
 func listSuggestions() {
 	sr := &pb.SuggestRequest{}
-	ctx := authremote.Context()
+	ctx := Context()
 	sl, err := depl.GetSuggestions(ctx, sr)
 	utils.Bail("failed to get suggestions", err)
 	for _, sg := range sl.Suggestions {
@@ -311,7 +312,7 @@ func listSuggestions() {
 	}
 }
 func listSuggestionsOld() {
-	ctx := authremote.Context()
+	ctx := Context()
 	started := time.Now()
 	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
 	utils.Bail("Failed to get deployments from cache", err)
@@ -332,7 +333,7 @@ func listSuggestionsOld() {
 func applySuggestions() {
 	max_tries := 5
 	for i := 0; i < max_tries; i++ {
-		ctx := authremote.Context()
+		ctx := Context()
 		sl, err := depl.GetSuggestions(ctx, &pb.SuggestRequest{})
 		utils.Bail("failed to get suggestions", err)
 		if len(sl.Suggestions) == 0 {
@@ -386,7 +387,7 @@ func try_suggestions(s *pb.SuggestionList) error {
 }
 
 func listDeployments() {
-	ctx := authremote.Context()
+	ctx := Context()
 	depls, err := depl.GetDeploymentsFromCache(ctx, &common.Void{})
 	utils.Bail("Failed to get deployments from cache", err)
 	fmt.Printf("Current Deployments:\n")
@@ -420,7 +421,7 @@ func listDeployments() {
 
 func listDeployers() {
 	t := &utils.Table{}
-	ctx := authremote.Context()
+	ctx := Context()
 	depls, err := depl.GetKnownAutodeployers(ctx, &common.Void{})
 	utils.Bail("Failed to get deployers from cache", err)
 	t.AddHeaders("IP", "Groups", "GroupCount")
@@ -435,7 +436,7 @@ func listDeployers() {
 }
 
 func delVersion() error {
-	ctx := authremote.Context()
+	ctx := Context()
 	vers := *del_version
 	_, err := depl.DeleteVersion(ctx, &pb.DelVersionRequest{Version: vers})
 	utils.Bail("Failed to get deployers from cache", err)
@@ -459,4 +460,8 @@ func Suggestion2Line(sg *pb.Suggestion) string {
 		s = "start"
 	}
 	return fmt.Sprintf("%s %s on %s", s, sg.App.Binary, sg.Host)
+}
+
+func Context() context.Context {
+	return authremote.ContextWithTimeout(time.Duration(90) * time.Second)
 }
