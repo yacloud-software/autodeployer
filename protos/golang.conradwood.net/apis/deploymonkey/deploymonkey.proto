@@ -129,10 +129,12 @@ message ContainerDef {
   bool UseOverlayFS=3; // if true mount an overlayfs over rootfs and execute in it
 }
 message Limits {
-  // max memory available to this process in Megabyte (default = 3000Mb )
+  // max memory available to this process in Megabyte (default = 3000Mb ) (memory.high)
   uint32 MaxMemory = 1;
   // see setPriorityCall on linux
   int32 Priority = 2;
+  // max memory available to this process in Megabyte (default = 3000Mb ) (memory.max)
+  uint32 MaxKillMemory = 3;
 }
 
 // a group consists of one or more applications
