@@ -137,6 +137,17 @@ message Limits {
   uint32 MaxKillMemory = 3;
 }
 
+message SQLLimits {
+  uint64 ID=1;
+  ApplicationDefinition AppDef=2  [(common.sql_name)="app_id",(common.sql_type)="uint64",(common.sql_reference)="applicationdefinition.id"];
+  // max memory available to this process in Megabyte (default = 3000Mb ) (memory.high)
+  uint32 MaxMemory = 3;
+  // see setPriorityCall on linux
+  int32 Priority = 4;
+  // max memory available to this process in Megabyte (default = 3000Mb ) (memory.max)
+  uint32 MaxKillMemory = 5;
+}
+
 // a group consists of one or more applications
 // and a key (chosen by the creator)
 // if a group with a given key is redefined, all previous
