@@ -57,6 +57,12 @@ type DBDeploymentLog struct {
 	lock                 sync.Mutex
 }
 
+func init() {
+	RegisterDBHandlerFactory(func() Handler {
+		return DefaultDBDeploymentLog()
+	})
+}
+
 func DefaultDBDeploymentLog() *DBDeploymentLog {
 	if default_def_DBDeploymentLog != nil {
 		return default_def_DBDeploymentLog
@@ -90,6 +96,10 @@ func (a *DBDeploymentLog) AddCustomColumnHandler(w CustomColumnHandler) {
 	a.lock.Lock()
 	a.customColumnHandlers = append(a.customColumnHandlers, w)
 	a.lock.Unlock()
+}
+
+func (a *DBDeploymentLog) NewQuery() *Query {
+	return newQuery(a)
 }
 
 // archive. It is NOT transactionally save.
@@ -194,6 +204,14 @@ func (a *DBDeploymentLog) saveMap(ctx context.Context, queryname string, smap ma
 	return id, nil
 }
 
+// if ID==0 save, otherwise update
+func (a *DBDeploymentLog) SaveOrUpdate(ctx context.Context, p *savepb.DeploymentLog) error {
+	if p.ID == 0 {
+		_, err := a.Save(ctx, p)
+		return err
+	}
+	return a.Update(ctx, p)
+}
 func (a *DBDeploymentLog) Update(ctx context.Context, p *savepb.DeploymentLog) error {
 	qn := "DBDeploymentLog_Update"
 	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set r_binary=$1, app_id=$2, buildid=$3, autodeployerhost=$4, started=$5, finished=$6, message=$7, deployalgorithm=$8 where id = $9", a.get_Binary(p), a.get_AppDef_ID(p), a.get_BuildID(p), a.get_AutoDeployerHost(p), a.get_Started(p), a.get_Finished(p), a.get_Message(p), a.get_DeployAlgorithm(p), p.ID)
@@ -569,8 +587,11 @@ func (a *DBDeploymentLog) ByDBQuery(ctx context.Context, query *Query) ([]*savep
 	i := 0
 	for col_name, value := range extra_fields {
 		i++
-		efname := fmt.Sprintf("EXTRA_FIELD_%d", i)
-		query.Add(col_name+" = "+efname, QP{efname: value})
+		/*
+		   efname:=fmt.Sprintf("EXTRA_FIELD_%d",i)
+		   query.Add(col_name+" = "+efname,QP{efname:value})
+		*/
+		query.AddEqual(col_name, value)
 	}
 
 	gw, paras := query.ToPostgres()

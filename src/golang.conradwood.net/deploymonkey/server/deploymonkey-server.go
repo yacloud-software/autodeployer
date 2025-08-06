@@ -83,7 +83,7 @@ func main() {
 	utils.Bail("failed to open postgres", err)
 	db.DefaultDBContainerDef().SaveWithID(context.Background(), &pb.ContainerDef{ID: 0})
 	appdef_store = db.DefaultDBApplicationDefinition()
-	db.DefaultDBAppGroup()
+	db.CreateAllTables(context.Background())
 	//	db.DefaultDBGroupVersion()
 	utils.Bail("failed to start group2 handler", start_group2_handler())
 	if *testScanner {
@@ -200,7 +200,7 @@ func saveApp(app *pb.ApplicationDefinition) (uint64, error) {
 			return 0, errors.Errorf("Failed to insert autoreg for app %d: %s", id, err)
 		}
 	}
-	_, err = dbcon.ExecContext(TEMPCONTEXT(), "foo", "INSERT into applimits (app_id,maxmemory,priority) values ($1,$2,$3)", id, app.Limits.MaxMemory, app.Limits.Priority)
+	err = save_app_limits(id, app.Limits)
 	if err != nil {
 		return 0, errors.Errorf("Failed to insert limits for app %d: %s", id, err)
 	}
@@ -303,29 +303,8 @@ func loadApp(ctx context.Context, id uint64) (*pb.ApplicationDefinition, error) 
 		return nil, err
 	}
 	res.AutoRegs = regs
-	res.Limits, err = loadAppLimits(res.ID)
+	res.Limits, err = AppLimitsByAppID(res.ID)
 	dc.AppLimits(res)
-	return res, nil
-}
-
-// given an application id, loads "app limits"
-func loadAppLimits(id uint64) (*pb.Limits, error) {
-	// add new limits here...
-	rows, err := dbcon.QueryContext(TEMPCONTEXT(), "loadapplimits", "SELECT maxmemory,priority from applimits where app_id = $1", id)
-	if err != nil {
-		fmt.Printf("Failed to get app with id %d:%s\n", id, err)
-		return nil, err
-	}
-	defer rows.Close()
-	if !rows.Next() {
-		return nil, nil
-	}
-	res := &pb.Limits{}
-	err = rows.Scan(&res.MaxMemory, &res.Priority)
-	if err != nil {
-		return nil, err
-	}
-
 	return res, nil
 }
 

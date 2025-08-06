@@ -51,6 +51,12 @@ type DBGroupVersion struct {
 	lock                 sync.Mutex
 }
 
+func init() {
+	RegisterDBHandlerFactory(func() Handler {
+		return DefaultDBGroupVersion()
+	})
+}
+
 func DefaultDBGroupVersion() *DBGroupVersion {
 	if default_def_DBGroupVersion != nil {
 		return default_def_DBGroupVersion
@@ -84,6 +90,10 @@ func (a *DBGroupVersion) AddCustomColumnHandler(w CustomColumnHandler) {
 	a.lock.Lock()
 	a.customColumnHandlers = append(a.customColumnHandlers, w)
 	a.lock.Unlock()
+}
+
+func (a *DBGroupVersion) NewQuery() *Query {
+	return newQuery(a)
 }
 
 // archive. It is NOT transactionally save.
@@ -182,6 +192,14 @@ func (a *DBGroupVersion) saveMap(ctx context.Context, queryname string, smap map
 	return id, nil
 }
 
+// if ID==0 save, otherwise update
+func (a *DBGroupVersion) SaveOrUpdate(ctx context.Context, p *savepb.GroupVersion) error {
+	if p.ID == 0 {
+		_, err := a.Save(ctx, p)
+		return err
+	}
+	return a.Update(ctx, p)
+}
 func (a *DBGroupVersion) Update(ctx context.Context, p *savepb.GroupVersion) error {
 	qn := "DBGroupVersion_Update"
 	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set group_id=$1, createdtimestamp=$2 where id = $3", a.get_GroupID_ID(p), a.get_CreatedTimestamp(p), p.ID)
@@ -347,8 +365,11 @@ func (a *DBGroupVersion) ByDBQuery(ctx context.Context, query *Query) ([]*savepb
 	i := 0
 	for col_name, value := range extra_fields {
 		i++
-		efname := fmt.Sprintf("EXTRA_FIELD_%d", i)
-		query.Add(col_name+" = "+efname, QP{efname: value})
+		/*
+		   efname:=fmt.Sprintf("EXTRA_FIELD_%d",i)
+		   query.Add(col_name+" = "+efname,QP{efname:value})
+		*/
+		query.AddEqual(col_name, value)
 	}
 
 	gw, paras := query.ToPostgres()

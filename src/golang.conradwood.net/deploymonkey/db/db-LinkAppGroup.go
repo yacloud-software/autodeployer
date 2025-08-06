@@ -51,6 +51,12 @@ type DBLinkAppGroup struct {
 	lock                 sync.Mutex
 }
 
+func init() {
+	RegisterDBHandlerFactory(func() Handler {
+		return DefaultDBLinkAppGroup()
+	})
+}
+
 func DefaultDBLinkAppGroup() *DBLinkAppGroup {
 	if default_def_DBLinkAppGroup != nil {
 		return default_def_DBLinkAppGroup
@@ -84,6 +90,10 @@ func (a *DBLinkAppGroup) AddCustomColumnHandler(w CustomColumnHandler) {
 	a.lock.Lock()
 	a.customColumnHandlers = append(a.customColumnHandlers, w)
 	a.lock.Unlock()
+}
+
+func (a *DBLinkAppGroup) NewQuery() *Query {
+	return newQuery(a)
 }
 
 // archive. It is NOT transactionally save.
@@ -182,6 +192,14 @@ func (a *DBLinkAppGroup) saveMap(ctx context.Context, queryname string, smap map
 	return id, nil
 }
 
+// if ID==0 save, otherwise update
+func (a *DBLinkAppGroup) SaveOrUpdate(ctx context.Context, p *savepb.LinkAppGroup) error {
+	if p.ID == 0 {
+		_, err := a.Save(ctx, p)
+		return err
+	}
+	return a.Update(ctx, p)
+}
 func (a *DBLinkAppGroup) Update(ctx context.Context, p *savepb.LinkAppGroup) error {
 	qn := "DBLinkAppGroup_Update"
 	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set group_version_id=$1, app_id=$2 where id = $3", a.get_GroupVersion_ID(p), a.get_App_ID(p), p.ID)
@@ -350,8 +368,11 @@ func (a *DBLinkAppGroup) ByDBQuery(ctx context.Context, query *Query) ([]*savepb
 	i := 0
 	for col_name, value := range extra_fields {
 		i++
-		efname := fmt.Sprintf("EXTRA_FIELD_%d", i)
-		query.Add(col_name+" = "+efname, QP{efname: value})
+		/*
+		   efname:=fmt.Sprintf("EXTRA_FIELD_%d",i)
+		   query.Add(col_name+" = "+efname,QP{efname:value})
+		*/
+		query.AddEqual(col_name, value)
 	}
 
 	gw, paras := query.ToPostgres()

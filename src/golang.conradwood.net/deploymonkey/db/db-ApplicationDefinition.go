@@ -70,6 +70,12 @@ type DBApplicationDefinition struct {
 	lock                 sync.Mutex
 }
 
+func init() {
+	RegisterDBHandlerFactory(func() Handler {
+		return DefaultDBApplicationDefinition()
+	})
+}
+
 func DefaultDBApplicationDefinition() *DBApplicationDefinition {
 	if default_def_DBApplicationDefinition != nil {
 		return default_def_DBApplicationDefinition
@@ -103,6 +109,10 @@ func (a *DBApplicationDefinition) AddCustomColumnHandler(w CustomColumnHandler) 
 	a.lock.Lock()
 	a.customColumnHandlers = append(a.customColumnHandlers, w)
 	a.lock.Unlock()
+}
+
+func (a *DBApplicationDefinition) NewQuery() *Query {
+	return newQuery(a)
 }
 
 // archive. It is NOT transactionally save.
@@ -220,6 +230,14 @@ func (a *DBApplicationDefinition) saveMap(ctx context.Context, queryname string,
 	return id, nil
 }
 
+// if ID==0 save, otherwise update
+func (a *DBApplicationDefinition) SaveOrUpdate(ctx context.Context, p *savepb.ApplicationDefinition) error {
+	if p.ID == 0 {
+		_, err := a.Save(ctx, p)
+		return err
+	}
+	return a.Update(ctx, p)
+}
 func (a *DBApplicationDefinition) Update(ctx context.Context, p *savepb.ApplicationDefinition) error {
 	qn := "DBApplicationDefinition_Update"
 	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set downloadurl=$1, downloaduser=$2, downloadpassword=$3, r_binary=$4, buildid=$5, instances=$6, deploymentid=$7, machines=$8, deploytype=$9, critical=$10, alwayson=$11, statictargetdir=$12, r_public=$13, java=$14, repositoryid=$15, asroot=$16, container=$17, discardlog=$18, artefactid=$19, created=$20, instancesmeansperautodeployer=$21 where id = $22", a.get_DownloadURL(p), a.get_DownloadUser(p), a.get_DownloadPassword(p), a.get_Binary(p), a.get_BuildID(p), a.get_Instances(p), a.get_DeploymentID(p), a.get_Machines(p), a.get_DeployType(p), a.get_Critical(p), a.get_AlwaysOn(p), a.get_StaticTargetDir(p), a.get_Public(p), a.get_Java(p), a.get_RepositoryID(p), a.get_AsRoot(p), a.get_Container_ID(p), a.get_DiscardLog(p), a.get_ArtefactID(p), a.get_Created(p), a.get_InstancesMeansPerAutodeployer(p), p.ID)
@@ -1050,8 +1068,11 @@ func (a *DBApplicationDefinition) ByDBQuery(ctx context.Context, query *Query) (
 	i := 0
 	for col_name, value := range extra_fields {
 		i++
-		efname := fmt.Sprintf("EXTRA_FIELD_%d", i)
-		query.Add(col_name+" = "+efname, QP{efname: value})
+		/*
+		   efname:=fmt.Sprintf("EXTRA_FIELD_%d",i)
+		   query.Add(col_name+" = "+efname,QP{efname:value})
+		*/
+		query.AddEqual(col_name, value)
 	}
 
 	gw, paras := query.ToPostgres()

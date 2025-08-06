@@ -52,6 +52,12 @@ type DBAppMeta struct {
 	lock                 sync.Mutex
 }
 
+func init() {
+	RegisterDBHandlerFactory(func() Handler {
+		return DefaultDBAppMeta()
+	})
+}
+
 func DefaultDBAppMeta() *DBAppMeta {
 	if default_def_DBAppMeta != nil {
 		return default_def_DBAppMeta
@@ -85,6 +91,10 @@ func (a *DBAppMeta) AddCustomColumnHandler(w CustomColumnHandler) {
 	a.lock.Lock()
 	a.customColumnHandlers = append(a.customColumnHandlers, w)
 	a.lock.Unlock()
+}
+
+func (a *DBAppMeta) NewQuery() *Query {
+	return newQuery(a)
 }
 
 // archive. It is NOT transactionally save.
@@ -184,6 +194,14 @@ func (a *DBAppMeta) saveMap(ctx context.Context, queryname string, smap map[stri
 	return id, nil
 }
 
+// if ID==0 save, otherwise update
+func (a *DBAppMeta) SaveOrUpdate(ctx context.Context, p *savepb.AppMeta) error {
+	if p.ID == 0 {
+		_, err := a.Save(ctx, p)
+		return err
+	}
+	return a.Update(ctx, p)
+}
 func (a *DBAppMeta) Update(ctx context.Context, p *savepb.AppMeta) error {
 	qn := "DBAppMeta_Update"
 	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set userrequestedstop=$1, created=$2, app_id=$3 where id = $4", a.get_UserRequestedStop(p), a.get_Created(p), a.get_AppDef_ID(p), p.ID)
@@ -384,8 +402,11 @@ func (a *DBAppMeta) ByDBQuery(ctx context.Context, query *Query) ([]*savepb.AppM
 	i := 0
 	for col_name, value := range extra_fields {
 		i++
-		efname := fmt.Sprintf("EXTRA_FIELD_%d", i)
-		query.Add(col_name+" = "+efname, QP{efname: value})
+		/*
+		   efname:=fmt.Sprintf("EXTRA_FIELD_%d",i)
+		   query.Add(col_name+" = "+efname,QP{efname:value})
+		*/
+		query.AddEqual(col_name, value)
 	}
 
 	gw, paras := query.ToPostgres()

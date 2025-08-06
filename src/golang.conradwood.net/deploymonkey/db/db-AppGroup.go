@@ -53,6 +53,12 @@ type DBAppGroup struct {
 	lock                 sync.Mutex
 }
 
+func init() {
+	RegisterDBHandlerFactory(func() Handler {
+		return DefaultDBAppGroup()
+	})
+}
+
 func DefaultDBAppGroup() *DBAppGroup {
 	if default_def_DBAppGroup != nil {
 		return default_def_DBAppGroup
@@ -86,6 +92,10 @@ func (a *DBAppGroup) AddCustomColumnHandler(w CustomColumnHandler) {
 	a.lock.Lock()
 	a.customColumnHandlers = append(a.customColumnHandlers, w)
 	a.lock.Unlock()
+}
+
+func (a *DBAppGroup) NewQuery() *Query {
+	return newQuery(a)
 }
 
 // archive. It is NOT transactionally save.
@@ -186,6 +196,14 @@ func (a *DBAppGroup) saveMap(ctx context.Context, queryname string, smap map[str
 	return id, nil
 }
 
+// if ID==0 save, otherwise update
+func (a *DBAppGroup) SaveOrUpdate(ctx context.Context, p *savepb.AppGroup) error {
+	if p.ID == 0 {
+		_, err := a.Save(ctx, p)
+		return err
+	}
+	return a.Update(ctx, p)
+}
 func (a *DBAppGroup) Update(ctx context.Context, p *savepb.AppGroup) error {
 	qn := "DBAppGroup_Update"
 	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set namespace=$1, groupname=$2, deployedversion=$3, pendingversion=$4 where id = $5", a.get_Namespace(p), a.get_Groupname(p), a.get_DeployedVersion(p), a.get_PendingVersion(p), p.ID)
@@ -418,8 +436,11 @@ func (a *DBAppGroup) ByDBQuery(ctx context.Context, query *Query) ([]*savepb.App
 	i := 0
 	for col_name, value := range extra_fields {
 		i++
-		efname := fmt.Sprintf("EXTRA_FIELD_%d", i)
-		query.Add(col_name+" = "+efname, QP{efname: value})
+		/*
+		   efname:=fmt.Sprintf("EXTRA_FIELD_%d",i)
+		   query.Add(col_name+" = "+efname,QP{efname:value})
+		*/
+		query.AddEqual(col_name, value)
 	}
 
 	gw, paras := query.ToPostgres()
