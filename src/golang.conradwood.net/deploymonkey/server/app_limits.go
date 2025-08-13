@@ -11,6 +11,7 @@ func save_app_limits(appid uint64, limits *pb.Limits) error {
 		MaxMemory:     limits.MaxMemory,
 		Priority:      limits.Priority,
 		MaxKillMemory: limits.MaxKillMemory,
+		MaxSwapMemory: limits.MaxSwapMemory,
 	}
 	_, err := db.DefaultDBSQLLimits().Save(TEMPCONTEXT(), sl)
 
@@ -32,6 +33,7 @@ func AppLimitsByAppID(appid uint64) (*pb.Limits, error) {
 		MaxMemory:     limits.MaxMemory,
 		Priority:      limits.Priority,
 		MaxKillMemory: limits.MaxKillMemory,
+		MaxSwapMemory: limits.MaxSwapMemory,
 	}
 	return l, nil
 	// old version:

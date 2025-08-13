@@ -16,18 +16,19 @@ package db
 
 Main Table:
 
- CREATE TABLE applimits (id integer primary key default nextval('applimits_seq'),app_id bigint not null  references applicationdefinition (id) on delete cascade  ,maxmemory integer not null  ,priority integer not null  ,maxkillmemory integer not null  );
+ CREATE TABLE applimits (id integer primary key default nextval('applimits_seq'),app_id bigint not null  references applicationdefinition (id) on delete cascade  ,maxmemory integer not null  ,priority integer not null  ,maxkillmemory integer not null  ,maxswapmemory integer not null  );
 
 Alter statements:
 ALTER TABLE applimits ADD COLUMN IF NOT EXISTS app_id bigint not null references applicationdefinition (id) on delete cascade  default 0;
 ALTER TABLE applimits ADD COLUMN IF NOT EXISTS maxmemory integer not null default 0;
 ALTER TABLE applimits ADD COLUMN IF NOT EXISTS priority integer not null default 0;
 ALTER TABLE applimits ADD COLUMN IF NOT EXISTS maxkillmemory integer not null default 0;
+ALTER TABLE applimits ADD COLUMN IF NOT EXISTS maxswapmemory integer not null default 0;
 
 
 Archive Table: (structs can be moved from main to archive using Archive() function)
 
- CREATE TABLE applimits_archive (id integer unique not null,app_id bigint not null,maxmemory integer not null,priority integer not null,maxkillmemory integer not null);
+ CREATE TABLE applimits_archive (id integer unique not null,app_id bigint not null,maxmemory integer not null,priority integer not null,maxkillmemory integer not null,maxswapmemory integer not null);
 */
 
 import (
@@ -108,7 +109,7 @@ func (a *DBSQLLimits) Archive(ctx context.Context, id uint64) error {
 	}
 
 	// now save it to archive:
-	_, e := a.DB.ExecContext(ctx, "archive_DBSQLLimits", "insert into "+a.SQLArchivetablename+" (id,app_id, maxmemory, priority, maxkillmemory) values ($1,$2, $3, $4, $5) ", p.ID, p.AppDef.ID, p.MaxMemory, p.Priority, p.MaxKillMemory)
+	_, e := a.DB.ExecContext(ctx, "archive_DBSQLLimits", "insert into "+a.SQLArchivetablename+" (id,app_id, maxmemory, priority, maxkillmemory, maxswapmemory) values ($1,$2, $3, $4, $5, $6) ", p.ID, p.AppDef.ID, p.MaxMemory, p.Priority, p.MaxKillMemory, p.MaxSwapMemory)
 	if e != nil {
 		return e
 	}
@@ -130,6 +131,7 @@ func (a *DBSQLLimits) buildSaveMap(ctx context.Context, p *savepb.SQLLimits) (ma
 	res["maxmemory"] = a.get_col_from_proto(p, "maxmemory")
 	res["priority"] = a.get_col_from_proto(p, "priority")
 	res["maxkillmemory"] = a.get_col_from_proto(p, "maxkillmemory")
+	res["maxswapmemory"] = a.get_col_from_proto(p, "maxswapmemory")
 	if extra != nil {
 		for k, v := range extra {
 			res[k] = v
@@ -206,7 +208,7 @@ func (a *DBSQLLimits) SaveOrUpdate(ctx context.Context, p *savepb.SQLLimits) err
 }
 func (a *DBSQLLimits) Update(ctx context.Context, p *savepb.SQLLimits) error {
 	qn := "DBSQLLimits_Update"
-	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set app_id=$1, maxmemory=$2, priority=$3, maxkillmemory=$4 where id = $5", a.get_AppDef_ID(p), a.get_MaxMemory(p), a.get_Priority(p), a.get_MaxKillMemory(p), p.ID)
+	_, e := a.DB.ExecContext(ctx, qn, "update "+a.SQLTablename+" set app_id=$1, maxmemory=$2, priority=$3, maxkillmemory=$4, maxswapmemory=$5 where id = $6", a.get_AppDef_ID(p), a.get_MaxMemory(p), a.get_Priority(p), a.get_MaxKillMemory(p), a.get_MaxSwapMemory(p), p.ID)
 
 	return a.Error(ctx, qn, e)
 }
@@ -394,6 +396,36 @@ func (a *DBSQLLimits) ByLikeMaxKillMemory(ctx context.Context, p uint32) ([]*sav
 	return l, nil
 }
 
+// get all "DBSQLLimits" rows with matching MaxSwapMemory
+func (a *DBSQLLimits) ByMaxSwapMemory(ctx context.Context, p uint32) ([]*savepb.SQLLimits, error) {
+	qn := "DBSQLLimits_ByMaxSwapMemory"
+	l, e := a.fromQuery(ctx, qn, "maxswapmemory = $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, errors.Errorf("ByMaxSwapMemory: error scanning (%s)", e))
+	}
+	return l, nil
+}
+
+// get all "DBSQLLimits" rows with multiple matching MaxSwapMemory
+func (a *DBSQLLimits) ByMultiMaxSwapMemory(ctx context.Context, p []uint32) ([]*savepb.SQLLimits, error) {
+	qn := "DBSQLLimits_ByMaxSwapMemory"
+	l, e := a.fromQuery(ctx, qn, "maxswapmemory in $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, errors.Errorf("ByMaxSwapMemory: error scanning (%s)", e))
+	}
+	return l, nil
+}
+
+// the 'like' lookup
+func (a *DBSQLLimits) ByLikeMaxSwapMemory(ctx context.Context, p uint32) ([]*savepb.SQLLimits, error) {
+	qn := "DBSQLLimits_ByLikeMaxSwapMemory"
+	l, e := a.fromQuery(ctx, qn, "maxswapmemory ilike $1", p)
+	if e != nil {
+		return nil, a.Error(ctx, qn, errors.Errorf("ByMaxSwapMemory: error scanning (%s)", e))
+	}
+	return l, nil
+}
+
 /**********************************************************************
 * The field getters
 **********************************************************************/
@@ -424,6 +456,11 @@ func (a *DBSQLLimits) get_Priority(p *savepb.SQLLimits) int32 {
 // getter for field "MaxKillMemory" (MaxKillMemory) [uint32]
 func (a *DBSQLLimits) get_MaxKillMemory(p *savepb.SQLLimits) uint32 {
 	return uint32(p.MaxKillMemory)
+}
+
+// getter for field "MaxSwapMemory" (MaxSwapMemory) [uint32]
+func (a *DBSQLLimits) get_MaxSwapMemory(p *savepb.SQLLimits) uint32 {
+	return uint32(p.MaxSwapMemory)
 }
 
 /**********************************************************************
@@ -511,6 +548,8 @@ func (a *DBSQLLimits) get_col_from_proto(p *savepb.SQLLimits, colname string) in
 		return a.get_Priority(p)
 	} else if colname == "maxkillmemory" {
 		return a.get_MaxKillMemory(p)
+	} else if colname == "maxswapmemory" {
+		return a.get_MaxSwapMemory(p)
 	}
 	panic(fmt.Sprintf("in table \"%s\", column \"%s\" cannot be resolved to proto field name", a.Tablename(), colname))
 }
@@ -520,10 +559,10 @@ func (a *DBSQLLimits) Tablename() string {
 }
 
 func (a *DBSQLLimits) SelectCols() string {
-	return "id,app_id, maxmemory, priority, maxkillmemory"
+	return "id,app_id, maxmemory, priority, maxkillmemory, maxswapmemory"
 }
 func (a *DBSQLLimits) SelectColsQualified() string {
-	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".app_id, " + a.SQLTablename + ".maxmemory, " + a.SQLTablename + ".priority, " + a.SQLTablename + ".maxkillmemory"
+	return "" + a.SQLTablename + ".id," + a.SQLTablename + ".app_id, " + a.SQLTablename + ".maxmemory, " + a.SQLTablename + ".priority, " + a.SQLTablename + ".maxkillmemory, " + a.SQLTablename + ".maxswapmemory"
 }
 
 func (a *DBSQLLimits) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb.SQLLimits, error) {
@@ -539,7 +578,8 @@ func (a *DBSQLLimits) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb
 		scanTarget_2 := &foo.MaxMemory
 		scanTarget_3 := &foo.Priority
 		scanTarget_4 := &foo.MaxKillMemory
-		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2, scanTarget_3, scanTarget_4)
+		scanTarget_5 := &foo.MaxSwapMemory
+		err := rows.Scan(scanTarget_0, scanTarget_1, scanTarget_2, scanTarget_3, scanTarget_4, scanTarget_5)
 		// END SCANNER
 
 		if err != nil {
@@ -556,17 +596,19 @@ func (a *DBSQLLimits) FromRows(ctx context.Context, rows *gosql.Rows) ([]*savepb
 func (a *DBSQLLimits) CreateTable(ctx context.Context) error {
 	csql := []string{
 		`create sequence if not exists ` + a.SQLTablename + `_seq;`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),app_id bigint not null ,maxmemory integer not null ,priority integer not null ,maxkillmemory integer not null );`,
-		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),app_id bigint not null ,maxmemory integer not null ,priority integer not null ,maxkillmemory integer not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + ` (id integer primary key default nextval('` + a.SQLTablename + `_seq'),app_id bigint not null ,maxmemory integer not null ,priority integer not null ,maxkillmemory integer not null ,maxswapmemory integer not null );`,
+		`CREATE TABLE if not exists ` + a.SQLTablename + `_archive (id integer primary key default nextval('` + a.SQLTablename + `_seq'),app_id bigint not null ,maxmemory integer not null ,priority integer not null ,maxkillmemory integer not null ,maxswapmemory integer not null );`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS app_id bigint not null default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS maxmemory integer not null default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS priority integer not null default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS maxkillmemory integer not null default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + ` ADD COLUMN IF NOT EXISTS maxswapmemory integer not null default 0;`,
 
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS app_id bigint not null  default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS maxmemory integer not null  default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS priority integer not null  default 0;`,
 		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS maxkillmemory integer not null  default 0;`,
+		`ALTER TABLE ` + a.SQLTablename + `_archive  ADD COLUMN IF NOT EXISTS maxswapmemory integer not null  default 0;`,
 	}
 
 	for i, c := range csql {
