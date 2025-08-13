@@ -135,6 +135,8 @@ message Limits {
   int32 Priority = 2;
   // max memory available to this process in Megabyte (default = 3000Mb ) (memory.max)
   uint32 MaxKillMemory = 3;
+  // max swap memory available to this process in Megabyte (default = 3000Mb ) (memory.swap.max). if set memory.swap.high will be set to this value - 10%
+  uint32 MaxSwapMemory = 4;
 }
 
 message SQLLimits {
@@ -146,6 +148,9 @@ message SQLLimits {
   int32 Priority = 4;
   // max memory available to this process in Megabyte (default = 3000Mb ) (memory.max)
   uint32 MaxKillMemory = 5;
+  // max swap memory available to this process in Megabyte (default = 3000Mb ) (memory.swap.max). if set memory.swap.high will be set to this value - 10%
+  uint32 MaxSwapMemory = 6;
+
 }
 
 // a group consists of one or more applications
