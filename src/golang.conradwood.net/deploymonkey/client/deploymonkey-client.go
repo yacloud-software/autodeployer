@@ -361,7 +361,7 @@ func try_suggestions(s *pb.SuggestionList) error {
 		}
 		fmt.Println(Suggestion2Line(start))
 		ctx := authremote.ContextWithTimeout(*deploy_timeout)
-		fmt.Printf("Deploying %s...\n", start.String())
+		fmt.Printf("Deploying %s...\n", suggestion2str(start))
 		d := ToDeployRequest(start)
 		_, err = depl.DeployAppOnTarget(ctx, d)
 		if err != nil {
@@ -377,7 +377,7 @@ func try_suggestions(s *pb.SuggestionList) error {
 		fmt.Println(Suggestion2Line(stop))
 		d := ToUndeployRequest(stop)
 		ctx := authremote.ContextWithTimeout(*deploy_timeout)
-		fmt.Printf("Undeploying %s...\n", stop.String())
+		fmt.Printf("Undeploying %s...\n", suggestion2str(stop))
 		_, err = depl.UndeployAppOnTarget(ctx, d)
 		if err != nil {
 			return err
@@ -464,4 +464,9 @@ func Suggestion2Line(sg *pb.Suggestion) string {
 
 func Context() context.Context {
 	return authremote.ContextWithTimeout(time.Duration(90) * time.Second)
+}
+
+func suggestion2str(s *pb.Suggestion) string {
+	//	return s.String()
+	return Suggestion2Line(s)
 }
