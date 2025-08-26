@@ -80,7 +80,6 @@ func main() {
 	var err error
 	flag.Parse() // parse stuff. see "var" section above
 	server.SetHealth(common.Health_STARTING)
-	server.SetHealth(common.Health_READY)
 	dbcon, err = gesql.Open()
 	utils.Bail("failed to open postgres", err)
 	db.DefaultDBContainerDef().SaveWithID(context.Background(), &pb.ContainerDef{ID: 0})
@@ -89,8 +88,7 @@ func main() {
 	//	db.DefaultDBGroupVersion()
 	utils.Bail("failed to start group2 handler", start_group2_handler())
 	if *testScanner {
-		ScanAutodeployersTest()
-		os.Exit(0)
+		test_scanner()
 	}
 
 	applyChannel = make(chan *applyingInfo, 10)
@@ -122,12 +120,20 @@ func main() {
 	sd := server.NewServerDef()
 	sd.SetPort(*port)
 	sd.SetRegister(st)
+	sd.SetOnStartupCallback(startup)
 	err = server.ServerStartup(sd)
 	if err != nil {
 		fmt.Printf("failed to start server: %s\n", err)
 	}
 	fmt.Printf("Done\n")
-	return
+	os.Exit(0)
+}
+func startup() {
+	server.SetHealth(common.Health_READY)
+}
+func test_scanner() {
+	ScanAutodeployersTest()
+	os.Exit(0)
 }
 
 /**********************************
