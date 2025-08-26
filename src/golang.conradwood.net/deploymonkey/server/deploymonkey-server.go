@@ -79,6 +79,8 @@ func st(server *grpc.Server) error {
 func main() {
 	var err error
 	flag.Parse() // parse stuff. see "var" section above
+	server.SetHealth(common.Health_STARTING)
+	server.SetHealth(common.Health_READY)
 	dbcon, err = gesql.Open()
 	utils.Bail("failed to open postgres", err)
 	db.DefaultDBContainerDef().SaveWithID(context.Background(), &pb.ContainerDef{ID: 0})
