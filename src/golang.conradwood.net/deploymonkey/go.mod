@@ -11,12 +11,12 @@ replace golang.conradwood.net/apis/commondeploy => ../apis/commondeploy
 require (
 	github.com/lib/pq v1.10.9
 	golang.conradwood.net/apis/autodeployer v1.1.4006
-	golang.conradwood.net/apis/common v1.1.4007
+	golang.conradwood.net/apis/common v1.1.4021
 	golang.conradwood.net/apis/deploymonkey v1.1.4006
-	golang.conradwood.net/apis/grafanadata v1.1.4007
+	golang.conradwood.net/apis/grafanadata v1.1.4021
 	golang.conradwood.net/apis/registry v1.1.4006
 	golang.conradwood.net/apis/slackgateway v1.1.4006
-	golang.conradwood.net/go-easyops v0.1.36820
+	golang.conradwood.net/go-easyops v0.1.36966
 	google.golang.org/grpc v1.74.2
 	gopkg.in/yaml.v2 v2.4.0
 )
