@@ -355,6 +355,7 @@ func applySuggestions() {
 func try_suggestions(s *pb.SuggestionList) error {
 	var err error
 	fmt.Printf("Executing %d requests...\n", len(s.Suggestions))
+	fmt.Printf("Executing all start requests...\n")
 	for _, start := range s.Suggestions {
 		if !start.Start {
 			continue
@@ -369,7 +370,7 @@ func try_suggestions(s *pb.SuggestionList) error {
 		}
 
 	}
-	fmt.Printf("Executing stop requests...\n")
+	fmt.Printf("Executing all stop requests...\n")
 	for _, stop := range s.Suggestions {
 		if stop.Start {
 			continue
