@@ -334,8 +334,10 @@ func applySuggestions() {
 	max_tries := 5
 	for i := 0; i < max_tries; i++ {
 		ctx := Context()
+		quit_if_deploying()
 		sl, err := depl.GetSuggestions(ctx, &pb.SuggestRequest{})
 		utils.Bail("failed to get suggestions", err)
+		quit_if_deploying()
 		if len(sl.Suggestions) == 0 {
 			fmt.Printf("No suggestions to apply\n")
 			return
@@ -356,7 +358,9 @@ func try_suggestions(s *pb.SuggestionList) error {
 	var err error
 	fmt.Printf("Executing %d requests...\n", len(s.Suggestions))
 	fmt.Printf("Executing all start requests...\n")
+	quit_if_deploying()
 	for _, start := range s.Suggestions {
+		quit_if_deploying()
 		if !start.Start {
 			continue
 		}
@@ -372,6 +376,7 @@ func try_suggestions(s *pb.SuggestionList) error {
 	}
 	fmt.Printf("Executing all stop requests...\n")
 	for _, stop := range s.Suggestions {
+		quit_if_deploying()
 		if stop.Start {
 			continue
 		}
@@ -470,4 +475,18 @@ func Context() context.Context {
 func suggestion2str(s *pb.Suggestion) string {
 	//	return s.String()
 	return Suggestion2Line(s)
+}
+
+func quit_if_deploying() {
+	if *continue_on_error {
+		return
+	}
+	ctx := Context()
+	status, err := depl.GetStatus(ctx, &common.Void{})
+	utils.Bail("failed to get status", err)
+	if status.CurrentlyApplyingSuggestions {
+		fmt.Printf("Deploymonkey currently deploying stuff. try later (%s)\n", err)
+		fmt.Printf("if you do want to continue, use -continue_on_error\n")
+		os.Exit(10)
+	}
 }

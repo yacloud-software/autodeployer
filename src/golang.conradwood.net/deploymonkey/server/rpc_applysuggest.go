@@ -16,8 +16,9 @@ const (
 )
 
 var (
-	apply_suggest_chan = make(chan *apply_suggest_event)
-	apply_suggest_lock sync.Mutex
+	apply_suggest_chan   = make(chan *apply_suggest_event)
+	apply_suggest_lock   sync.Mutex
+	applying_suggestions = false
 )
 
 type apply_suggest_event struct {
@@ -29,6 +30,9 @@ func init() {
 }
 
 func (dm *DeployMonkey) ApplySuggestions(req *common.Void, srv pb.DeployMonkey_ApplySuggestionsServer) error {
+	if applying_suggestions {
+		return errors.Errorf("Already applying. retry later")
+	}
 	ctx := srv.Context()
 	sl, err := dm.GetSuggestions(ctx, &pb.SuggestRequest{})
 	if err != nil {
@@ -63,6 +67,11 @@ func (dm *DeployMonkey) applySuggestions(sl *pb.SuggestionList) error {
 }
 
 func try_suggestions(s *pb.SuggestionList) error {
+	applying_suggestions = true
+	defer func() {
+		applying_suggestions = false
+	}()
+
 	var err error
 	fmt.Printf("Executing %d requests...\n", len(s.Suggestions))
 	dm := &DeployMonkey{}
