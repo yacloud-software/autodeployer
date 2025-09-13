@@ -310,7 +310,9 @@ message Config {
   DeployersList Deployers = 1;
   repeated GroupConfig GroupConfigs = 2;
 }
-
+message Status {
+    bool CurrentlyApplyingSuggestions=1;
+}
 message DeployAppRequest {
   uint64 AppID = 1;
   string Host = 2;
@@ -410,6 +412,8 @@ service DeployMonkey {
   // rpc SetMachineStatus(SetMachineStatusRequest) returns (EmptyMessage);
   // get entire config
   rpc GetConfig(common.Void) returns (Config);
+  // e.g. is it currently deploying stuff
+  rpc GetStatus(common.Void) returns (Status);
 
   // this reads from cache:
   rpc GetDeploymentsFromCache(common.Void) returns (DeploymentList);
