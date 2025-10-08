@@ -27,6 +27,7 @@ func newQuery(qt queryTable) *Query {
 }
 
 // named parameter like so: "foo = :bar:" and map{"bar":"none"}
+// you are probably looking for AddEqual or so
 func (q *Query) Add(and_clause string, paras map[string]interface{}) {
 	q.and_clauses = append(q.and_clauses, and_clause)
 	for k, _ := range q.paras {
@@ -80,7 +81,7 @@ func (q *Query) ToPostgres() (string, []interface{}) {
 		final_clause = strings.ReplaceAll(final_clause, ":"+key+":", fmt.Sprintf("$%d", (pos+1)))
 	}
 	if q.order != "" {
-		final_clause = final_clause + fmt.Sprintf(" ORDER BY "+q.order)
+		final_clause = final_clause + " ORDER BY " + q.order
 	}
 	if q.max != 0 {
 		final_clause = final_clause + fmt.Sprintf(" LIMIT %d", q.max)
@@ -90,6 +91,18 @@ func (q *Query) ToPostgres() (string, []interface{}) {
 
 // add an equal comparison to the query
 func (q *Query) AddEqual(field string, value interface{}) {
-	vname := fmt.Sprintf("field_%s", field)
+	vname := fmt.Sprintf("field_equal_%s", field)
 	q.Add(field+" = :"+vname+":", QP{vname: value})
+}
+
+// add a less than comparison to the query
+func (q *Query) AddLess(field string, value interface{}) {
+	vname := fmt.Sprintf("field_less_%s", field)
+	q.Add(field+" < :"+vname+":", QP{vname: value})
+}
+
+// add a more than comparison to the query
+func (q *Query) AddMore(field string, value interface{}) {
+	vname := fmt.Sprintf("field_more_%s", field)
+	q.Add(field+" > :"+vname+":", QP{vname: value})
 }
