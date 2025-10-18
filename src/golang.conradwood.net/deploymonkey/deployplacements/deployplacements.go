@@ -2,11 +2,12 @@ package deployplacements
 
 import (
 	"fmt"
+	"strings"
+
 	ad "golang.conradwood.net/apis/autodeployer"
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/apis/registry"
 	"golang.conradwood.net/deploymonkey/common"
-	"strings"
 )
 
 type DeployRequest struct {
@@ -17,7 +18,7 @@ type Group interface {
 }
 
 func (dr *DeployRequest) String() string {
-	return fmt.Sprintf("%s,vers=%d on %s", dr.appdef.Binary, dr.appdef.BuildID, dr.sa.String())
+	return fmt.Sprintf("%s,vers=%d,repo=%d,artefact=%d on %s", dr.appdef.Binary, dr.appdef.BuildID, dr.appdef.RepositoryID, dr.appdef.ArtefactID, dr.sa.String())
 }
 func (dr *DeployRequest) GetAutodeployerClient() ad.AutoDeployerClient {
 	return dr.sa.GetClient()

@@ -34,7 +34,7 @@ func (depl *DeployMonkey) NewBuildAvailable(ctx context.Context, req *dm.NewBuil
 	}
 
 	for _, group := range fd.Groups {
-		fmt.Printf("Creating new group for build %d,namespace=%s,groupid=%s (ArtefactID %d)\n", req.BuildID, group.Namespace, group.GroupID, req.ArtefactID)
+		fmt.Printf("Creating new group for build %d,namespace=%s,groupid=%s (RepoID %d, ArtefactID %d)\n", req.BuildID, group.Namespace, group.GroupID, req.RepositoryID, req.ArtefactID)
 		gv, err := groupHandler.CreateGroupVersion(ctx, group)
 		if err != nil {
 			return nil, err
