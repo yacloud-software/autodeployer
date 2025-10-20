@@ -332,6 +332,7 @@ func listSuggestionsOld() {
 }
 func applySuggestions() {
 	max_tries := 5
+	s := "no suggestions to apply.\n"
 	for i := 0; i < max_tries; i++ {
 		ctx := Context()
 		quit_if_deploying()
@@ -339,12 +340,14 @@ func applySuggestions() {
 		utils.Bail("failed to get suggestions", err)
 		quit_if_deploying()
 		if len(sl.Suggestions) == 0 {
-			fmt.Printf("No suggestions to apply\n")
+			fmt.Print(s)
 			return
 		}
+		s = "no more suggestions to apply.\n"
 		err = try_suggestions(sl)
 		if err == nil {
-			break
+			fmt.Printf("rescanning...\n")
+			time.Sleep(time.Duration(5) * time.Second)
 		}
 		if err != nil {
 			fmt.Printf("Attempt %d of %d - Failed to deploy: %s\n", (i + 1), max_tries, err)

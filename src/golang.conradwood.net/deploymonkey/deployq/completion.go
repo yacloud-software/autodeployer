@@ -2,16 +2,32 @@ package deployq
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	ad "golang.conradwood.net/apis/autodeployer"
 	"golang.conradwood.net/apis/common"
 	"golang.conradwood.net/go-easyops/errors"
-	"sync"
-	"time"
 )
 
 const (
 	GRACE_PERIOD_BEFORE_SHUT_DOWN = time.Duration(90) * time.Second
 )
+
+var (
+	completion_counter_lock sync.Mutex
+	completion_counter      int // nuber of handlers being busy
+)
+
+func (q *DeployQueue) is_completion_busy() bool {
+	if len(q.requests) > 0 {
+		return true
+	}
+	if completion_counter != 0 {
+		return true
+	}
+	return false
+}
 
 /*
 the second part. stuff has been deployed, now wait for it to perform well before shutting down older versions
@@ -19,8 +35,17 @@ it picks up all transactions with the 'started' flag set
 */
 func (q *DeployQueue) work_monitoring() {
 	t := time.Duration(5) * time.Second
+	completion_counter_lock.Lock()
+	completion_counter++
+	completion_counter_lock.Unlock()
 	for {
+		completion_counter_lock.Lock()
+		completion_counter--
+		completion_counter_lock.Unlock()
 		time.Sleep(t)
+		completion_counter_lock.Lock()
+		completion_counter++
+		completion_counter_lock.Unlock()
 
 		// find the transactions (with lock held)
 		var transactions []*deployTransaction
@@ -64,6 +89,7 @@ func (q *DeployQueue) work_monitoring() {
 				}
 			}
 		}
+
 	}
 }
 func (q *DeployQueue) check_monitored(dt *deployTransaction) error {

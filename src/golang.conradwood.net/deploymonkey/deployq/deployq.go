@@ -19,14 +19,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"sort"
+	"sync"
+	"time"
+
 	pb "golang.conradwood.net/apis/deploymonkey"
 	"golang.conradwood.net/deploymonkey/common"
 	"golang.conradwood.net/deploymonkey/db"
 	dp "golang.conradwood.net/deploymonkey/deployplacements"
 	"golang.conradwood.net/go-easyops/errors"
-	"sort"
-	"sync"
-	"time"
 )
 
 type EVENT int
@@ -47,8 +48,38 @@ var (
 		work_distributor_chan: make(chan bool),
 		work_handler_chan:     make(chan *deployTransaction),
 	}
-	starterlock sync.Mutex
+	starterlock               sync.Mutex
+	isdeploying               bool
+	work_handler_counter_lock sync.Mutex
+	work_handler_counter      int // nuber of handlers being busy
 )
+
+func IsDeploying() bool {
+	reset_if_deploying()
+	return isdeploying
+}
+
+func reset_if_deploying() {
+	if !IsDeploying() {
+		return
+	}
+	if len(q.work_distributor_chan) > 0 {
+		return
+	}
+	if len(q.requests) > 0 {
+		return
+	}
+	if len(q.work_handler_chan) > 0 {
+		return
+	}
+	if work_handler_counter > 0 {
+		return
+	}
+	if completion_counter > 0 {
+		return
+	}
+	isdeploying = false
+}
 
 // add a bunch of requests, treat them somewhat as one transaction
 func Add(dr []*dp.DeployRequest) (chan *DeployUpdate, error) {
@@ -77,6 +108,7 @@ func Add(dr []*dp.DeployRequest) (chan *DeployUpdate, error) {
 		stop_running_in_same_group: true,
 	}
 	debugf("adding deploytransaction %s", tr.String())
+	isdeploying = true
 	q.requests = append(q.requests, tr)
 	q.work_distributor_chan <- true
 	q.Unlock()
@@ -228,8 +260,17 @@ if something goes wrong, it will set an error on the transaction.
 if all goes well it sets the 'started' flag on the transaction. (which then gets picked up by the completion worker)
 */
 func (q *DeployQueue) work_handler() {
+	work_handler_counter_lock.Lock()
+	work_handler_counter++
+	work_handler_counter_lock.Unlock()
 	for {
+		work_handler_counter_lock.Lock()
+		work_handler_counter--
+		work_handler_counter_lock.Unlock()
 		dt := <-q.work_handler_chan
+		work_handler_counter_lock.Lock()
+		work_handler_counter++
+		work_handler_counter_lock.Unlock()
 		fmt.Printf("work handling: %#v\n", dt)
 		dt.sendUpdate(EVENT_PREPARE)
 		q.Lock()
