@@ -485,7 +485,7 @@ func quit_if_deploying() {
 	status, err := depl.GetStatus(ctx, &common.Void{})
 	utils.Bail("failed to get status", err)
 	if status.CurrentlyApplyingSuggestions {
-		fmt.Printf("Deploymonkey currently deploying stuff. try later (%s)\n", err)
+		fmt.Printf("Deploymonkey currently deploying stuff. try later\n")
 		fmt.Printf("if you do want to continue, use -continue_on_error\n")
 		os.Exit(10)
 	}
