@@ -356,6 +356,7 @@ message Suggestion {
 
 message SuggestionList {
   repeated Suggestion Suggestions=1;
+  uint32 Created=2;
 }
 message DelVersionRequest {
   uint64 Version=1;
@@ -429,6 +430,8 @@ service DeployMonkey {
   rpc GetKnownAutodeployers(common.Void) returns (AutodeployerList);
   // get suggestions
   rpc GetSuggestions(SuggestRequest) returns (SuggestionList);
+  // get most recent suggestions where there were actual suggestions
+  rpc GetSuggestionsNonEmpty(SuggestRequest) returns (SuggestionList);
   // apply suggestions
   rpc ApplySuggestions(common.Void) returns (stream ApplyStream);
   // delete an application definition
