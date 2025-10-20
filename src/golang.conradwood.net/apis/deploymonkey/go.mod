@@ -4,8 +4,8 @@ go 1.24.0
 
 require (
 	github.com/golang/protobuf v1.5.4
-	golang.conradwood.net/apis/common v1.1.4102
-	golang.conradwood.net/apis/grafanadata v1.1.4102
+	golang.conradwood.net/apis/common v1.1.4123
+	golang.conradwood.net/apis/grafanadata v1.1.4123
 	golang.org/x/net v0.44.0
 	google.golang.org/grpc v1.75.1
 )

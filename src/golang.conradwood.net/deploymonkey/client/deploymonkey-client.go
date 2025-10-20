@@ -307,9 +307,25 @@ func listSuggestions() {
 	ctx := Context()
 	sl, err := depl.GetSuggestions(ctx, sr)
 	utils.Bail("failed to get suggestions", err)
+	if len(sl.Suggestions) == 0 {
+		fmt.Printf("No current suggestions\n")
+	} else {
+		for _, sg := range sl.Suggestions {
+			fmt.Println(Suggestion2Line(sg))
+		}
+		return
+	}
+
+	sl, err = depl.GetSuggestionsNonEmpty(ctx, sr)
+	utils.Bail("failed to get suggestions2", err)
+	if len(sl.Suggestions) == 0 {
+		return
+	}
+	fmt.Printf("Most recently (at %s) suggestions were:\n", utils.TimestampAgeString(sl.Created))
 	for _, sg := range sl.Suggestions {
 		fmt.Println(Suggestion2Line(sg))
 	}
+
 }
 func listSuggestionsOld() {
 	ctx := Context()

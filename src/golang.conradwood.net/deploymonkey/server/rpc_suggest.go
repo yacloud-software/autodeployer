@@ -14,21 +14,39 @@ import (
 )
 
 var (
-	last_suggestion_list_time time.Time
-	last_suggestion_list      *pb.SuggestionList
+	most_recent_suggestion           *suggestion_list
+	most_recent_non_empty_suggestion *suggestion_list
 )
 
+type suggestion_list struct {
+	timestamp time.Time
+	list      *pb.SuggestionList
+}
+
 func (d *DeployMonkey) GetSuggestions(ctx context.Context, req *pb.SuggestRequest) (*pb.SuggestionList, error) {
-	if last_suggestion_list != nil && time.Since(last_suggestion_list_time) < time.Duration(5)*time.Second {
-		return last_suggestion_list, nil
+	if most_recent_suggestion != nil && time.Since(most_recent_suggestion.timestamp) < time.Duration(5)*time.Second {
+		return most_recent_suggestion.list, nil
 	}
 	res, err := d.getSuggestions(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	last_suggestion_list = res
-	last_suggestion_list_time = time.Now()
-	return last_suggestion_list, nil
+	sl := &suggestion_list{
+		list:      res,
+		timestamp: time.Now(),
+	}
+	most_recent_suggestion = sl
+	if len(sl.list.Suggestions) > 0 {
+		most_recent_non_empty_suggestion = sl
+	}
+	return sl.list, nil
+}
+func (d *DeployMonkey) GetSuggestionsNonEmpty(ctx context.Context, req *pb.SuggestRequest) (*pb.SuggestionList, error) {
+	if most_recent_non_empty_suggestion == nil {
+		return &pb.SuggestionList{}, nil
+	}
+	return most_recent_non_empty_suggestion.list, nil
+
 }
 func (d *DeployMonkey) getSuggestions(ctx context.Context, req *pb.SuggestRequest) (*pb.SuggestionList, error) {
 	depl := pb.NewDeployMonkeyClient(client.Connect("deploymonkey.DeployMonkey"))
@@ -46,7 +64,9 @@ func (d *DeployMonkey) getSuggestions(ctx context.Context, req *pb.SuggestReques
 		return nil, errors.Errorf("Suggestion failed: %s", err)
 	}
 	fmt.Println(s.String())
-	res := &pb.SuggestionList{}
+	res := &pb.SuggestionList{
+		Created: uint32(time.Now().Unix()),
+	}
 	for _, ac := range s.Starts {
 		sd := &pb.Suggestion{
 			Start:         true,
