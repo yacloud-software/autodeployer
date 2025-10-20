@@ -60,7 +60,7 @@ func IsDeploying() bool {
 }
 
 func reset_if_deploying() {
-	if !IsDeploying() {
+	if !isdeploying {
 		return
 	}
 	if len(q.work_distributor_chan) > 0 {
