@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"golang.conradwood.net/apis/common"
+	"google.golang.org/grpc/peer"
 	//rpb "golang.conradwood.net/apis/registry"
 )
 
@@ -15,7 +16,13 @@ func (s *DeployMonkey) AutodeployerShutdown(ctx context.Context, req *common.Voi
 	return &common.Void{}, nil
 }
 func (s *DeployMonkey) AutodeployerStartup(ctx context.Context, req *common.Void) (*common.Void, error) {
-	fmt.Printf("Autodeployer startedup.\n")
+	ip := ""
+	t, ok := peer.FromContext(ctx)
+	if ok && t != nil && t.Addr != nil {
+		ip = t.Addr.String()
+	}
+
+	fmt.Printf("Autodeployer (%s) started up.\n", ip)
 	ScanAutodeployers()
 	PrintAutodeployers()
 	go func() {
